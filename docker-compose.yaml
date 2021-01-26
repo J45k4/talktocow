@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  database:
+    image: postgres
+    ports:
+      - "12002:5432"
+    environment:
+      POSTGRES_PASSWORD: "makkara"
+      POSTGRES_USER: "matti"
+      POSTGRES_DB: "talktocow"

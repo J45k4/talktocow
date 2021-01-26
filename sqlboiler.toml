@@ -1,0 +1,8 @@
+[psql]
+dbname = "talktocow"
+host = "localhost"
+port = "12002"
+user = "matti"
+pass = "makkara"
+sslmode = "disable"
+blacklist = ["gorp_migrations"]

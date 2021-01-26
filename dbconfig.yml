@@ -1,0 +1,4 @@
+postgres:
+  dialect: postgres
+  dir: migrations
+  table: migrations
