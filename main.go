@@ -243,7 +243,7 @@ func main() {
 		err := models.NewQuery(
 			qm.Select("messages.*", "users.*"),
 			qm.OrderBy("transmited_at desc"),
-			qm.Limit(20),
+			qm.Limit(35),
 			qm.From("messages"),
 			qm.InnerJoin("users on messages.user_id = users.id"),
 		).Bind(ctx.Request().Context(), db, &rows)
