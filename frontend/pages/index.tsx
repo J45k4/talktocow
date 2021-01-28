@@ -5,7 +5,6 @@ import Link from "next/link";
 import Head from 'next/head'
 import { postJson } from "../utility/api";
 import { IsLoggedIn, IsNotLoggedIn } from "../components/auth";
-
 import { Workbox } from "workbox-window";
 
 
@@ -24,23 +23,20 @@ const Index = () => {
 	// 		// var notification = new Notification("Cow send you a cute message");
 	// 		// ServiceWorkerRegistration.showNotification("Hello")
 	// 	})
-		
+
 	// }, [])
 
 	useEffect(() => {
-		// if (
-		//   !("serviceWorker" in navigator) ||
-		//   process.env.NODE_ENV !== "production"
-		// ) {
-		//   console.warn("Progressive Web App support is disabled");
-		//   return;
-		// }
 		const wb = new Workbox("sw.js", { scope: "/" });
+
 		wb.register();
 	}, []);
 
 	const [username, setUsername] = useState();
 	const [password, setPassword] = useState();
+
+	const [currentlyLogining, setCurrentlyLogining] = useState(false);
+	const [loginError, setLoginError] = useState("");
 
 	const router = useRouter()
 
@@ -72,9 +68,16 @@ const Index = () => {
 					<IsLoggedIn>
 						<div>
 							<h1>Hello lovely cat 😘</h1>
-							<Link href="/chatroom">
-								Enter chatroom
+							<div>
+								<Link href="/chatroom">
+									Enter chatroom
 							</Link>
+							</div>
+							<div>
+								<Link href="/newchatroom">
+									New chatroom
+							</Link>
+							</div>
 							<div>
 								<button onClick={() => {
 									localStorage.removeItem("token");
@@ -89,7 +92,7 @@ const Index = () => {
 					<IsNotLoggedIn>
 						<div>
 							<h1>
-								Please login cute cat 🥰 
+								Please login cute cat 🥰
 							</h1>
 						</div>
 						<div>
@@ -113,11 +116,34 @@ const Index = () => {
 							}} />
 						</div>
 						<div>
+							<div style={{
+								color: "red"
+							}}>
+								{loginError}
+							</div>
+							{currentlyLogining ? 
+								<div>
+									Logining...
+								</div>
+							:
 							<button onClick={async () => {
-								const res = await postJson("/api/login", {
-									username: username,
-									password: password
-								})
+								setCurrentlyLogining(true);
+
+								let res
+
+								try {
+									res = await postJson("/api/login", {
+										username: username,
+										password: password
+									})
+								} catch (e) {
+									console.log("cathing erro", e);
+
+									setCurrentlyLogining(false);
+									setLoginError(e.message);
+
+									return
+								}
 
 								if (res.errorMessage) {
 									console.error(res.errorMessage)
@@ -130,7 +156,7 @@ const Index = () => {
 								window.location.reload();
 							}}>
 								Login
-							</button>
+							</button>}
 						</div>
 					</IsNotLoggedIn>
 				</div>
