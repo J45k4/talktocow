@@ -2,3 +2,4 @@ private.cert
 public.key
 .env
 scripts/workdir
+access.log
