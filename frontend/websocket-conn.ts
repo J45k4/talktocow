@@ -7,8 +7,15 @@ export interface NewChatroomMessage {
     transmittedAt: string
 }
 
+export interface UserStatusChange {
+    userId: string
+    online: boolean
+    lastseen: string
+}
+
 export interface MessageFromServer {
-    newChatroomMessage: NewChatroomMessage
+    newChatroomMessage?: NewChatroomMessage
+    userStausChange?: UserStatusChange
 }
 
 export interface MessageToChatroom {
@@ -19,6 +26,7 @@ export interface MessageToChatroom {
 
 export interface MessageToServer {
     messageToChatroom: MessageToChatroom
+    iamHere: boolean
 }
 
 let client: WebSocket
@@ -113,6 +121,8 @@ export const useIsSocketConnected = () => {
     let connectd
 
     useEffect(() => {
+
+        
         connectd = socketConnected
     }, [socketConnected])
 

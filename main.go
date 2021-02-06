@@ -3,23 +3,19 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"time"
+	"strings"
 
-	"github.com/gorilla/websocket"
+	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/auth"
 	"github.com/j45k4/talktocow/config"
 	"github.com/j45k4/talktocow/models"
-	"github.com/kataras/iris/v12"
-	"github.com/kataras/iris/v12/middleware/jwt"
+	"github.com/j45k4/talktocow/routes"
 	_ "github.com/lib/pq"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type LoginPayload struct {
@@ -96,187 +92,244 @@ func main() {
 		return
 	}
 
-	app := iris.Default()
+	r := gin.Default()
 
-	signer := jwt.NewSigner(jwt.HS256, loadPrivateKey(), 12*time.Hour)
-	verifier := jwt.NewVerifier(jwt.HS256, loadPrivateKey())
-	verifyMiddleware := verifier.Verify(func() interface{} {
-		return new(UserSession)
+	r.Use(func(ctx *gin.Context) {
+		ctx.Set("db", db)
 	})
 
-	app.Post("/api/login", func(ctx iris.Context) {
-		p := LoginPayload{}
+	r.POST("/api/login", routes.HandleLogin)
 
-		ctx.ReadJSON(&p)
+	r.Use(func(ctx *gin.Context) {
+		var token string
 
-		fmt.Printf("New login attempt {%v}", p)
+		authHeader := ctx.GetHeader("authorization")
 
-		var user models.User
+		if strings.HasPrefix(authHeader, "Bearer") {
+			token = strings.ReplaceAll(authHeader, "Bearer ", "")
+		} else {
+			query := ctx.Request.URL.Query()
 
-		err := models.Users(
-			qm.Where("username = ?", p.Username),
-		).Bind(ctx.Request().Context(), db, &user)
+			token = query.Get("token")
+		}
+
+		log.Println("Token is", token)
+
+		if token == "" {
+			log.Println("User is not authorized")
+
+			ctx.Status(http.StatusUnauthorized)
+
+			ctx.Abort()
+		}
+
+		var userSession UserSession
+
+		err = auth.DecodeObjectFromToken(token, &userSession)
 
 		if err != nil {
-			ctx.StatusCode(iris.StatusForbidden)
-			ctx.EndRequest()
+			log.Println("User token is invalid", err)
 
-			return
+			ctx.Status(http.StatusUnauthorized)
+
+			ctx.Abort()
 		}
 
-		if auth.CheckPasswordHash(p.Password, user.PasswordHash.String) == false {
-			ctx.StatusCode(iris.StatusForbidden)
-			ctx.EndRequest()
+		ctx.Set("userSession", userSession)
 
-			return
-		}
-
-		token, err := signer.Sign(UserSession{
-			UserID: int32(user.ID),
-			Name:   user.Name.String,
-		})
-
-		if err != nil {
-			ctx.StatusCode(iris.StatusInternalServerError)
-			ctx.EndRequest()
-
-			return
-		}
-
-		resp := LoginResponse{
-			Token: string(token),
-		}
-
-		ctx.JSON(resp)
+		log.Println("userSession", userSession)
 	})
 
-	app.Use(verifyMiddleware)
+	r.GET("/chatroom/:chatroomId/")
+	r.GET("/api/messages", routes.HandleGetMessages)
+	r.GET("/api/socket", routes.HandleSocket)
 
-	app.Get("/api/me", func(ctx iris.Context) {
+	r.Run(":12001")
 
-	})
+	// app := iris.Default()
 
-	//func(w http.ResponseWriter, r *http.Request)
+	// signer := jwt.NewSigner(jwt.HS256, loadPrivateKey(), 12*time.Hour)
+	// verifier := jwt.NewVerifier(jwt.HS256, loadPrivateKey())
+	// verifyMiddleware := verifier.Verify(func() interface{} {
+	// 	return new(UserSession)
+	// })
+	// app.UseRouter()
 
-	connections := make(map[*websocket.Conn]bool)
+	// mvc.Configure(app.Party(""))
 
-	app.Get("/api/socket", func(ctx iris.Context) {
-		w := ctx.ResponseWriter()
-		r := ctx.Request()
+	// app.Post("/api/login", func(ctx iris.Context) {
+	// 	p := LoginPayload{}
 
-		ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
+	// 	ctx.ReadJSON(&p)
 
-		if _, ok := err.(websocket.HandshakeError); ok {
-			http.Error(w, "Not websocket handshake", 400)
-		} else if err != nil {
-			return
-		}
+	// 	fmt.Printf("New login attempt {%v}", p)
 
-		userSession := jwt.Get(ctx).(*UserSession)
+	// 	var user models.User
 
-		fmt.Printf("New sokcet session %v\n", userSession)
+	// 	err := models.Users(
+	// 		qm.Where("username = ?", p.Username),
+	// 	).Bind(ctx.Request().Context(), db, &user)
 
-		connections[ws] = true
+	// 	if err != nil {
+	// 		ctx.StatusCode(iris.StatusForbidden)
+	// 		ctx.EndRequest()
 
-		go func() {
-			for {
-				msg := WebsocketReceiveMessage{}
+	// 		return
+	// 	}
 
-				err = ws.ReadJSON(&msg)
+	// 	if auth.CheckPasswordHash(p.Password, user.PasswordHash.String) == false {
+	// 		ctx.StatusCode(iris.StatusForbidden)
+	// 		ctx.EndRequest()
 
-				if err != nil {
-					delete(connections, ws)
+	// 		return
+	// 	}
 
-					return
-				}
+	// 	token, err := signer.Sign(UserSession{
+	// 		UserID: int32(user.ID),
+	// 		Name:   user.Name.String,
+	// 	})
 
-				fmt.Printf("new message %v\n", msg)
+	// 	if err != nil {
+	// 		ctx.StatusCode(iris.StatusInternalServerError)
+	// 		ctx.EndRequest()
 
-				if msg.MessageToChatRoom != nil {
-					transmittedAt, _ := time.Parse(time.RFC3339Nano, msg.MessageToChatRoom.TransmitTime)
-					//createdAt, _ := time.Parse(time.RFC3339Nano, msg.MessageToChatRoom.CreateTime)
+	// 		return
+	// 	}
 
-					newMessage := models.Message{
-						MessageText:      null.NewString(msg.MessageToChatRoom.MessageText, true),
-						ServerReceivedAt: time.Now(),
-						UserID:           int(userSession.UserID),
-						Platform:         null.StringFrom("talktocow"),
-						ChatroomID:       1,
-						TransmitedAt:     transmittedAt,
-					}
+	// 	resp := LoginResponse{
+	// 		Token: string(token),
+	// 	}
 
-					messageInserErr := newMessage.Insert(context.Background(), db, boil.Infer())
+	// 	ctx.JSON(resp)
+	// })
 
-					if messageInserErr != nil {
-						fmt.Println("Message insert failed", messageInserErr)
-					}
+	// app.Use(verifyMiddleware)
 
-					newChatroomMessage := NewChatroomMessage{
-						MessageText:   msg.MessageToChatRoom.MessageText,
-						FromUserName:  userSession.Name,
-						TransmittedAt: msg.MessageToChatRoom.TransmitTime,
-					}
+	// app.Get("/api/me", func(ctx iris.Context) {
 
-					transmitMessage := WebsocketTransmitMessage{
-						NewChatroomMessage: &newChatroomMessage,
-					}
+	// })
 
-					fmt.Printf("Sending message %v to %v", transmitMessage, userSession)
+	// //func(w http.ResponseWriter, r *http.Request)
 
-					for c, _ := range connections {
-						c.WriteJSON(transmitMessage)
-					}
-				}
+	// connections := make(map[*websocket.Conn]bool)
 
-				// for c, _ := range connections {
-				// 	c.WriteJSON(WebsocketSendMessage{
-				// 		MessageText: msg.MessageText,
-				// 	})
-				// }
-			}
-		}()
-	})
+	// app.Get("/api/socket", func(ctx iris.Context) {
+	// 	w := ctx.ResponseWriter()
+	// 	r := ctx.Request()
 
-	app.Get("/api/messages", func(ctx iris.Context) {
-		rows := []MessageAndUser{}
+	// 	ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
 
-		err := models.NewQuery(
-			qm.Select("messages.*", "users.*"),
-			qm.OrderBy("transmited_at desc"),
-			qm.Limit(35),
-			qm.From("messages"),
-			qm.InnerJoin("users on messages.user_id = users.id"),
-		).Bind(ctx.Request().Context(), db, &rows)
+	// 	if _, ok := err.(websocket.HandshakeError); ok {
+	// 		http.Error(w, "Not websocket handshake", 400)
+	// 	} else if err != nil {
+	// 		return
+	// 	}
 
-		if err != nil {
-			fmt.Println("Messages fetch failed", err)
+	// 	userSession := jwt.Get(ctx).(*UserSession)
 
-			ctx.SetErr(err)
-		}
+	// 	fmt.Printf("New sokcet session %v\n", userSession)
 
-		for _, row := range rows {
-			row.PasswordHash = null.StringFrom("")
-		}
+	// 	connections[ws] = true
 
-		ctx.JSON(rows)
-	})
+	// 	go func() {
+	// 		for {
+	// 			msg := WebsocketReceiveMessage{}
 
-	app.Get("/api/chatroom/{chatroom:int32}/messages", func(ctx iris.Context) {
+	// 			err = ws.ReadJSON(&msg)
 
-	})
+	// 			if err != nil {
+	// 				delete(connections, ws)
 
-	app.Get("/api/chatroom", func(ctx iris.Context) {
-		fmt.Println("helo juuri")
+	// 				return
+	// 			}
 
-		ctx.Writef("Hello world")
-	})
+	// 			fmt.Printf("new message %v\n", msg)
 
-	app.Use(func(ctx iris.Context) {
-		fmt.Println("lol middleware")
+	// 			if msg.MessageToChatRoom != nil {
+	// 				transmittedAt, _ := time.Parse(time.RFC3339Nano, msg.MessageToChatRoom.TransmitTime)
+	// 				//createdAt, _ := time.Parse(time.RFC3339Nano, msg.MessageToChatRoom.CreateTime)
 
-		ctx.StatusCode(iris.StatusUnauthorized)
-		ctx.EndRequest()
-	})
+	// 				newMessage := models.Message{
+	// 					MessageText:      null.NewString(msg.MessageToChatRoom.MessageText, true),
+	// 					ServerReceivedAt: time.Now(),
+	// 					UserID:           int(userSession.UserID),
+	// 					Platform:         null.StringFrom("talktocow"),
+	// 					ChatroomID:       1,
+	// 					TransmitedAt:     transmittedAt,
+	// 				}
 
-	app.Listen(":12001")
+	// 				messageInserErr := newMessage.Insert(context.Background(), db, boil.Infer())
+
+	// 				if messageInserErr != nil {
+	// 					fmt.Println("Message insert failed", messageInserErr)
+	// 				}
+
+	// 				newChatroomMessage := NewChatroomMessage{
+	// 					MessageText:   msg.MessageToChatRoom.MessageText,
+	// 					FromUserName:  userSession.Name,
+	// 					TransmittedAt: msg.MessageToChatRoom.TransmitTime,
+	// 				}
+
+	// 				transmitMessage := WebsocketTransmitMessage{
+	// 					NewChatroomMessage: &newChatroomMessage,
+	// 				}
+
+	// 				fmt.Printf("Sending message %v to %v", transmitMessage, userSession)
+
+	// 				for c, _ := range connections {
+	// 					c.WriteJSON(transmitMessage)
+	// 				}
+	// 			}
+
+	// 			// for c, _ := range connections {
+	// 			// 	c.WriteJSON(WebsocketSendMessage{
+	// 			// 		MessageText: msg.MessageText,
+	// 			// 	})
+	// 			// }
+	// 		}
+	// 	}()
+	// })
+
+	// app.Get("/api/messages", func(ctx iris.Context) {
+	// 	rows := []MessageAndUser{}
+
+	// 	err := models.NewQuery(
+	// 		qm.Select("messages.*", "users.*"),
+	// 		qm.OrderBy("transmited_at desc"),
+	// 		qm.Limit(35),
+	// 		qm.From("messages"),
+	// 		qm.InnerJoin("users on messages.user_id = users.id"),
+	// 	).Bind(ctx.Request().Context(), db, &rows)
+
+	// 	if err != nil {
+	// 		fmt.Println("Messages fetch failed", err)
+
+	// 		ctx.SetErr(err)
+	// 	}
+
+	// 	for _, row := range rows {
+	// 		row.PasswordHash = null.StringFrom("")
+	// 	}
+
+	// 	ctx.JSON(rows)
+	// })
+
+	// app.Get("/api/chatroom/{chatroom:int32}/messages", func(ctx iris.Context) {
+
+	// })
+
+	// app.Get("/api/chatroom", func(ctx iris.Context) {
+	// 	fmt.Println("helo juuri")
+
+	// 	ctx.Writef("Hello world")
+	// })
+
+	// app.Use(func(ctx iris.Context) {
+	// 	fmt.Println("lol middleware")
+
+	// 	ctx.StatusCode(iris.StatusUnauthorized)
+	// 	ctx.EndRequest()
+	// })
+
+	// app.Listen(":12001")
 }

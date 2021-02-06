@@ -14,10 +14,16 @@ export const postJson = async (path: string, payload: any) => {
         method: "POST",
         headers: headers,
         body: JSON.stringify(payload)
-    }).then(r => {
-        if (r.status === 401) {
-            window.localStorage.removeItem("token");
-            window.location.href = "/";
+    }).then(async (r) => {
+        // if (r.status === 401) {
+        //     window.localStorage.removeItem("token");
+        //     window.location.href = "/";
+        // }
+
+        if (r.status !== 200) {
+            const text = await r.text();
+
+            throw new Error(text)
         }
 
         return r.json()
@@ -40,10 +46,10 @@ export const getJson = async (path: string) => {
     const res = await fetch(path, {
         headers: headers,
     }).then(r => {
-        if (r.status === 401) {
-            window.localStorage.removeItem("token");
-            window.location.href = "/";
-        }        
+        // if (r.status === 401) {
+        //     window.localStorage.removeItem("token");
+        //     window.location.href = "/";
+        // }        
 
         return r.json()
     });

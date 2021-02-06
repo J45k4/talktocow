@@ -111,6 +111,14 @@ const chatroom = () => {
                     </button>
                 </div>
             </div>
+
+            <style jsx>{`
+  input[type='text'],
+  input[type='number'],
+  textarea {
+    font-size: 16px;
+  }
+      `}</style>
         </div>
 
     )

@@ -1,0 +1,63 @@
+.root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    color: #e1e2e3;
+}
+
+.header {
+    height: 62px;
+    background-color: #2a2f32;
+    color: #e1e2e3;
+    flex-shrink: 0;
+}
+
+.body {
+    flex-grow: 1;
+    background-color: #525252;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.footer {
+    height: 62px;
+    background-color: #2a2f32;
+    flex-shrink: 0;
+    flex-grow: 0;
+    display: flex;
+    flex-direction: row;
+}
+
+.emojiButton {
+    color: #9b9fa2;
+    align-self: center;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+
+.messageText {
+    flex-grow: 1;
+    align-self: center;
+    padding-right: 1em;
+    padding-left: 1em;
+}
+
+.sendButton {
+    align-self: center;
+    padding-left: 1em;
+    padding-right: 1em;
+    color: #828689;
+}
+
+.input {
+    width: 100%;
+    background-color: #33383b;
+    border: none;
+    height: 3em;
+    color: white;
+    outline: none;
+    padding-left: 5px;
+    padding-right: 5px;
+    font-size: 16px;
+}

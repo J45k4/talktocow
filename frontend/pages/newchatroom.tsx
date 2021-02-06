@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
+import { startOnlineWatch } from "../logic/online-indication";
 import { getJson } from "../utility/api";
 import { MessageFromServer, subscribeToMessages, unsubscribeToMessages, useSocketConn } from "../websocket-conn";
+
+startOnlineWatch();
 
 const Newchatroom = () => {
     const [ displayEmojis, setDisplayEmojis ] = useState(false);
@@ -70,7 +73,8 @@ const Newchatroom = () => {
                 backgroundColor: "#525252",
                 display: "flex",
                 flexDirection: "column-reverse",
-                overflowY: "auto"
+                overflowY: "auto",
+                flexShrink: 0
 
             }}>
                 {/* <div> */}
@@ -98,7 +102,8 @@ const Newchatroom = () => {
                 display: "flex",
                 height: "62px",
                 backgroundColor: "#2a2f32",
-                justifyContent: "center"
+                justifyContent: "center",
+                flexShrink: 0
             }}> 
                 <div style={{
                     color: "#9b9fa2",
