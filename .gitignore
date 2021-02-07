@@ -3,3 +3,4 @@ public.key
 .env
 scripts/workdir
 access.log
+frontend/public/sw.js
