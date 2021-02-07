@@ -14,6 +14,9 @@ import { FrontPage } from "../components/front-page";
 
 startOnlineWatch()
 
+
+const isServer = () => typeof window === 'undefined';
+
 const Index = () => {
 	// useEffect(() => {
 	// 	// const w = new WebSocket("ws://localhost:12001/api/socket")
@@ -45,7 +48,8 @@ const Index = () => {
 				<title>Talktocow 🥰 </title>
 				<meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, width=device-width, user-scalable=no" />
 			</Head>
-			<FrontPage />			
+			{!isServer() && <FrontPage />}
+					
 		</React.Fragment>
 	)
 }
