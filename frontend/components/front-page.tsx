@@ -20,7 +20,6 @@ export const FrontPage = () => {
             left: "0px"
         }}>
             <IsLoggedIn>
-                <LogoutButton />
                 <Chatroom chatroomId="123"/>
             </IsLoggedIn>
             <IsNotLoggedIn>

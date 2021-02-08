@@ -34,7 +34,7 @@ export interface MessageFromServer {
 
 export interface MessageToChatroom {
     messageText: string
-    chatroomId: number
+    chatroomId: string
     writedAt: string
     transmitedAt: string
 }

@@ -1,9 +1,11 @@
-import { Conn } from "neffos.js";
 import { CSSProperties, useState } from "react"
 import { sendMessageToChatroom } from "../logic/chatroom-manager";
+import { useChatroomEvents } from "./chatroom-events";
+import { ParticipantMessage, YourMessage } from "./chatroom-message";
 
 import styles from "./chatroom.module.css";
 import { ConnectionIndicator } from "./connection-indicator";
+import { LogoutButton } from "./logout-button";
 
 export const Chatroom = (props: {
     style?: CSSProperties
@@ -12,28 +14,35 @@ export const Chatroom = (props: {
     const [currentMessage, setCurrentMessage] = useState("");
 
     const handleSendMessage = () => {
+        if (currentMessage == "") {
+            return
+        }
+
         sendMessageToChatroom(props.chatroomId, currentMessage)
 
         setCurrentMessage("")
     }
 
-    const messages = [];
+    const chatroomEvents = useChatroomEvents(props.chatroomId)
 
-    for (let i = 0; i < 35; i++) {
-        messages.push(
-            <div style={{
-                height: "50px",
-                flexShrink: 0
-            }}>
-                a
-            </div>
-        )
+    const messages = []
+
+    for (const event of chatroomEvents) {
+        if (event.type === "newMessage") {
+            messages.push(
+                <ParticipantMessage 
+                    messageText={event.messageText} 
+                    writenAt={event.writenAt} 
+                    status="participantsReceived" />
+            )
+        }
     }
 
     return (
         <div className={styles.root}>
             <div className={styles.header}>
                 <ConnectionIndicator />
+                <LogoutButton />
             </div>
             <div className={styles.body}>
                 {messages}
