@@ -198,15 +198,17 @@ func HandleSocket(ctx *gin.Context) {
 			},
 		}
 
-		ws.WriteJSON(messageToClient)
+		err := ws.WriteJSON(messageToClient)
 
-		// if err != nil {
-		// 	log.Println("Sending message to websocket channel failed", err)
+		if err != nil {
+			log.Println("Sending message to websocket channel failed", err)
 
-		// 	chatroomEventbus.UnsubscribeToChatroomMessages(1, handle)
-		// 	ctx.Abort()
-		// }
+			// chatroomEventbus.UnsubscribeToChatroomMessages(1, handle)
+			//ctx.Abort()
+		}
 	}
+
+	log.Println("Subscribing to channel")
 
 	chatroomEventbus.SubscribeToChatroomMessages(1, handle)
 

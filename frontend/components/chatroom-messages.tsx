@@ -22,9 +22,6 @@ export const useChatroomMessages = (chatroomId) => {
                 const aWritenAt = new Date(a.writenAt).getTime()
                 const bWritenAt = new Date(b.writenAt).getTime()
 
-                console.log("aWritenAt", aWritenAt)
-                console.log("bWritenAt", bWritenAt)
-
                 return aWritenAt - bWritenAt
             })
             

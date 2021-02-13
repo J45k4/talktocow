@@ -46,7 +46,11 @@ func (this *ChatroomEventbus) SubscribeToChatroomMessages(chatroomID int, cb Cha
 }
 
 func (this *ChatroomEventbus) UnsubscribeToChatroomMessages(chatroomID int, cb ChatroomMessageCallback) {
-	this.eventbus.Unsubscribe(fmt.Sprintf("chatroomMessage:%d", chatroomID), cb)
+	err := this.eventbus.Unsubscribe(fmt.Sprintf("chatroomMessage:%d", chatroomID), cb)
+
+	if err != nil {
+		log.Println("Unsibscribe error", err)
+	}
 }
 
 func GetChatroomEventbus(ctx *gin.Context) *ChatroomEventbus {

@@ -46,7 +46,7 @@ export const LoginForm = () => {
                     <button onClick={async () => {
                         setCurrentlyLogining(true);
 
-                        const res = await postJson("/api/login", {
+                        const res = await postJson<any>("/api/login", {
                             username: username,
                             password: password
                         })

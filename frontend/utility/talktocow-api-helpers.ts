@@ -31,7 +31,7 @@ const getHeaders = () => {
     return headers
 }
 
-const handleFetchResult = async (r: Response): Promise<ApiResponse> =>{
+const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> =>{
     const statusCode = r.status
 
     const jsonRes = await r.json()

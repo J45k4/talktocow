@@ -1,12 +1,22 @@
+import { useState } from "react"
 import { Chatroom } from "./chatroom"
 import { IsLoggedIn, IsNotLoggedIn, useIsLoggedIn } from "./isloggedin"
 import { LoginForm } from "./login-form"
+import { ValentinesDayGift } from "./valentines-day-gift"
 
 export const FrontPage = () => {
     const isloggedin = useIsLoggedIn()
 
-    console.log("FrontPage isLoggedIn", isloggedin)
-    
+    const [shwogift, setShowgift] = useState(true)
+
+    if (isloggedin && shwogift) {
+        return (
+            <ValentinesDayGift onContinue={() => {
+                setShowgift(false)
+            }} />
+        )
+    }
+
     return (
         <div style={{
             position: "absolute",

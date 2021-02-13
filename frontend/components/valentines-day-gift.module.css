@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
+.rootContainer {
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    overflow: none;
+    animation: rootContainerAnimation 10s forwards;
+}
+
+@media only screen and (max-width: 700px) {
+    @keyframes rootContainerAnimation {
+        0% {
+            margin-top: 30px;
+        }
+        50% {
+            margin-top: -40px;
+        }
+        75% {
+            margin-top: -250px;
+        }
+        100% {
+            margin-top: -600px;
+        }
+    }
+}
+
+.firstGroup {
+    text-align: center;
+    font-size: 70px;
+    opacity: 0.0;
+    animation: firstGroupAnimation 10s forwards;
+}
+
+@keyframes firstGroupAnimation {
+    0%   {
+        opacity: 0.0;
+    }
+    25%  {
+        opacity: 1.0;
+    }
+    70% {
+        opacity: 0.0;
+    }
+}
+
+.secondGroup {
+    text-align: center;
+    font-size: 70px;
+    opacity: 0.0;
+    animation: secondGroupAnimation 10s forwards;
+}
+
+@keyframes secondGroupAnimation {
+    25% {
+        opacity: 0.0;
+    }
+    50% {
+        opacity: 1.0;
+    }
+    85% {
+        opacity: 0.0;
+    }
+}
+
+.thirthGroup {
+    text-align: center;
+    font-size: 70px;
+    opacity: 0.0;
+    animation: thirthGroupAnimation 10s forwards;
+}
+
+@keyframes thirthGroupAnimation {
+    50% {
+        opacity: 0.0;
+    }
+    75% {
+        opacity: 1.0;
+    }
+}
+
+.fourthGroup {
+    text-align: center;
+    font-size: 70px;
+    opacity: 0.0;
+    animation: fourthGroupAnimation 10s forwards
+}
+
+@keyframes fourthGroupAnimation {
+    75% {
+        opacity: 0.0;
+    }
+    90% {
+        opacity: 1.0;
+    }
+    100% {
+        opacity: 1.0;
+    }
+}
+
+.continueButton {
+    width: 200px;
+    animation: continueButtonAnimation 10s forwards;
+}
+
+@keyframes continueButtonAnimation {
+    0% {
+        opacity: 0.0;
+    }
+    80% {
+        opacity: 0.0;
+    }
+    100% {
+        opacity: 1.0;
+    }
+}
