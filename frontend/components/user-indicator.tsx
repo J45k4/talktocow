@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { getSession, SessionChangeNotify, subscribeToSessionEvents, unsubscribeToSessionEvents } from "../logic/session-manager"
-import { MessageFromServer } from "../logic/types"
+import { MessageFromServer } from "../logic/websocket-types"
 import { getUserStatus } from "../logic/user-manager"
 import {subscribeToNewMessages, unsubscribeToMessages } from "../logic/websocket-conn"
 

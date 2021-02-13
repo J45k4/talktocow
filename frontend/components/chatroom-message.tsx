@@ -1,8 +1,15 @@
+import { memo } from "react"
 import styles from "./chatroom-message.module.css"
 import { MessageIndicator } from "./icons/message-indicators"
 
+export const formatMessageTime = (writenAt: Date) => {
+    const hours = writenAt.getHours();
+    const minues = writenAt.getMinutes();
 
-export const YourMessage = (props: {
+    return `${hours}:${minues < 10 ? "0" + minues : minues}`
+}
+
+export const YourMessage = memo((props: {
     writenAt: string
     messageText: string
     status: "notsend" | "serverReceived" | "participantsReceived" | "participantsRead"
@@ -20,7 +27,7 @@ export const YourMessage = (props: {
                 }}>
                     <div className={styles.yourMessageTime}>
                         <span>
-                            {`${writenAt.getHours()}:${writenAt.getMinutes()}`}
+                            {isNaN(writenAt.getTime()) ? "" : formatMessageTime(writenAt)}
                         </span>
                         <span>
                             {props.status !== "notsend" && 
@@ -31,9 +38,9 @@ export const YourMessage = (props: {
             </div>
         </div>
     )
-}
+})
 
-export const ParticipantMessage = (props: {
+export const ParticipantMessage = memo((props: {
     writenAt: string
     messageText: string
     status: "notsend" | "serverReceived" | "participantsReceived" | "participantsRead"
@@ -51,15 +58,11 @@ export const ParticipantMessage = (props: {
                 }}>
                     <div className={styles.participantMessageTime}>
                         <span>
-                            {`${writenAt.getHours()}:${writenAt.getMinutes()}`}
-                        </span>
-                        <span>
-                            {props.status !== "notsend" && 
-                                <MessageIndicator status={props.status} />}
+                            {isNaN(writenAt.getTime()) ? "" : formatMessageTime(writenAt)}
                         </span>
                     </div>
                 </div>
             </div>
         </div>
     )
-}
+})

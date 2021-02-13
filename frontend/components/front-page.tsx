@@ -1,10 +1,6 @@
-import Link from "next/link"
-import { Fragment } from "react"
 import { Chatroom } from "./chatroom"
-import { ConnectionIndicator } from "./connection-indicator"
 import { IsLoggedIn, IsNotLoggedIn, useIsLoggedIn } from "./isloggedin"
 import { LoginForm } from "./login-form"
-import { LogoutButton } from "./logout-button"
 
 export const FrontPage = () => {
     const isloggedin = useIsLoggedIn()
@@ -20,7 +16,7 @@ export const FrontPage = () => {
             left: "0px"
         }}>
             <IsLoggedIn>
-                <Chatroom chatroomId="123"/>
+                <Chatroom chatroomId="1"/>
             </IsLoggedIn>
             <IsNotLoggedIn>
                 <LoginForm />

@@ -4,3 +4,5 @@ public.key
 scripts/workdir
 access.log
 frontend/public/sw.js
+__debug_bin
+talktocow

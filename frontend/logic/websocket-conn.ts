@@ -1,5 +1,5 @@
 import { getSession, subscribeToSessionEvents } from "./session-manager";
-import { MessageFromServer, MessageToServer } from "./types";
+import { MessageFromServer, MessageToServer } from "./websocket-types";
 
 type NewMessageSubscriberCallback = (notify: MessageFromServer) => void
 

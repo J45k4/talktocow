@@ -1,4 +1,4 @@
-import { MessageFromServer } from "./types";
+import { MessageFromServer } from "./websocket-types";
 import {subscribeToNewMessages } from "./websocket-conn";
 
 

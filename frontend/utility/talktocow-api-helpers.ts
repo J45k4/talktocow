@@ -5,10 +5,10 @@ export interface ServerError {
     message: string
 }
 
-export interface ApiResponse {
+export interface ApiResponse<T> {
     statusCode: number
     error?: ServerError
-    payload?: any
+    payload?: T
 }
 
 const getHeaders = () => {
@@ -49,7 +49,7 @@ const handleFetchResult = async (r: Response): Promise<ApiResponse> =>{
     }
 }
 
-export const postJson = async (path: string, payload: any): Promise<ApiResponse> => {
+export const postJson = async <T>(path: string, payload: any): Promise<ApiResponse<T>> => {
     const headers = getHeaders()
 
     let res = await fetch(path, {
@@ -61,7 +61,7 @@ export const postJson = async (path: string, payload: any): Promise<ApiResponse>
     return handleFetchResult(res)
 }
 
-export const getJson = async (path: string, query): Promise<ApiResponse> => {
+export const getJson = async <T>(path: string, query?): Promise<ApiResponse<T>> => {
     const headers = getHeaders()
 
     const res = await fetch(path, {
