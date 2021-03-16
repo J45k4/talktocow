@@ -5,18 +5,6 @@ import { LoginForm } from "./login-form"
 import { ValentinesDayGift } from "./valentines-day-gift"
 
 export const FrontPage = () => {
-    const isloggedin = useIsLoggedIn()
-
-    const [shwogift, setShowgift] = useState(true)
-
-    if (isloggedin && shwogift) {
-        return (
-            <ValentinesDayGift onContinue={() => {
-                setShowgift(false)
-            }} />
-        )
-    }
-
     return (
         <div style={{
             position: "absolute",
