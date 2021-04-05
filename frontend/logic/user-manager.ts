@@ -1,4 +1,5 @@
-import { MessageFromServer, subscribeToNewMessages } from "./websocket-conn";
+import { MessageFromServer } from "./websocket-types";
+import {subscribeToNewMessages } from "./websocket-conn";
 
 
 export interface UserStatus {

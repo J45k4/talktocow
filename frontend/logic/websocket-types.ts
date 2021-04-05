@@ -1,20 +1,4 @@
-// Messages from server
-
-export interface Message {
-    id: number
-    messageText: string
-    writenAt: string
-    transmitedAt: string
-    platform: string
-    chatroomId: string
-}
-
-export interface ChatroomEvent {
-    id: number
-    chatroomId: number
-    message: Message
-    createdAt: string
-}
+// Message from server
 
 export interface UserStatus {
     online: boolean
@@ -25,18 +9,32 @@ export interface UserStatus {
     timestamp: string
 }
 
+export interface NewChatroomMessage {
+    chatroomId: string
+    userId: string
+    userName: string
+    messageId: string
+    messageText: string    
+    writenAt: string
+    transmitedAt: string
+    serverReceivedAt?: string
+    platform: string
+    reference: string
+}
+
 export interface MessageFromServer {
-    newChatroomEvent?: ChatroomEvent
     changedUserStatus?: UserStatus
+    newChatroomMessage?: NewChatroomMessage
 }
 
 // Message to server
 
 export interface MessageToChatroom {
     messageText: string
-    chatroomId: number
-    writedAt: string
+    chatroomId: string
+    writenAt: string
     transmitedAt: string
+    reference: string
 }
 
 export interface MessageToServer {

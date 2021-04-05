@@ -6,12 +6,9 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
-	"log"
-	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/j45k4/talktocow/auth"
+	"github.com/j45k4/talktocow/chatroom"
 	"github.com/j45k4/talktocow/config"
 	"github.com/j45k4/talktocow/models"
 	"github.com/j45k4/talktocow/routes"
@@ -92,55 +89,20 @@ func main() {
 		return
 	}
 
+	chatroomEventbus := chatroom.NewChatroomEventbus()
+
 	r := gin.Default()
 
 	r.Use(func(ctx *gin.Context) {
 		ctx.Set("db", db)
+		chatroom.SetChatroomEventbus(ctx, chatroomEventbus)
 	})
 
 	r.POST("/api/login", routes.HandleLogin)
 
-	r.Use(func(ctx *gin.Context) {
-		var token string
+	r.Use(routes.SessionMiddleware)
 
-		authHeader := ctx.GetHeader("authorization")
-
-		if strings.HasPrefix(authHeader, "Bearer") {
-			token = strings.ReplaceAll(authHeader, "Bearer ", "")
-		} else {
-			query := ctx.Request.URL.Query()
-
-			token = query.Get("token")
-		}
-
-		log.Println("Token is", token)
-
-		if token == "" {
-			log.Println("User is not authorized")
-
-			ctx.Status(http.StatusUnauthorized)
-
-			ctx.Abort()
-		}
-
-		var userSession UserSession
-
-		err = auth.DecodeObjectFromToken(token, &userSession)
-
-		if err != nil {
-			log.Println("User token is invalid", err)
-
-			ctx.Status(http.StatusUnauthorized)
-
-			ctx.Abort()
-		}
-
-		ctx.Set("userSession", userSession)
-
-		log.Println("userSession", userSession)
-	})
-
-	r.GET("/chatroom/:chatroomId/")
+	r.GET("/api/chatroom/:chatroomId/messages", routes.GetChatroomMessages)
 	r.GET("/api/messages", routes.HandleGetMessages)
 	r.GET("/api/socket", routes.HandleSocket)
 
