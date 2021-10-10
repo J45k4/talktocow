@@ -11,6 +11,8 @@ ADD main.go main.go
 COPY auth auth
 COPY config config
 COPY models models
+COPY chatroom chatroom
+COPY routes routes
 
 RUN go build
 

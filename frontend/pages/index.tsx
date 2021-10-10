@@ -3,14 +3,14 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Head from 'next/head'
-import { postJson } from "../utility/api";
+import { postJson } from "../src/utility/api";
 import { Workbox } from "workbox-window";
-import { startOnlineWatch } from "../logic/online-indication";
-import { ConnectionIndicator } from "../components/connection-indicator";
-import { IsLoggedIn, IsNotLoggedIn } from "../components/isloggedin";
-import { LoginForm } from "../components/login-form";
-import { LogoutButton } from "../components/logout-button";
-import { FrontPage } from "../components/front-page";
+import { startOnlineWatch } from "../src/logic/online-indication";
+import { ConnectionIndicator } from "../src/components/connection-indicator";
+import { IsLoggedIn, IsNotLoggedIn } from "../src/components/isloggedin";
+import { LoginForm } from "../src/components/login-form";
+import { LogoutButton } from "../src/components/logout-button";
+import { FrontPage } from "../src/components/front-page";
 
 startOnlineWatch()
 

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/chatroom"
@@ -80,6 +81,9 @@ type MessageAndUser struct {
 }
 
 func main() {
+	log.Printf("Private key path %v", config.PrivateKeyPath)
+	log.Printf("Public key path %v", config.PublicKeyPath)
+
 	connectionString := fmt.Sprintf("dbname=%s user=%s password=%s host=%s port=%s sslmode=disable", config.DBName, config.DBUser, config.DBPassword, config.DbHost, config.DBPort)
 
 	db, err := sql.Open("postgres", connectionString)
