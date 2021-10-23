@@ -12,13 +12,13 @@ func loadPrivateKey() *rsa.PrivateKey {
 	privateKeyBytes, err := ioutil.ReadFile(config.PrivateKeyPath)
 
 	if err != nil {
-		panic("No private key found")
+		panic("no private key found")
 	}
 
 	privateKey, err := Rsa.ReadPrivate(privateKeyBytes)
 
 	if err != nil {
-		panic("Reading private key failed")
+		panic("parsing private key failed")
 	}
 
 	return privateKey
@@ -28,13 +28,13 @@ func loadPublicKey() *rsa.PublicKey {
 	publicKeyBytes, err := ioutil.ReadFile(config.PublicKeyPath)
 
 	if err != nil {
-		panic("No public key found")
+		panic("no public key found")
 	}
 
 	publicKey, err := Rsa.ReadPublic(publicKeyBytes)
 
 	if err != nil {
-		panic("Read public key failed")
+		panic("parsing public key failed")
 	}
 
 	return publicKey
