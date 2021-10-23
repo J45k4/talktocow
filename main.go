@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/chatroom"
 	"github.com/j45k4/talktocow/config"
@@ -96,6 +97,14 @@ func main() {
 	chatroomEventbus := chatroom.NewChatroomEventbus()
 
 	r := gin.Default()
+
+	corsConfig := cors.DefaultConfig()
+
+	corsConfig.AllowCredentials = true
+	corsConfig.AllowOrigins = []string{"http://localhost:3080"}
+	corsConfig.AddAllowMethods("OPTIONS")
+	corsConfig.AddAllowHeaders("authorization")
+	r.Use(cors.New(corsConfig))
 
 	r.Use(func(ctx *gin.Context) {
 		ctx.Set("db", db)
