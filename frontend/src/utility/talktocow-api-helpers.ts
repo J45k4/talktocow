@@ -1,3 +1,4 @@
+import { serverUrl } from "../config";
 import { getSession } from "../logic/session-manager"
 
 export interface ServerError {
@@ -49,10 +50,18 @@ const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> =>{
     }
 }
 
+const resolveServerUrl = (path: string) => {
+    if (serverUrl) {
+        return serverUrl + path
+    }
+
+    return path
+}
+
 export const postJson = async <T>(path: string, payload: any): Promise<ApiResponse<T>> => {
     const headers = getHeaders()
 
-    let res = await fetch(path, {
+    let res = await fetch(resolveServerUrl(path), {
         method: "POST",
         headers: headers,
         body: JSON.stringify(payload)
@@ -64,7 +73,7 @@ export const postJson = async <T>(path: string, payload: any): Promise<ApiRespon
 export const getJson = async <T>(path: string, query?): Promise<ApiResponse<T>> => {
     const headers = getHeaders()
 
-    const res = await fetch(path, {
+    const res = await fetch(resolveServerUrl(path), {
         headers: headers,
     });
 

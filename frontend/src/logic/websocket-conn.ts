@@ -1,3 +1,4 @@
+import { serverUrl } from "../config";
 import { getSession, subscribeToSessionEvents } from "./session-manager";
 import { MessageFromServer, MessageToServer } from "./websocket-types";
 
@@ -60,9 +61,13 @@ function createClient() {
         return
     }
 
-    var scheme = document.location.protocol == "https:" ? "wss" : "ws";
-    var port = document.location.port ? ":" + document.location.port : "";
-    var wsURL = scheme + "://" + document.location.hostname + port + "/api/socket?token=" + token
+    const url = serverUrl ? new URL(serverUrl) : document.location
+
+    var scheme = url.protocol == "https:" ? "wss" : "ws";
+    var port = url.port ? ":" + url.port : "";
+    var wsURL = scheme + "://" + url.hostname + port + "/api/socket?token=" + token
+
+    console.log("wsURL", wsURL)
 
     socket = new WebSocket(wsURL)
 
