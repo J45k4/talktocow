@@ -1,6 +1,7 @@
 {
   "short_name": "Talktocow",
-  "name": "A website created for sole purpose to talk to cow",
+  "name": "Talktocow",
+  "description": "A website created for sole purpose to talk to cow",
   "icons": [
     {
       "src": "favicon.ico",
