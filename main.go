@@ -104,6 +104,7 @@ func main() {
 	corsConfig.AllowOrigins = []string{"http://localhost:3080"}
 	corsConfig.AddAllowMethods("OPTIONS")
 	corsConfig.AddAllowHeaders("authorization")
+	corsConfig.AddAllowHeaders("x-device-id")
 	r.Use(cors.New(corsConfig))
 
 	r.Use(func(ctx *gin.Context) {
