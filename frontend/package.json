@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "neffos.js": "0.1.25",
-    "next": "^10.0.0",
+    "next": "^11.1.1",
     "next-with-workbox": "^2.0.1",
     "react": "17.0.1",
     "react-dom": "17.0.1",
