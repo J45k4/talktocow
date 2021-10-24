@@ -21,31 +21,6 @@ type LoginResponse struct {
 	Username string `json:"username"`
 }
 
-type ErrorCode uint32
-
-const (
-	InvalidCredentials  ErrorCode = 9000
-	InternalServerError           = 9001
-)
-
-type Error struct {
-	Message string    `json:"message"`
-	Code    ErrorCode `json:"code"`
-}
-
-type ErrorResponse struct {
-	Error Error `json:"error"`
-}
-
-func CreateErrorResponse(message string, code ErrorCode) ErrorResponse {
-	return ErrorResponse{
-		Error: Error{
-			Message: message,
-			Code:    code,
-		},
-	}
-}
-
 func HandleLogin(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 
@@ -65,16 +40,16 @@ func HandleLogin(ctx *gin.Context) {
 		fmt.Println("User not found")
 
 		ctx.Status(http.StatusForbidden)
-		ctx.JSON(http.StatusForbidden, CreateErrorResponse("Credentials are incorrect", InvalidCredentials))
+		ctx.JSON(http.StatusForbidden, CreateErrorResponse(InvalidCredentials, "Credentials are incorrect"))
 
 		return
 	}
 
-	if auth.CheckPasswordHash(loginRequest.Password, user.PasswordHash.String) == false {
+	if !auth.CheckPasswordHash(loginRequest.Password, user.PasswordHash.String) {
 		fmt.Println("Password is incorrect")
 
 		ctx.Status(http.StatusForbidden)
-		ctx.JSON(http.StatusForbidden, CreateErrorResponse("Credentials are incorrect", InvalidCredentials))
+		ctx.JSON(http.StatusForbidden, CreateErrorResponse(InvalidCredentials, "Credentials are incorrect"))
 
 		return
 	}

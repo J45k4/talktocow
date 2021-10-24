@@ -1,5 +1,5 @@
-import { serverUrl } from "../config";
 import { getSession } from "../logic/session-manager"
+import { serverUrl } from "../config";
 
 export interface ServerError {
     code: number
@@ -28,11 +28,11 @@ const getHeaders = () => {
     if (session.deviceId) {
         headers["x-device-id"] = session.deviceId
     }
-  
+
     return headers
 }
 
-const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> =>{
+const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> => {
     const statusCode = r.status
 
     const jsonRes = await r.json()
@@ -63,6 +63,18 @@ export const postJson = async <T>(path: string, payload: any): Promise<ApiRespon
 
     let res = await fetch(resolveServerUrl(path), {
         method: "POST",
+        headers: headers,
+        body: JSON.stringify(payload)
+    })
+
+    return handleFetchResult(res)
+}
+
+export const putJson = async <T>(path: string, payload: any): Promise<ApiResponse<T>> => {
+    const headers = getHeaders()
+
+    let res = await fetch(resolveServerUrl(path), {
+        method: "PUT",
         headers: headers,
         body: JSON.stringify(payload)
     })

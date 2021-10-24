@@ -21,3 +21,13 @@ func GetUserSessionFromContext(ctx *gin.Context) UserSession {
 
 	return u
 }
+
+func DoesMaskHaveField(mask []string, fieldName string) bool {
+	for _, m := range mask {
+		if m == fieldName {
+			return true
+		}
+	}
+
+	return false
+}
