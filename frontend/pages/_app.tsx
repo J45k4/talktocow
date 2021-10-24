@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import Head from 'next/head'
 
-import '../styles/global.css'
+// import '../styles/global.css'
 
 if (typeof window !== "undefined") {
     if ("serviceWorker" in navigator) {

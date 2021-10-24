@@ -119,6 +119,11 @@ func main() {
 	r.GET("/api/chatroom/:chatroomId/messages", routes.GetChatroomMessages)
 	r.GET("/api/messages", routes.HandleGetMessages)
 	r.GET("/api/socket", routes.HandleSocket)
+	r.POST("/api/diary/entry", routes.CreateDiaryEntry)
+	r.GET("/api/diary/entries", routes.GetDiaryEntries)
+	r.GET("/api/diary/entry/:diaryEntryId", routes.GetDiaryEntry)
+	r.PUT("/api/diary/entry/:diaryEntryId", routes.UpdateDiaryEntry)
+	r.DELETE("/api/diary/entry/:diaryEntryId", routes.DeleteDiaryEntry)
 
 	r.Run(":12001")
 
