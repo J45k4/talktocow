@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/models"
@@ -10,6 +11,13 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
+
+type DiaryEntry struct {
+	ID       int       `json:"id"`
+	Title    string    `json:"title"`
+	Body     string    `json:"body"`
+	CreateAt time.Time `json:"createdAt"`
+}
 
 type CreateDiaryEntryRequest struct {
 	Title string `json:"title"`
@@ -146,18 +154,34 @@ func DeleteDiaryEntry(ctx *gin.Context) {
 }
 
 func GetDiaryEntries(ctx *gin.Context) {
-	userSession := GetUserSessionFromContext(ctx)
+	// userSession := GetUserSessionFromContext(ctx)
 
 	db := GetDBFromContext(ctx)
 
-	entries, err := models.DiaryEntries(
-		qm.Where("who_posted_user_id = ?", userSession.UserID),
+	dbEntries, err := models.DiaryEntries(
+		// qm.Where("who_posted_user_id = ?", userSession.UserID),
 		qm.Limit(30),
 		qm.OrderBy("created_at desc"),
 	).All(ctx.Request.Context(), db)
 
+	entries := []DiaryEntry{}
+
+	for _, dbEntry := range dbEntries {
+		entries = append(entries, DiaryEntry{
+			ID:       dbEntry.ID,
+			Title:    dbEntry.Title.String,
+			Body:     dbEntry.Body.String,
+			CreateAt: dbEntry.CreatedAt,
+		})
+	}
+
 	if err != nil {
 		fmt.Errorf("Entries fetch failed %v", err)
+	}
+
+	if entries == nil {
+		ctx.JSON(200, []struct{}{})
+		return
 	}
 
 	ctx.JSON(200, entries)

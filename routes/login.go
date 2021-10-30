@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -30,18 +31,22 @@ func HandleLogin(ctx *gin.Context) {
 
 	fmt.Printf("New login attempt from {%s}\n", loginRequest.Username)
 
-	var user models.User
-
-	err := models.Users(
+	user, err := models.Users(
 		qm.Where("username = ?", loginRequest.Username),
-	).Bind(ctx.Request.Context(), db, &user)
+	).One(ctx.Request.Context(), db)
 
 	if err != nil {
+		log.Printf("fetching user failed %v", err)
+
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, ""))
+		return
+	}
+
+	if user == nil {
 		fmt.Println("User not found")
 
 		ctx.Status(http.StatusForbidden)
 		ctx.JSON(http.StatusForbidden, CreateErrorResponse(InvalidCredentials, "Credentials are incorrect"))
-
 		return
 	}
 

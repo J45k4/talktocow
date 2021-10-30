@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Chatroom } from "./chatroom"
+import { Diary } from "./diary/diary"
 import { IsLoggedIn, IsNotLoggedIn, useIsLoggedIn } from "./isloggedin"
 import { LoginForm } from "./login-form"
 import { ValentinesDayGift } from "./valentines-day-gift"
@@ -14,7 +15,8 @@ export const FrontPage = () => {
             left: "0px"
         }}>
             <IsLoggedIn>
-                <Chatroom chatroomId="1"/>
+                <Diary /> 
+                {/* <Chatroom chatroomId="1"/> */}
             </IsLoggedIn>
             <IsNotLoggedIn>
                 <LoginForm />

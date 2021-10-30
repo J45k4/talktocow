@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react"
 import { DiaryEntry } from "./diary-entry"
 import { getJson } from "../../utility/talktocow-api-helpers"
 
+import styles from "./diary-entry-list.module.css"
+
 export const DiaryEntryList = (props: {
 
 }) => {
@@ -16,7 +18,7 @@ export const DiaryEntryList = (props: {
     }, [])
 
     return (
-        <div>
+        <div className={styles.container}>
             {entries.map(p => (
                 <DiaryEntry
                     key={p.id}

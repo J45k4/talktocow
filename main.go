@@ -15,6 +15,7 @@ import (
 	"github.com/j45k4/talktocow/models"
 	"github.com/j45k4/talktocow/routes"
 	_ "github.com/lib/pq"
+	migrate "github.com/rubenv/sql-migrate"
 )
 
 type LoginPayload struct {
@@ -87,11 +88,26 @@ func main() {
 
 	connectionString := fmt.Sprintf("dbname=%s user=%s password=%s host=%s port=%s sslmode=disable", config.DBName, config.DBUser, config.DBPassword, config.DbHost, config.DBPort)
 
+	log.Printf("connection string %v", connectionString)
+
 	db, err := sql.Open("postgres", connectionString)
+
 	if err != nil {
-		fmt.Println("Sql open error ", err)
+		log.Printf("opening database connection failed %v", err)
 
 		return
+	}
+
+	migrations := &migrate.FileMigrationSource{
+		Dir: "./migrations",
+	}
+
+	_, err = migrate.Exec(db, "postgres", migrations, migrate.Up)
+
+	if err != nil {
+		log.Printf("failed to execute migrations %v", err)
+
+		panic("Failed to execute migrations")
 	}
 
 	chatroomEventbus := chatroom.NewChatroomEventbus()
@@ -101,7 +117,8 @@ func main() {
 	corsConfig := cors.DefaultConfig()
 
 	corsConfig.AllowCredentials = true
-	corsConfig.AllowOrigins = []string{"http://localhost:3080"}
+	// corsConfig.AllowOrigins = []string{"http://localhost:3080", "https://talktocow.dy.fi/"}
+	corsConfig.AllowAllOrigins = true
 	corsConfig.AddAllowMethods("OPTIONS")
 	corsConfig.AddAllowHeaders("authorization")
 	corsConfig.AddAllowHeaders("x-device-id")
