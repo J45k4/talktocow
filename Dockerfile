@@ -12,6 +12,7 @@ COPY auth auth
 COPY config config
 COPY models models
 COPY chatroom chatroom
+COPY migrations migrations
 COPY routes routes
 
 RUN go build
