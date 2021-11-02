@@ -59,14 +59,17 @@ func main() {
 		fmt.Printf("Password hashing failed %v", err)
 	}
 
-	fmt.Printf("password hash %v", pass)
+	fmt.Printf("password hash %v\n", pass)
 
 	newUser := models.User{
-		ID:           1,
 		Name:         null.StringFrom(username),
 		Username:     null.StringFrom(username),
 		PasswordHash: null.StringFrom(pass),
 	}
 
-	newUser.Insert(ctx, db, boil.Infer())
+	err = newUser.Insert(ctx, db, boil.Infer())
+	
+	if err != nil {
+		fmt.Printf("err %v \n", err);
+	}
 }
