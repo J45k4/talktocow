@@ -53,7 +53,7 @@ jobs:
         id: meta
         uses: crazy-max/ghaction-docker-meta@v2
         with:
-          images: jaska/invertarify-web
+          images: jaska/talktocow-server
           tags: type=sha
       - uses: appleboy/ssh-action@master
         with:
