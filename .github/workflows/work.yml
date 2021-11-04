@@ -56,4 +56,4 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            /home/docker-ci/upgrade-talktocow ${{GITHUB_SHA::6}}
+            /home/docker-ci/upgrade-talktocow ${{ github.sha }}
