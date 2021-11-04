@@ -6,8 +6,6 @@ import { useRouter } from "next/dist/client/router"
 export default function DiaryEntryPage() {
     const router = useRouter()
 
-    console.log("query", router.query)
-
     const diaryEntryId = router.query.diaryEntryId
 
     const [entry, setEntry] = useState<any>()
@@ -18,11 +16,16 @@ export default function DiaryEntryPage() {
         })
     }, [diaryEntryId])
 
-    console.log("entry", entry)
-
     return (
-        <div>
-            <div>
+        <div style={{
+            display: "flex",
+            flexDirection: "column",
+            padding: "10px",
+            height: "90%"
+        }}>
+            <div style={{
+
+            }}>
                 <button onClick={() => {
                     router.back()
                 }}>
@@ -36,28 +39,33 @@ export default function DiaryEntryPage() {
                     })
                 }} />
             </div>
-            <div>
-                Body
+            <div style={{
+                flexGrow: 1,
+                display: "flex",
+                flexDirection: "column",
+            }}>
                 <textarea value={entry?.body} style={{
-                    width: "100%",
-                    height: "200px"
-
+                    flexGrow: 1
                 }} onChange={e => {
                     setEntry({
                         ...entry,
                         body: e.target.value
                     })
-                }} />
+                }} />                
             </div>
-            <button onClick={() => {
-                putJson("/api/diary/entry/" + diaryEntryId, {
-                    title: entry.title,
-                    body: entry.body,
-                    mask: ["title", "body"]
-                })
+            <div style={{
+
             }}>
-                Update
-            </button>
+                    <button onClick={() => {
+                        putJson("/api/diary/entry/" + diaryEntryId, {
+                            title: entry.title,
+                            body: entry.body,
+                            mask: ["title", "body"]
+                        })
+                    }}>
+                        Update
+                    </button>
+                </div>
         </div>
     )
 }

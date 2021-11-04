@@ -12,9 +12,10 @@ body > div:first-child {
 }
 
 body {
+    font-family: Roboto, sans-serif;
     padding: 0px;
     margin: 0px;
-    background-color: rgba(0, 0, 0, 0.213);
+    /* background-color: rgba(0, 0, 0, 0.213); */
 }
 
 #frontPage {

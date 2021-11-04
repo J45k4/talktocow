@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import Head from 'next/head'
 
-//import '../styles/global.css'
+import '../styles/global.css'
 
 if (typeof window !== "undefined") {
     if ("serviceWorker" in navigator) {
@@ -24,11 +24,7 @@ export default function App({ Component, pageProps }) {
                 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet"></link>
                 <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, width=device-width, user-scalable=no" />
             </Head>
-            <body style={{
-                fontFamily: "Roboto, sans-serif"
-            }}>
-                <Component {...pageProps} />
-            </body>
+            <Component {...pageProps} />
         </Fragment>
     )
 }
