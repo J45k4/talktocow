@@ -10,7 +10,7 @@ export const Diary = () => {
     const router = useRouter()
 
     return (
-        <div>
+        <div className={styles.container}>
             <div className={styles.header}>
                 <Link href="/">
                     <ArrowBack style={{
