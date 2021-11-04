@@ -49,6 +49,12 @@ jobs:
     needs: [build-server, build-web]
     runs-on: ubuntu-latest
     steps:
+      - name: Docker meta
+        id: meta
+        uses: crazy-max/ghaction-docker-meta@v2
+        with:
+          images: jaska/invertarify-web
+          tags: type=sha
       - uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
