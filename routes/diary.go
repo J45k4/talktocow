@@ -13,10 +13,11 @@ import (
 )
 
 type DiaryEntry struct {
-	ID       int       `json:"id"`
-	Title    string    `json:"title"`
-	Body     string    `json:"body"`
-	CreateAt time.Time `json:"createdAt"`
+	ID             int       `json:"id"`
+	Title          string    `json:"title"`
+	Body           string    `json:"body"`
+	PostedByUserID string    `json:"postedByUserId"`
+	CreateAt       time.Time `json:"createdAt"`
 }
 
 type CreateDiaryEntryRequest struct {
@@ -168,15 +169,18 @@ func GetDiaryEntries(ctx *gin.Context) {
 
 	for _, dbEntry := range dbEntries {
 		entries = append(entries, DiaryEntry{
-			ID:       dbEntry.ID,
-			Title:    dbEntry.Title.String,
-			Body:     dbEntry.Body.String,
-			CreateAt: dbEntry.CreatedAt,
+			ID:             dbEntry.ID,
+			Title:          dbEntry.Title.String,
+			Body:           dbEntry.Body.String,
+			CreateAt:       dbEntry.CreatedAt,
+			PostedByUserID: strconv.Itoa(dbEntry.WhoPostedUserID),
 		})
 	}
 
 	if err != nil {
 		fmt.Errorf("Entries fetch failed %v", err)
+
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
 	}
 
 	if entries == nil {

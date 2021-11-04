@@ -54,7 +54,7 @@ func GetChatroomMessages(ctx *gin.Context) {
 	if err != nil {
 		fmt.Println("Messages fetch failed", err)
 
-		ctx.JSON(500, CreateErrorResponse("Internal server error", InternalServerError))
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
 	}
 
 	ctx.JSON(200, rows)

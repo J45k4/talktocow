@@ -4,8 +4,8 @@ type ErrorCode string
 
 const (
 	InvalidCredentials  ErrorCode = "INVALID_CREDENTIALS"
-	InternalServerError           = "INTERNAL_SERVER_ERROR"
-	InvalidInput                  = "INVALID_INPUT"
+	InternalServerError ErrorCode = "INTERNAL_SERVER_ERROR"
+	InvalidInput        ErrorCode = "INVALID_INPUT"
 )
 
 type Error struct {
@@ -18,9 +18,15 @@ type ErrorResponse struct {
 }
 
 func CreateErrorResponse(code ErrorCode, message string) ErrorResponse {
+	msg := message
+
+	if msg == "" {
+		msg = string(code)
+	}
+
 	return ErrorResponse{
 		Error: Error{
-			Message: message,
+			Message: msg,
 			Code:    code,
 		},
 	}

@@ -67,7 +67,7 @@ func HandleLogin(ctx *gin.Context) {
 	if err != nil {
 		fmt.Println("Generating token failed")
 
-		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse("Internal server error", InternalServerError))
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Internal server error"))
 		ctx.Abort()
 
 		return
