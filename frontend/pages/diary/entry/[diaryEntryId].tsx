@@ -38,7 +38,11 @@ export default function DiaryEntryPage() {
             </div>
             <div>
                 Body
-                <textarea value={entry?.body} onChange={e => {
+                <textarea value={entry?.body} style={{
+                    width: "100%",
+                    height: "200px"
+
+                }} onChange={e => {
                     setEntry({
                         ...entry,
                         body: e.target.value
