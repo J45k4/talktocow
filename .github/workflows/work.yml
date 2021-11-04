@@ -46,7 +46,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
   deploy-web:
-    needs: build-web
+    needs: [build-server, build-web]
     runs-on: ubuntu-latest
     steps:
       - uses: appleboy/ssh-action@master
