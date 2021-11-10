@@ -26,7 +26,9 @@ export const DiaryEntry = (props: {
                 </Link>
             </div>
             <div className={styles.body}>
-                {props.body}
+                <pre>
+                    {props.body}
+                </pre>
             </div>
         </div>
     )
