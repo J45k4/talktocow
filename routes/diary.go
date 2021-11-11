@@ -159,9 +159,24 @@ func GetDiaryEntries(ctx *gin.Context) {
 
 	db := GetDBFromContext(ctx)
 
+	offsetStr := ctx.Query("offset")
+	limitStr := ctx.Query("limit")
+
+	limit := 30
+	offset := 0
+
+	if offsetStr != "" {
+		offset, _ = strconv.Atoi(offsetStr)
+	}
+
+	if limitStr != "" {
+		limit, _ = strconv.Atoi(limitStr)
+	}
+
 	dbEntries, err := models.DiaryEntries(
 		// qm.Where("who_posted_user_id = ?", userSession.UserID),
-		qm.Limit(30),
+		qm.Offset(offset),
+		qm.Limit(limit),
 		qm.OrderBy("created_at desc"),
 	).All(ctx.Request.Context(), db)
 
@@ -189,4 +204,21 @@ func GetDiaryEntries(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, entries)
+}
+
+func GetDiaryEntriesCount(ctx *gin.Context) {
+	db := GetDBFromContext(ctx)
+
+	count, err := models.DiaryEntries(qm.Select("count(*)")).Count(ctx.Request.Context(), db)
+
+	if err != nil {
+		fmt.Errorf("Failed to count diary entries %v", err)
+
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+		return
+	}
+
+	ctx.JSON(200, gin.H{
+		"count": count,
+	})
 }
