@@ -14,6 +14,8 @@ func TestUpsert(t *testing.T) {
 
 	t.Run("DiaryEntries", testDiaryEntriesUpsert)
 
+	t.Run("DiaryEntryComments", testDiaryEntryCommentsUpsert)
+
 	t.Run("Events", testEventsUpsert)
 
 	t.Run("LoginSessions", testLoginSessionsUpsert)

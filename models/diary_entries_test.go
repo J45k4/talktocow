@@ -494,6 +494,84 @@ func testDiaryEntriesInsertWhitelist(t *testing.T) {
 	}
 }
 
+func testDiaryEntryToManyDiaryEntryComments(t *testing.T) {
+	var err error
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a DiaryEntry
+	var b, c DiaryEntryComment
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, diaryEntryDBTypes, true, diaryEntryColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize DiaryEntry struct: %s", err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = randomize.Struct(seed, &b, diaryEntryCommentDBTypes, false, diaryEntryCommentColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, diaryEntryCommentDBTypes, false, diaryEntryCommentColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+
+	b.DiaryEntryID = a.ID
+	c.DiaryEntryID = a.ID
+
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := a.DiaryEntryComments().All(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bFound, cFound := false, false
+	for _, v := range check {
+		if v.DiaryEntryID == b.DiaryEntryID {
+			bFound = true
+		}
+		if v.DiaryEntryID == c.DiaryEntryID {
+			cFound = true
+		}
+	}
+
+	if !bFound {
+		t.Error("expected to find b")
+	}
+	if !cFound {
+		t.Error("expected to find c")
+	}
+
+	slice := DiaryEntrySlice{&a}
+	if err = a.L.LoadDiaryEntryComments(ctx, tx, false, (*[]*DiaryEntry)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.DiaryEntryComments); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	a.R.DiaryEntryComments = nil
+	if err = a.L.LoadDiaryEntryComments(ctx, tx, true, &a, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.DiaryEntryComments); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	if t.Failed() {
+		t.Logf("%#v", check)
+	}
+}
+
 func testDiaryEntryToManySharedDiaryEntries(t *testing.T) {
 	var err error
 	ctx := context.Background()
@@ -572,6 +650,81 @@ func testDiaryEntryToManySharedDiaryEntries(t *testing.T) {
 	}
 }
 
+func testDiaryEntryToManyAddOpDiaryEntryComments(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a DiaryEntry
+	var b, c, d, e DiaryEntryComment
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, diaryEntryDBTypes, false, strmangle.SetComplement(diaryEntryPrimaryKeyColumns, diaryEntryColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*DiaryEntryComment{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, diaryEntryCommentDBTypes, false, strmangle.SetComplement(diaryEntryCommentPrimaryKeyColumns, diaryEntryCommentColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	foreignersSplitByInsertion := [][]*DiaryEntryComment{
+		{&b, &c},
+		{&d, &e},
+	}
+
+	for i, x := range foreignersSplitByInsertion {
+		err = a.AddDiaryEntryComments(ctx, tx, i != 0, x...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		first := x[0]
+		second := x[1]
+
+		if a.ID != first.DiaryEntryID {
+			t.Error("foreign key was wrong value", a.ID, first.DiaryEntryID)
+		}
+		if a.ID != second.DiaryEntryID {
+			t.Error("foreign key was wrong value", a.ID, second.DiaryEntryID)
+		}
+
+		if first.R.DiaryEntry != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+		if second.R.DiaryEntry != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+
+		if a.R.DiaryEntryComments[i*2] != first {
+			t.Error("relationship struct slice not set to correct value")
+		}
+		if a.R.DiaryEntryComments[i*2+1] != second {
+			t.Error("relationship struct slice not set to correct value")
+		}
+
+		count, err := a.DiaryEntryComments().Count(ctx, tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := int64((i + 1) * 2); count != want {
+			t.Error("want", want, "got", count)
+		}
+	}
+}
 func testDiaryEntryToManyAddOpSharedDiaryEntries(t *testing.T) {
 	var err error
 

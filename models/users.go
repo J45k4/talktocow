@@ -82,6 +82,7 @@ var UserWhere = struct {
 var UserRels = struct {
 	ChatroomUsers              string
 	WhoPostedUserDiaryEntries  string
+	DiaryEntryComments         string
 	LoginSessions              string
 	Messages                   string
 	SharedDiaryEntries         string
@@ -90,6 +91,7 @@ var UserRels = struct {
 }{
 	ChatroomUsers:              "ChatroomUsers",
 	WhoPostedUserDiaryEntries:  "WhoPostedUserDiaryEntries",
+	DiaryEntryComments:         "DiaryEntryComments",
 	LoginSessions:              "LoginSessions",
 	Messages:                   "Messages",
 	SharedDiaryEntries:         "SharedDiaryEntries",
@@ -101,6 +103,7 @@ var UserRels = struct {
 type userR struct {
 	ChatroomUsers              ChatroomUserSlice              `boil:"ChatroomUsers" json:"ChatroomUsers" toml:"ChatroomUsers" yaml:"ChatroomUsers"`
 	WhoPostedUserDiaryEntries  DiaryEntrySlice                `boil:"WhoPostedUserDiaryEntries" json:"WhoPostedUserDiaryEntries" toml:"WhoPostedUserDiaryEntries" yaml:"WhoPostedUserDiaryEntries"`
+	DiaryEntryComments         DiaryEntryCommentSlice         `boil:"DiaryEntryComments" json:"DiaryEntryComments" toml:"DiaryEntryComments" yaml:"DiaryEntryComments"`
 	LoginSessions              LoginSessionSlice              `boil:"LoginSessions" json:"LoginSessions" toml:"LoginSessions" yaml:"LoginSessions"`
 	Messages                   MessageSlice                   `boil:"Messages" json:"Messages" toml:"Messages" yaml:"Messages"`
 	SharedDiaryEntries         SharedDiaryEntrySlice          `boil:"SharedDiaryEntries" json:"SharedDiaryEntries" toml:"SharedDiaryEntries" yaml:"SharedDiaryEntries"`
@@ -440,6 +443,27 @@ func (o *User) WhoPostedUserDiaryEntries(mods ...qm.QueryMod) diaryEntryQuery {
 	return query
 }
 
+// DiaryEntryComments retrieves all the diary_entry_comment's DiaryEntryComments with an executor.
+func (o *User) DiaryEntryComments(mods ...qm.QueryMod) diaryEntryCommentQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"diary_entry_comments\".\"user_id\"=?", o.ID),
+	)
+
+	query := DiaryEntryComments(queryMods...)
+	queries.SetFrom(query.Query, "\"diary_entry_comments\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"diary_entry_comments\".*"})
+	}
+
+	return query
+}
+
 // LoginSessions retrieves all the login_session's LoginSessions with an executor.
 func (o *User) LoginSessions(mods ...qm.QueryMod) loginSessionQuery {
 	var queryMods []qm.QueryMod
@@ -733,6 +757,104 @@ func (userL) LoadWhoPostedUserDiaryEntries(ctx context.Context, e boil.ContextEx
 					foreign.R = &diaryEntryR{}
 				}
 				foreign.R.WhoPostedUser = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadDiaryEntryComments allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (userL) LoadDiaryEntryComments(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+	var slice []*User
+	var object *User
+
+	if singular {
+		object = maybeUser.(*User)
+	} else {
+		slice = *maybeUser.(*[]*User)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &userR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &userR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`diary_entry_comments`),
+		qm.WhereIn(`diary_entry_comments.user_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load diary_entry_comments")
+	}
+
+	var resultSlice []*DiaryEntryComment
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice diary_entry_comments")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on diary_entry_comments")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for diary_entry_comments")
+	}
+
+	if len(diaryEntryCommentAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.DiaryEntryComments = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &diaryEntryCommentR{}
+			}
+			foreign.R.User = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.UserID {
+				local.R.DiaryEntryComments = append(local.R.DiaryEntryComments, foreign)
+				if foreign.R == nil {
+					foreign.R = &diaryEntryCommentR{}
+				}
+				foreign.R.User = local
 				break
 			}
 		}
@@ -1332,6 +1454,59 @@ func (o *User) AddWhoPostedUserDiaryEntries(ctx context.Context, exec boil.Conte
 			}
 		} else {
 			rel.R.WhoPostedUser = o
+		}
+	}
+	return nil
+}
+
+// AddDiaryEntryComments adds the given related objects to the existing relationships
+// of the user, optionally inserting them as new records.
+// Appends related to o.R.DiaryEntryComments.
+// Sets related.R.User appropriately.
+func (o *User) AddDiaryEntryComments(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*DiaryEntryComment) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.UserID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"diary_entry_comments\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
+				strmangle.WhereClause("\"", "\"", 2, diaryEntryCommentPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.UserID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &userR{
+			DiaryEntryComments: related,
+		}
+	} else {
+		o.R.DiaryEntryComments = append(o.R.DiaryEntryComments, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &diaryEntryCommentR{
+				User: o,
+			}
+		} else {
+			rel.R.User = o
 		}
 	}
 	return nil

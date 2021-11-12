@@ -143,7 +143,11 @@ func main() {
 	r.PUT("/api/diary/entry/:diaryEntryId", routes.UpdateDiaryEntry)
 	r.DELETE("/api/diary/entry/:diaryEntryId", routes.DeleteDiaryEntry)
 
-	r.Run(":12001")
+	r.POST("/api/diary/entry/:diaryEntryId/comment", routes.CreateDiaryEntryComment)
+	r.POST("/api/diary/entry/:diaryEntryId/comment/:commentId", routes.UpdateDiaryEntryComment)
+	r.DELETE("/api/diary/entry/:diaryEntryId/comment/:commentId", routes.DeleteDiaryEntryComment)
+	r.GET("/api/diary/entry/:diaryEntryId/comments", routes.GetDiaryEntryComments)
+	r.GET("/api/diary/entry/:diaryEntryId/comments/count", routes.GetDiaryEntryCommentsCount)
 
 	r.Run(":12001")
 }

@@ -8,6 +8,7 @@ var TableNames = struct {
 	ChatroomUsers              string
 	Chatrooms                  string
 	DiaryEntries               string
+	DiaryEntryComments         string
 	Events                     string
 	LoginSessions              string
 	Messages                   string
@@ -20,6 +21,7 @@ var TableNames = struct {
 	ChatroomUsers:              "chatroom_users",
 	Chatrooms:                  "chatrooms",
 	DiaryEntries:               "diary_entries",
+	DiaryEntryComments:         "diary_entry_comments",
 	Events:                     "events",
 	LoginSessions:              "login_sessions",
 	Messages:                   "messages",

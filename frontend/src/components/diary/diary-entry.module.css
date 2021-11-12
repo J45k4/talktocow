@@ -15,3 +15,16 @@
 .body {
     font-size: 20px;
 }
+
+.comment {
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+
+.commentAuthor {
+    font-size: 15px;
+}
+
+.commentBody {
+    font-size: 20px;
+}

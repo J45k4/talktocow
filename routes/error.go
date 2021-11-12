@@ -6,6 +6,7 @@ const (
 	InvalidCredentials  ErrorCode = "INVALID_CREDENTIALS"
 	InternalServerError ErrorCode = "INTERNAL_SERVER_ERROR"
 	InvalidInput        ErrorCode = "INVALID_INPUT"
+	AuthorizationError  ErrorCode = "AUTHORIZATION_ERROR"
 )
 
 type Error struct {

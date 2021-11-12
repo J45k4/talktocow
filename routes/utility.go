@@ -2,6 +2,7 @@ package routes
 
 import (
 	"database/sql"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,4 +31,19 @@ func DoesMaskHaveField(mask []string, fieldName string) bool {
 	}
 
 	return false
+}
+
+func GetOffsetAndLimit(ctx *gin.Context, defOffset int, defLim int) (int, int) {
+	offset := defOffset
+	limit := defLim
+
+	if ctx.Query("offset") != "" {
+		offset, _ = strconv.Atoi(ctx.Query("offset"))
+	}
+
+	if ctx.Query("limit") != "" {
+		limit, _ = strconv.Atoi(ctx.Query("limit"))
+	}
+
+	return offset, limit
 }
