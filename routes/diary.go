@@ -30,6 +30,8 @@ func CreateDiaryEntry(ctx *gin.Context) {
 
 	db := GetDBFromContext(ctx)
 
+	// reader := ctx.Request.MultipartReader()
+
 	var createRequest CreateDiaryEntryRequest
 
 	ctx.BindJSON(&createRequest)

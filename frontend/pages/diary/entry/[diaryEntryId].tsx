@@ -11,10 +11,17 @@ export default function DiaryEntryPage() {
     const [entry, setEntry] = useState<any>()
 
     useEffect(() => {
+        if (!diaryEntryId) {
+            return
+        }
+
         getJson("/api/diary/entry/" + diaryEntryId).then(r => {
             setEntry(r.payload)
         })
     }, [diaryEntryId])
+
+    const [newFiles, setNewFiles] = React.useState<File[]>([])
+    const [images, setImages] = React.useState([])
 
     return (
         <div style={{
@@ -53,19 +60,56 @@ export default function DiaryEntryPage() {
                     })
                 }} />                
             </div>
+            <div>
+                {images.map((f, i) => {
+                    return <div key={i}><img src={f} style={{
+                        width: "200px"
+                    }} /></div>
+                })}
+            </div>
             <div style={{
 
             }}>
-                    <button onClick={() => {
-                        putJson("/api/diary/entry/" + diaryEntryId, {
-                            title: entry.title,
-                            body: entry.body,
-                            mask: ["title", "body"]
-                        })
-                    }}>
-                        Update
-                    </button>
-                </div>
+                <button onClick={() => {
+                    putJson("/api/diary/entry/" + diaryEntryId, {
+                        title: entry.title,
+                        body: entry.body,
+                        mask: ["title", "body"]
+                    })
+                }}>
+                    Update
+                </button>
+                <input type="file"  multiple onChange={e => {
+                    e.preventDefault()
+                    console.log(e)
+                    void (async () => {
+                        const files = (e.target as any).files
+
+                        const newImages = [];
+
+                        for (const f of files) {
+                            const result = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = function (e) {
+                                    resolve(e.target.result)
+                                }
+                                reader.readAsDataURL(f);
+                            }) 
+
+                            newImages.push(result)
+                        }
+
+                        setImages([
+                            ...images,
+                            ...newImages
+                        ])
+
+                        setNewFiles([...newFiles, ...files])
+                    })()
+
+                    
+                }} />
+            </div>
         </div>
     )
 }

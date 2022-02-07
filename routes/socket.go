@@ -62,9 +62,35 @@ type NewChatroomMessage struct {
 	Reference        string `json:"reference"`
 }
 
+type ShowNotification struct {
+	Title string `json:"title"`
+	Body  string `json:"body"`
+}
+
+type NewDiaryEntry struct {
+	UserID       string `json:"userId"`
+	UserName     string `json:"userName"`
+	DiaryEntryID string `json:"diaryEntryId"`
+	Title        string `json:"title"`
+	Body         string `json:"body"`
+	CreateAt     string `json:"createAt"`
+}
+
+type NewDiaryEntryComment struct {
+	UserID              string `json:"userId"`
+	UserName            string `json:"userName"`
+	DiaryEntryID        string `json:"diaryEntryId"`
+	DiaryEntryCommentID string `json:"diaryEntryCommentId"`
+	CommentText         string `json:"commentText"`
+	CreateAt            string `json:"createAt"`
+}
+
 type WebsocketMessageToClient struct {
-	ChangedUserStatus  *UserStatus         `json:"changedUserStatus"`
-	NewChatroomMessage *NewChatroomMessage `json:"newChatroomMessage"`
+	ChangedUserStatus    *UserStatus           `json:"changedUserStatus"`
+	NewChatroomMessage   *NewChatroomMessage   `json:"newChatroomMessage"`
+	ShowNotification     *ShowNotification     `json:"showNotification"`
+	NewDiaryEntry        *NewDiaryEntry        `json:"newDiaryEntry"`
+	NewDiaryEntryComment *NewDiaryEntryComment `json:"newDiaryEntryComment"`
 }
 
 func processMessageRead(
