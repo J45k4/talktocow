@@ -34,6 +34,9 @@ jobs:
           push: true
           tags: jaska/talktocow-web:${{ github.sha }}
   deploy:
+    on:
+      push:
+        branches: [ master ]
     needs: [build-server, build-web]
     runs-on: ubuntu-latest
     steps:
