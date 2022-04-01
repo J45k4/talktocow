@@ -33,10 +33,13 @@ jobs:
           context: ${{ github.workspace }}/frontend
           push: true
           tags: jaska/talktocow-web:${{ github.sha }}
+
+name: Deploy
+on:
+  push:
+    branches: [ master ]
+jobs:
   deploy:
-    on:
-      push:
-        branches: [ master ]
     needs: [build-server, build-web]
     runs-on: ubuntu-latest
     steps:
