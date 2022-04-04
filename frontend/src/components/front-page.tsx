@@ -3,6 +3,7 @@ import { Chatroom } from "./chatroom"
 import { Diary } from "./diary/diary"
 import { IsLoggedIn, IsNotLoggedIn, useIsLoggedIn } from "./isloggedin"
 import { LoginForm } from "./login-form"
+import { NavigationBar } from "./navigation_bar"
 import { ValentinesDayGift } from "./valentines-day-gift"
 
 export const FrontPage = () => {
@@ -15,6 +16,7 @@ export const FrontPage = () => {
             left: "0px"
         }}>
             <IsLoggedIn>
+                <NavigationBar />
                 <Diary /> 
                 {/* <Chatroom chatroomId="1"/> */}
             </IsLoggedIn>

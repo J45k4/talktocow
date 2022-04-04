@@ -12,17 +12,6 @@ export const Diary = () => {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <Link href="/">
-                    <ArrowBack style={{
-                        fontSize: "40px"
-                    }} onClick={() => {
-                        console.log("go to frontpage")
-                        router.push("/")
-                    }} />
-                </Link>
-                <div className={styles.title}>
-                    Diary
-                </div>
                 <div className={styles.addButtonArea}>
                     <Add style={{
                         fontSize: "40px"
