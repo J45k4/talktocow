@@ -133,6 +133,9 @@ func main() {
 
 	r.Use(routes.SessionMiddleware)
 
+	r.GET("/api/users", routes.GetUsers)
+	r.GET("/api/chatrooms", routes.GetChatrooms)
+	r.POST("/api/chatroom", routes.CreateChatroom)
 	r.GET("/api/chatroom/:chatroomId/messages", routes.GetChatroomMessages)
 	r.GET("/api/messages", routes.HandleGetMessages)
 	r.GET("/api/socket", routes.HandleSocket)

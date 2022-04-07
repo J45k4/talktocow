@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/models"
 	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
@@ -58,4 +59,53 @@ func GetChatroomMessages(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, rows)
+}
+
+type CreateChatroomBody struct {
+	UserIds []uint32 `json:"userIds"`
+}
+
+func CreateChatroom(ctx *gin.Context) {
+	db := GetDBFromContext(ctx)
+
+	chatroom := models.Chatroom{}
+
+	err := chatroom.Insert(ctx.Request.Context(), db, boil.Infer())
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	body := CreateChatroomBody{}
+
+	err = ctx.BindJSON(&body)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	for _, userId := range body.UserIds {
+		// userIdNum, err := strconv.Atoi(userId)
+
+		// if err != nil {
+		// 	ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		// 	return
+		// }
+
+		chatroomUser := models.ChatroomUser{
+			ChatroomID: chatroom.ID,
+			UserID:     int(userId),
+		}
+
+		err = chatroomUser.Insert(ctx.Request.Context(), db, boil.Infer())
+
+		if err != nil {
+			ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+			return
+		}
+	}
+
+	ctx.JSON(200, chatroom)
 }

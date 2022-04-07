@@ -1,20 +1,25 @@
+import Link from "next/link"
 import React from "react"
 import { Chatroom } from "../src/components/chatroom"
+import { ChatroomList } from "../src/components/chatroom/chatroom_list"
 import { NavigationBar } from "../src/components/navigation_bar"
+import { PageContainer } from "../src/components/page_container"
 
 export default function ChatroomsPage() {
     return (
-        <div style={{
-            display: "flex",
-            flexDirection: "column",
-            height: "100%"
-        }}>
-            <NavigationBar />
+        <PageContainer>
             <div style={{
                 flexGrow: 1
             }}>
-                <Chatroom chatroomId="1"/>
+                <Link href={"/chatroom/new"}>
+                    <button>
+                        New chatroom
+                    </button>
+                </Link>
+                
+                <ChatroomList />
             </div>
-        </div>
+        </PageContainer>
+
     )
 }
