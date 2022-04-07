@@ -6,7 +6,6 @@ import { PageContainer } from "../../src/components/page_container"
 export default function NewChatroomPage() {
     return (
         <PageContainer>
-            <NavigationBar />
             <NewChatroomForm />
         </PageContainer>
     )
