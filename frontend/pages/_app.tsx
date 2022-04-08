@@ -2,6 +2,7 @@ import { Fragment } from 'react'
 import Head from 'next/head'
 
 import '../styles/global.css'
+import { startNotificationHandler } from '../src/logic/notification-handler'
 
 if (typeof window !== "undefined") {
     if ("serviceWorker" in navigator) {
@@ -9,6 +10,8 @@ if (typeof window !== "undefined") {
             navigator.serviceWorker.register("sw.js")
         })
     }
+
+    startNotificationHandler()
 }
 
 

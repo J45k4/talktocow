@@ -23,6 +23,7 @@ export interface NewChatroomMessage {
 }
 
 export interface MessageFromServer {
+    type: "messageFromServer"
     changedUserStatus?: UserStatus
     newChatroomMessage?: NewChatroomMessage
 }
@@ -41,3 +42,15 @@ export interface MessageToServer {
     messageToChatroom?: MessageToChatroom
     iamHere?: boolean
 }
+
+export type Connected = {
+    type: "connected"
+}
+
+export type Disconnected = {
+    type: "disconnected"
+}
+
+export type ConnEvent = MessageFromServer | 
+    Connected | 
+    Disconnected

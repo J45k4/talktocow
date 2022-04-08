@@ -1,6 +1,9 @@
+import { Subject } from "rxjs";
 import { serverUrl } from "../config";
 import { getSession, subscribeToSessionEvents } from "./session-manager";
-import { MessageFromServer, MessageToServer } from "./websocket-types";
+import { ConnEvent, MessageFromServer, MessageToServer } from "./websocket-types";
+
+export const connEvent = new Subject<ConnEvent>()
 
 type NewMessageSubscriberCallback = (notify: MessageFromServer) => void
 
@@ -98,6 +101,13 @@ function createClient() {
 
             (cb as any)(parsedMessage)
         }
+
+        console.log("parsedMessage", parsedMessage)
+
+        connEvent.next({
+            type: "messageFromServer",
+            ...parsedMessage
+        })
     }
 }
 
