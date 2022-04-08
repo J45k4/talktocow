@@ -1,7 +1,7 @@
 import { connEvent } from "./websocket-conn";
 
 export const startNotificationHandler = () => {
-    if (Notification) {
+    if (!("Notification" in window)) {
         try {
             Notification.requestPermission((status) => {
                 console.log("status", status);
