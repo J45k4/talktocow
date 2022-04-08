@@ -27,7 +27,11 @@ export const IsLoggedIn = ({ children }) => {
     const isLoggedin = useIsLoggedIn()
 
     if (isLoggedin) {
-        return children
+        return (
+            <Fragment>
+                {children}
+            </Fragment>
+        )
     }
 
     return <Fragment />

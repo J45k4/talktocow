@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { useRouter } from "next/router"
 import React from "react"
+import { clearSession } from "../logic/session-manager"
+import { IsLoggedIn } from "./isloggedin"
 
 const NavigationBarItem = (props: {
     href: string
@@ -25,10 +27,30 @@ const NavigationBarItem = (props: {
 export const NavigationBar = () => {
     return (
         <div style={{
-            display: "flex"
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between"
         }}>
-            <NavigationBarItem href="/chatrooms" text="Chatrooms" />
-            <NavigationBarItem href="/diary" text="Diary" />
+            <IsLoggedIn>
+                <div style={{
+                    display: "flex",
+                    flexDirection: "row"
+                }}>
+                    <NavigationBarItem href="/chatrooms" text="Chatrooms" />
+                    <NavigationBarItem href="/diary" text="Diary" />
+                </div>
+                <div style={{
+                    //display: "flex",
+                    cursor: "pointer",
+                    alignSelf: "center",
+                    paddingRight: "20px"
+                }} onClick={e => {
+                    clearSession()
+                }}>
+                    Logout
+                </div>
+            </IsLoggedIn>
+            
         </div>
     )
 }

@@ -4,9 +4,6 @@ import { ParticipantMessage, YourMessage } from "./chatroom-message";
 
 import styles from "./chatroom.module.css";
 import { ConnectionIndicator } from "./connection-indicator";
-import { LogoutButton } from "./logout-button";
-import { ChatroomMessage } from "../logic/chatroom-messages";
-import { getJson } from "../utility/talktocow-api-helpers";
 import { useYourUserId } from "./user-indicator";
 import { useChatroomMessages } from "./chatroom-messages";
 
@@ -14,7 +11,6 @@ const InfoArea = () => {
     return (
         <div className={styles.header}>
             <ConnectionIndicator />
-            <LogoutButton />
         </div>
     )
 }
