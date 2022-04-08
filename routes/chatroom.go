@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/models"
@@ -30,11 +31,19 @@ type MessageAndUser struct {
 func GetChatroomMessages(ctx *gin.Context) {
 	// chatroomId := ctx.Param("chatroomId")
 
+	chatroomId := ctx.Param("chatroomId")
+
+	chatroomIdNum, err := strconv.Atoi(chatroomId)
+
+	if err != nil {
+		fmt.Println("Chatroom ID is not a number", err)
+	}
+
 	db := GetDBFromContext(ctx)
 
 	rows := []ChatroomMessage{}
 
-	err := models.NewQuery(
+	err = models.NewQuery(
 		qm.Select(
 			"messages.chatroom_id as chatroom_id",
 			"messages.user_id as user_id",
@@ -48,6 +57,7 @@ func GetChatroomMessages(ctx *gin.Context) {
 		qm.OrderBy("transmited_at desc"),
 		qm.Limit(35),
 		qm.From("messages"),
+		qm.Where("messages.chatroom_id = ?", chatroomIdNum),
 		qm.InnerJoin("users on messages.user_id = users.id"),
 		// qm.Where("chatroom_id = ?", chatroomId),
 	).Bind(ctx.Request.Context(), db, &rows)

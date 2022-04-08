@@ -95,6 +95,8 @@ func processMessageRead(
 
 			serverReceivedAt := time.Now()
 
+			chatroomIDNum, _ := strconv.Atoi(msg.MessageToChatroom.ChatroomID)
+
 			platform := "talktocow"
 
 			newMessage := models.Message{
@@ -102,7 +104,7 @@ func processMessageRead(
 				ServerReceivedAt: serverReceivedAt,
 				UserID:           int(userSession.UserID),
 				Platform:         null.StringFrom(platform),
-				ChatroomID:       1,
+				ChatroomID:       chatroomIDNum,
 				TransmitedAt:     transmittedAt,
 				WrittenAt:        writenAt,
 				Reference:        null.StringFrom(msg.MessageToChatroom.Reference),
