@@ -22,6 +22,10 @@ func TestUpsert(t *testing.T) {
 
 	t.Run("Messages", testMessagesUpsert)
 
+	t.Run("NotificationLogs", testNotificationLogsUpsert)
+
+	t.Run("PushoverTokens", testPushoverTokensUpsert)
+
 	t.Run("SharedDiaryEntries", testSharedDiaryEntriesUpsert)
 
 	t.Run("UserReceivedChatroomEvents", testUserReceivedChatroomEventsUpsert)

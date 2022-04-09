@@ -1,16 +1,38 @@
 import { getSession } from "../logic/session-manager"
 import { serverUrl } from "../config";
 
-export interface ServerError {
+export interface ApiError {
     code: number
     message: string
 }
 
 export interface ApiResponse<T> {
-    statusCode: number
-    error?: ServerError
+    error?: ApiError
     payload?: T
 }
+
+const customFetch = async <T>(
+	path: string, 
+	method: "POST" | "PUT" | "GET", 
+	payload?: any
+) => new Promise(async (resolve, reject) => {
+	const headers = getHeaders()
+
+	await fetch(resolveServerUrl(path), {
+		method: method,
+		headers: headers,
+		body: JSON.stringify(payload)
+	}).then(res => {
+		resolve(handleFetchResult<T>(res))
+	}).catch(e => {
+		resolve({
+			error: {
+				code: 500,
+				message: e.message
+			}
+		})
+	})
+})
 
 const getHeaders = () => {
     const session = getSession();
@@ -37,15 +59,19 @@ const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> => {
 
     const jsonRes = await r.json()
 
+	if (!jsonRes) {
+		return {
+			payload: null
+		}
+	}
+
     if (jsonRes.error) {
         return {
             error: jsonRes.error,
-            statusCode: statusCode
         }
     }
 
     return {
-        statusCode: statusCode,
         payload: jsonRes
     }
 }
@@ -83,11 +109,5 @@ export const putJson = async <T>(path: string, payload: any): Promise<ApiRespons
 }
 
 export const getJson = async <T>(path: string, query?): Promise<ApiResponse<T>> => {
-    const headers = getHeaders()
-
-    const res = await fetch(resolveServerUrl(path), {
-        headers: headers,
-    });
-
-    return handleFetchResult(res)
+    return customFetch<T>(path, "GET")
 }

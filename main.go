@@ -152,5 +152,10 @@ func main() {
 	r.GET("/api/diary/entry/:diaryEntryId/comments", routes.GetDiaryEntryComments)
 	r.GET("/api/diary/entry/:diaryEntryId/comments/count", routes.GetDiaryEntryCommentsCount)
 
+	r.POST("/api/pushovertoken", routes.CreatePushoverToken)
+	r.GET("/api/pushovertokens", routes.GetPushoverTokens)
+	r.DELETE("/api/pushovertoken/:pushoverTokenId", routes.DeletePushoverToken)
+	r.GET("/api/pushovertoken/:pushoverTokenId", routes.GetPushoverToken)
+
 	r.Run(":12001")
 }

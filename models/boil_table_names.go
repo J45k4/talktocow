@@ -12,6 +12,8 @@ var TableNames = struct {
 	Events                     string
 	LoginSessions              string
 	Messages                   string
+	NotificationLogs           string
+	PushoverTokens             string
 	SharedDiaryEntries         string
 	UserReceivedChatroomEvents string
 	UserReceivedMessage        string
@@ -25,6 +27,8 @@ var TableNames = struct {
 	Events:                     "events",
 	LoginSessions:              "login_sessions",
 	Messages:                   "messages",
+	NotificationLogs:           "notification_logs",
+	PushoverTokens:             "pushover_tokens",
 	SharedDiaryEntries:         "shared_diary_entries",
 	UserReceivedChatroomEvents: "user_received_chatroom_events",
 	UserReceivedMessage:        "user_received_message",
