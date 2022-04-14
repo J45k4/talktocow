@@ -38,6 +38,7 @@ export const NavigationBar = () => {
                 }}>
                     <NavigationBarItem href="/chatrooms" text="Chatrooms" />
                     <NavigationBarItem href="/diary" text="Diary" />
+					{/* <NavigationBarItem href="/courses" text="Courses" /> */}
                 </div>
                 <div style={{
                     //display: "flex",

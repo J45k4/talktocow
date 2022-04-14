@@ -157,5 +157,18 @@ func main() {
 	r.DELETE("/api/pushovertoken/:pushoverTokenId", routes.DeletePushoverToken)
 	r.GET("/api/pushovertoken/:pushoverTokenId", routes.GetPushoverToken)
 
+	r.GET("/api/course/:courseId", routes.GetCourse)
+	r.GET("/api/courses", routes.GetCourses)
+	r.POST("/api/course", routes.CreateCourse)
+	r.PUT("/api/course/:courseId", routes.UpdateCourse)
+
+	r.GET("/api/course/:courseId/homeworks", routes.GetHomeworks)
+	r.GET("/api/course/:courseId/homework", routes.GetHomework)
+	r.POST("/api/course/:courseId/homework", routes.CreateHomework)
+	r.PUT("/api/course/:courseId/homework/:homeworkId", routes.UpdateHomework)
+
+	r.POST("/api/course/:courseId/homework/:homeworkId/submission", routes.SubmitHomework)
+	r.GET("/api/course/:courseId/homework/:homeworkId/submissions", routes.GetHomeworkSubmissions)
+
 	r.Run(":12001")
 }

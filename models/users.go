@@ -83,6 +83,8 @@ var UserRels = struct {
 	ChatroomUsers              string
 	WhoPostedUserDiaryEntries  string
 	DiaryEntryComments         string
+	HomeworkSubmissionComments string
+	HomeworkSubmissions        string
 	LoginSessions              string
 	Messages                   string
 	SharedDiaryEntries         string
@@ -92,6 +94,8 @@ var UserRels = struct {
 	ChatroomUsers:              "ChatroomUsers",
 	WhoPostedUserDiaryEntries:  "WhoPostedUserDiaryEntries",
 	DiaryEntryComments:         "DiaryEntryComments",
+	HomeworkSubmissionComments: "HomeworkSubmissionComments",
+	HomeworkSubmissions:        "HomeworkSubmissions",
 	LoginSessions:              "LoginSessions",
 	Messages:                   "Messages",
 	SharedDiaryEntries:         "SharedDiaryEntries",
@@ -104,6 +108,8 @@ type userR struct {
 	ChatroomUsers              ChatroomUserSlice              `boil:"ChatroomUsers" json:"ChatroomUsers" toml:"ChatroomUsers" yaml:"ChatroomUsers"`
 	WhoPostedUserDiaryEntries  DiaryEntrySlice                `boil:"WhoPostedUserDiaryEntries" json:"WhoPostedUserDiaryEntries" toml:"WhoPostedUserDiaryEntries" yaml:"WhoPostedUserDiaryEntries"`
 	DiaryEntryComments         DiaryEntryCommentSlice         `boil:"DiaryEntryComments" json:"DiaryEntryComments" toml:"DiaryEntryComments" yaml:"DiaryEntryComments"`
+	HomeworkSubmissionComments HomeworkSubmissionCommentSlice `boil:"HomeworkSubmissionComments" json:"HomeworkSubmissionComments" toml:"HomeworkSubmissionComments" yaml:"HomeworkSubmissionComments"`
+	HomeworkSubmissions        HomeworkSubmissionSlice        `boil:"HomeworkSubmissions" json:"HomeworkSubmissions" toml:"HomeworkSubmissions" yaml:"HomeworkSubmissions"`
 	LoginSessions              LoginSessionSlice              `boil:"LoginSessions" json:"LoginSessions" toml:"LoginSessions" yaml:"LoginSessions"`
 	Messages                   MessageSlice                   `boil:"Messages" json:"Messages" toml:"Messages" yaml:"Messages"`
 	SharedDiaryEntries         SharedDiaryEntrySlice          `boil:"SharedDiaryEntries" json:"SharedDiaryEntries" toml:"SharedDiaryEntries" yaml:"SharedDiaryEntries"`
@@ -459,6 +465,48 @@ func (o *User) DiaryEntryComments(mods ...qm.QueryMod) diaryEntryCommentQuery {
 
 	if len(queries.GetSelect(query.Query)) == 0 {
 		queries.SetSelect(query.Query, []string{"\"diary_entry_comments\".*"})
+	}
+
+	return query
+}
+
+// HomeworkSubmissionComments retrieves all the homework_submission_comment's HomeworkSubmissionComments with an executor.
+func (o *User) HomeworkSubmissionComments(mods ...qm.QueryMod) homeworkSubmissionCommentQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"homework_submission_comments\".\"user_id\"=?", o.ID),
+	)
+
+	query := HomeworkSubmissionComments(queryMods...)
+	queries.SetFrom(query.Query, "\"homework_submission_comments\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"homework_submission_comments\".*"})
+	}
+
+	return query
+}
+
+// HomeworkSubmissions retrieves all the homework_submission's HomeworkSubmissions with an executor.
+func (o *User) HomeworkSubmissions(mods ...qm.QueryMod) homeworkSubmissionQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"homework_submissions\".\"user_id\"=?", o.ID),
+	)
+
+	query := HomeworkSubmissions(queryMods...)
+	queries.SetFrom(query.Query, "\"homework_submissions\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"homework_submissions\".*"})
 	}
 
 	return query
@@ -853,6 +901,202 @@ func (userL) LoadDiaryEntryComments(ctx context.Context, e boil.ContextExecutor,
 				local.R.DiaryEntryComments = append(local.R.DiaryEntryComments, foreign)
 				if foreign.R == nil {
 					foreign.R = &diaryEntryCommentR{}
+				}
+				foreign.R.User = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadHomeworkSubmissionComments allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (userL) LoadHomeworkSubmissionComments(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+	var slice []*User
+	var object *User
+
+	if singular {
+		object = maybeUser.(*User)
+	} else {
+		slice = *maybeUser.(*[]*User)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &userR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &userR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`homework_submission_comments`),
+		qm.WhereIn(`homework_submission_comments.user_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load homework_submission_comments")
+	}
+
+	var resultSlice []*HomeworkSubmissionComment
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice homework_submission_comments")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on homework_submission_comments")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for homework_submission_comments")
+	}
+
+	if len(homeworkSubmissionCommentAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.HomeworkSubmissionComments = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &homeworkSubmissionCommentR{}
+			}
+			foreign.R.User = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.UserID {
+				local.R.HomeworkSubmissionComments = append(local.R.HomeworkSubmissionComments, foreign)
+				if foreign.R == nil {
+					foreign.R = &homeworkSubmissionCommentR{}
+				}
+				foreign.R.User = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadHomeworkSubmissions allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (userL) LoadHomeworkSubmissions(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+	var slice []*User
+	var object *User
+
+	if singular {
+		object = maybeUser.(*User)
+	} else {
+		slice = *maybeUser.(*[]*User)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &userR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &userR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`homework_submissions`),
+		qm.WhereIn(`homework_submissions.user_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load homework_submissions")
+	}
+
+	var resultSlice []*HomeworkSubmission
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice homework_submissions")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on homework_submissions")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for homework_submissions")
+	}
+
+	if len(homeworkSubmissionAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.HomeworkSubmissions = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &homeworkSubmissionR{}
+			}
+			foreign.R.User = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.UserID {
+				local.R.HomeworkSubmissions = append(local.R.HomeworkSubmissions, foreign)
+				if foreign.R == nil {
+					foreign.R = &homeworkSubmissionR{}
 				}
 				foreign.R.User = local
 				break
@@ -1503,6 +1747,112 @@ func (o *User) AddDiaryEntryComments(ctx context.Context, exec boil.ContextExecu
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &diaryEntryCommentR{
+				User: o,
+			}
+		} else {
+			rel.R.User = o
+		}
+	}
+	return nil
+}
+
+// AddHomeworkSubmissionComments adds the given related objects to the existing relationships
+// of the user, optionally inserting them as new records.
+// Appends related to o.R.HomeworkSubmissionComments.
+// Sets related.R.User appropriately.
+func (o *User) AddHomeworkSubmissionComments(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HomeworkSubmissionComment) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.UserID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"homework_submission_comments\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
+				strmangle.WhereClause("\"", "\"", 2, homeworkSubmissionCommentPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.UserID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &userR{
+			HomeworkSubmissionComments: related,
+		}
+	} else {
+		o.R.HomeworkSubmissionComments = append(o.R.HomeworkSubmissionComments, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &homeworkSubmissionCommentR{
+				User: o,
+			}
+		} else {
+			rel.R.User = o
+		}
+	}
+	return nil
+}
+
+// AddHomeworkSubmissions adds the given related objects to the existing relationships
+// of the user, optionally inserting them as new records.
+// Appends related to o.R.HomeworkSubmissions.
+// Sets related.R.User appropriately.
+func (o *User) AddHomeworkSubmissions(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HomeworkSubmission) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.UserID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"homework_submissions\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
+				strmangle.WhereClause("\"", "\"", 2, homeworkSubmissionPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.UserID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &userR{
+			HomeworkSubmissions: related,
+		}
+	} else {
+		o.R.HomeworkSubmissions = append(o.R.HomeworkSubmissions, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &homeworkSubmissionR{
 				User: o,
 			}
 		} else {

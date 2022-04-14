@@ -1,3 +1,4 @@
+import { useRouter } from "next/router"
 import { useEffect, useState } from "react"
 import { ApiError, getJson } from "./talktocow-api-helpers"
 
@@ -16,9 +17,21 @@ export const useGetData = <T>(path: string, def?: T): [T, ApiError] => {
 				return
 			}
 
+			if (!r.payload) {
+				return
+			}
+
 			setData(r.payload)
 		})
 	}, [])
 
 	return [data, error]
+}
+
+export const useParam = (param: string): string => {
+	const router = useRouter()
+
+	const p: any = router.query[param] || ""
+
+	return p
 }

@@ -12,11 +12,19 @@ func TestUpsert(t *testing.T) {
 
 	t.Run("Chatrooms", testChatroomsUpsert)
 
+	t.Run("Courses", testCoursesUpsert)
+
 	t.Run("DiaryEntries", testDiaryEntriesUpsert)
 
 	t.Run("DiaryEntryComments", testDiaryEntryCommentsUpsert)
 
 	t.Run("Events", testEventsUpsert)
+
+	t.Run("HomeworkSubmissionComments", testHomeworkSubmissionCommentsUpsert)
+
+	t.Run("HomeworkSubmissions", testHomeworkSubmissionsUpsert)
+
+	t.Run("Homeworks", testHomeworksUpsert)
 
 	t.Run("LoginSessions", testLoginSessionsUpsert)
 
