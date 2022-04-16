@@ -9,6 +9,7 @@ import (
 	"github.com/j45k4/talktocow/models"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type CreateCourseBody struct {
@@ -102,25 +103,6 @@ func UpdateCourse(ctx *gin.Context) {
 	ctx.JSON(200, course)
 }
 
-func GetHomework(ctx *gin.Context) {
-	db := GetDBFromContext(ctx)
-
-	homeworkID := ctx.Param("homework_id")
-
-	homeworkIDNum, err := strconv.Atoi(homeworkID)
-
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"errorMessage": "Invalid homework id"})
-	}
-
-	homework, err := models.FindHomework(ctx.Request.Context(), db, homeworkIDNum)
-	if err != nil {
-		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
-	}
-
-	ctx.JSON(200, homework)
-}
-
 func GetHomeworks(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 
@@ -145,11 +127,15 @@ type CreateHomeworkBody struct {
 func CreateHomework(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 
-	courseID := getNumParam(ctx, "courseId")
+	courseID, err := getNumParam(ctx, "courseId")
+
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid course id"))
+	}
 
 	body := CreateHomeworkBody{}
 
-	err := ctx.BindJSON(&body)
+	err = ctx.BindJSON(&body)
 
 	if err != nil {
 		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid body"))
@@ -219,6 +205,33 @@ func UpdateHomework(ctx *gin.Context) {
 		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
 
 		return
+	}
+
+	ctx.JSON(200, homework)
+}
+
+func GetHomework(ctx *gin.Context) {
+	db := GetDBFromContext(ctx)
+
+	courseID, err := getNumParam(ctx, "courseId")
+
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid course id"))
+	}
+
+	homeworkID, err := getNumParam(ctx, "homeworkId")
+
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid homework id"))
+	}
+
+	homework, err := models.Homeworks(
+		qm.Where("course_id = ?", courseID),
+		qm.Where("id = ?", homeworkID),
+	).One(ctx.Request.Context(), db)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
 	}
 
 	ctx.JSON(200, homework)

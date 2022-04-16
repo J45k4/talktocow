@@ -48,14 +48,10 @@ func GetOffsetAndLimit(ctx *gin.Context, defOffset int, defLim int) (int, int) {
 	return offset, limit
 }
 
-func getNumParam(ctx *gin.Context, paramName string) int {
+func getNumParam(ctx *gin.Context, paramName string) (int, error) {
 	p := ctx.Param(paramName)
 
-	numP := 0
+	numP, err := strconv.Atoi(p)
 
-	if p != "" {
-		numP, _ = strconv.Atoi(p)
-	}
-
-	return numP
+	return numP, err
 }

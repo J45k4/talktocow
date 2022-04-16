@@ -14,7 +14,8 @@ export default function CoursePage() {
 					Create homework
 				</button>
 			</Link>
-			<HomeworkList courseId={courseId} />
+			{courseId &&
+			<HomeworkList courseId={courseId} />}
 		</div>
 	)
 }

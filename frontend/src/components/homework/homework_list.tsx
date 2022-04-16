@@ -1,3 +1,4 @@
+import Link from "next/link";
 import React from "react"
 import { useGetData } from "../../utility/hokers";
 
@@ -10,7 +11,9 @@ export const HomeworkList = (props: {
 		<div>
 			{homeworks.map(p => (
 				<div key={p.id}>
-					{p.name}
+					<Link href={`/course/${props.courseId}/homework/${p.id}`}>
+						{p.title}
+					</Link>
 				</div>
 			))}
 		</div>
