@@ -81,6 +81,7 @@ var UserWhere = struct {
 // UserRels is where relationship names are stored.
 var UserRels = struct {
 	ChatroomUsers              string
+	CourseUsers                string
 	WhoPostedUserDiaryEntries  string
 	DiaryEntryComments         string
 	HomeworkSubmissionComments string
@@ -92,6 +93,7 @@ var UserRels = struct {
 	UserReceivedMessages       string
 }{
 	ChatroomUsers:              "ChatroomUsers",
+	CourseUsers:                "CourseUsers",
 	WhoPostedUserDiaryEntries:  "WhoPostedUserDiaryEntries",
 	DiaryEntryComments:         "DiaryEntryComments",
 	HomeworkSubmissionComments: "HomeworkSubmissionComments",
@@ -106,6 +108,7 @@ var UserRels = struct {
 // userR is where relationships are stored.
 type userR struct {
 	ChatroomUsers              ChatroomUserSlice              `boil:"ChatroomUsers" json:"ChatroomUsers" toml:"ChatroomUsers" yaml:"ChatroomUsers"`
+	CourseUsers                CourseUserSlice                `boil:"CourseUsers" json:"CourseUsers" toml:"CourseUsers" yaml:"CourseUsers"`
 	WhoPostedUserDiaryEntries  DiaryEntrySlice                `boil:"WhoPostedUserDiaryEntries" json:"WhoPostedUserDiaryEntries" toml:"WhoPostedUserDiaryEntries" yaml:"WhoPostedUserDiaryEntries"`
 	DiaryEntryComments         DiaryEntryCommentSlice         `boil:"DiaryEntryComments" json:"DiaryEntryComments" toml:"DiaryEntryComments" yaml:"DiaryEntryComments"`
 	HomeworkSubmissionComments HomeworkSubmissionCommentSlice `boil:"HomeworkSubmissionComments" json:"HomeworkSubmissionComments" toml:"HomeworkSubmissionComments" yaml:"HomeworkSubmissionComments"`
@@ -428,6 +431,27 @@ func (o *User) ChatroomUsers(mods ...qm.QueryMod) chatroomUserQuery {
 	return query
 }
 
+// CourseUsers retrieves all the course_user's CourseUsers with an executor.
+func (o *User) CourseUsers(mods ...qm.QueryMod) courseUserQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"course_users\".\"user_id\"=?", o.ID),
+	)
+
+	query := CourseUsers(queryMods...)
+	queries.SetFrom(query.Query, "\"course_users\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"course_users\".*"})
+	}
+
+	return query
+}
+
 // WhoPostedUserDiaryEntries retrieves all the diary_entry's DiaryEntries with an executor via who_posted_user_id column.
 func (o *User) WhoPostedUserDiaryEntries(mods ...qm.QueryMod) diaryEntryQuery {
 	var queryMods []qm.QueryMod
@@ -705,6 +729,104 @@ func (userL) LoadChatroomUsers(ctx context.Context, e boil.ContextExecutor, sing
 				local.R.ChatroomUsers = append(local.R.ChatroomUsers, foreign)
 				if foreign.R == nil {
 					foreign.R = &chatroomUserR{}
+				}
+				foreign.R.User = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadCourseUsers allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (userL) LoadCourseUsers(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+	var slice []*User
+	var object *User
+
+	if singular {
+		object = maybeUser.(*User)
+	} else {
+		slice = *maybeUser.(*[]*User)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &userR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &userR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`course_users`),
+		qm.WhereIn(`course_users.user_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load course_users")
+	}
+
+	var resultSlice []*CourseUser
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice course_users")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on course_users")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for course_users")
+	}
+
+	if len(courseUserAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.CourseUsers = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &courseUserR{}
+			}
+			foreign.R.User = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.UserID {
+				local.R.CourseUsers = append(local.R.CourseUsers, foreign)
+				if foreign.R == nil {
+					foreign.R = &courseUserR{}
 				}
 				foreign.R.User = local
 				break
@@ -1641,6 +1763,59 @@ func (o *User) AddChatroomUsers(ctx context.Context, exec boil.ContextExecutor, 
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &chatroomUserR{
+				User: o,
+			}
+		} else {
+			rel.R.User = o
+		}
+	}
+	return nil
+}
+
+// AddCourseUsers adds the given related objects to the existing relationships
+// of the user, optionally inserting them as new records.
+// Appends related to o.R.CourseUsers.
+// Sets related.R.User appropriately.
+func (o *User) AddCourseUsers(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*CourseUser) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.UserID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"course_users\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
+				strmangle.WhereClause("\"", "\"", 2, courseUserPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.CourseID, rel.UserID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.UserID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &userR{
+			CourseUsers: related,
+		}
+	} else {
+		o.R.CourseUsers = append(o.R.CourseUsers, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &courseUserR{
 				User: o,
 			}
 		} else {

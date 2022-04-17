@@ -47,3 +47,17 @@ export const useAsync = <T>(callback: () => Promise<T>, deps: any[], def) => {
 
 	return value
 }
+
+export const useCourseMyMeta = () => {	
+	const courseId = useParam("courseId")
+
+	const v = useAsync<{
+		role: number
+	}>(async () => {
+		const res = await getJson<any>(`/api/course/${courseId}/mymeta`)
+	
+		return res.payload
+	}, [courseId], {})
+
+	return v
+}

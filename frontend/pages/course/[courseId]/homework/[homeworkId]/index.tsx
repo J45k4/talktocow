@@ -21,6 +21,9 @@ export default function HomeworkPage() {
 
 	return (
 		<PageContainer>
+			<Link href={`/course/${courseId}`}>
+				back
+			</Link>
 			<h1>{data.title}</h1>
 			<Link href={`/course/${courseId}/homework/${homeworkId}/edit`}>
 				<button style={{
@@ -30,9 +33,13 @@ export default function HomeworkPage() {
 				</button>
 			</Link>
 			
+			<h3>Description</h3>
 			<pre>
 				{data.description}
 			</pre>
+			<Link href={`/course/${courseId}/homework/${homeworkId}/submit`}>
+				Make submission
+			</Link>
 		</PageContainer>
 	);
 }

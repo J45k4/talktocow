@@ -18,6 +18,8 @@ type CreateCourseBody struct {
 }
 
 func CreateCourse(ctx *gin.Context) {
+	session := GetUserSessionFromContext(ctx)
+
 	db := GetDBFromContext(ctx)
 
 	body := CreateCourseBody{}
@@ -36,12 +38,27 @@ func CreateCourse(ctx *gin.Context) {
 	}
 
 	err = course.Insert(ctx.Request.Context(), db, boil.Infer())
+
 	if err != nil {
 		log.Printf("Error: %v", err)
 
 		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
 
 		return
+	}
+
+	courseUsers := models.CourseUser{
+		CourseID: course.ID,
+		UserID:   int(session.UserID),
+		Role:     int(models.Teacher),
+	}
+
+	err = courseUsers.Insert(ctx.Request.Context(), db, boil.Infer())
+
+	if err != nil {
+		log.Printf("Error: %v", err)
+
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
 	}
 
 	ctx.JSON(200, course)
@@ -106,7 +123,15 @@ func UpdateCourse(ctx *gin.Context) {
 func GetHomeworks(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 
-	homeworks, err := models.Homeworks().All(ctx.Request.Context(), db)
+	courseID, err := getNumParam(ctx, "courseId")
+
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid course id"))
+	}
+
+	homeworks, err := models.Homeworks(
+		qm.Where("course_id = ?", courseID),
+	).All(ctx.Request.Context(), db)
 
 	if err != nil {
 		log.Printf("Error: %v", err)
@@ -117,6 +142,28 @@ func GetHomeworks(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, homeworks)
+}
+
+func GetCourseMeta(ctx *gin.Context) {
+	session := GetUserSessionFromContext(ctx)
+
+	db := GetDBFromContext(ctx)
+
+	courseID, err := getNumParam(ctx, "courseId")
+
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid course id"))
+	}
+
+	m, err := models.CourseUsers(
+		qm.Where("course_id = ? and user_id = ?", courseID, session.UserID),
+	).One(ctx.Request.Context(), db)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+	}
+
+	ctx.JSON(200, m)
 }
 
 type CreateHomeworkBody struct {
@@ -164,23 +211,29 @@ func CreateHomework(ctx *gin.Context) {
 
 type UpdateHomeworkBody struct {
 	Title       string  `json:"title"`
-	Description *string `json:"body"`
+	Description *string `json:"description"`
 }
 
 func UpdateHomework(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 
-	homeworkID := ctx.Param("homework_id")
+	courseID, err := getNumParam(ctx, "courseId")
 
-	homeworkIDNum, err := strconv.Atoi(homeworkID)
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid course id"))
+	}
+
+	homeworkId, err := getNumParam(ctx, "homeworkId")
 
 	if err != nil {
 		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid homework id"))
-
-		return
 	}
 
-	homework, err := models.FindHomework(ctx.Request.Context(), db, homeworkIDNum)
+	homework, err := models.Homeworks(
+		qm.Where("course_id = ?", courseID),
+		qm.Where("id = ?", homeworkId),
+	).One(ctx.Request.Context(), db)
+
 	if err != nil {
 		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
 	}
@@ -259,7 +312,15 @@ func GetCourse(ctx *gin.Context) {
 func GetCourses(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 
-	courses, err := models.Courses().All(ctx.Request.Context(), db)
+	session := GetUserSessionFromContext(ctx)
+
+	courses := []models.Course{}
+
+	err := models.NewQuery(
+		qm.InnerJoin("course_users cu on courses.id = cu.course_id"),
+		qm.Where("cu.user_id = ?", session.UserID),
+		qm.From("courses"),
+	).Bind(ctx.Request.Context(), db, &courses)
 
 	if err != nil {
 		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
