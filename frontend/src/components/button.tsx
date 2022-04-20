@@ -2,7 +2,7 @@ import React from "react"
 
 export const Button = (props: {
 	children: any
-	onClick: () => void
+	onClick?: () => void
 }) => {
 	return (
 		<button style={{

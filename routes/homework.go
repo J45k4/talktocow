@@ -330,25 +330,18 @@ func GetCourses(ctx *gin.Context) {
 }
 
 type SubmitHomeworkBody struct {
-	Submission string `json:"body"`
+	Submission string `json:"submission"`
 }
 
 func SubmitHomework(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 
-	homeworkID := ctx.Param("homework_id")
+	session := GetUserSessionFromContext(ctx)
 
-	homeworkIDNum, err := strconv.Atoi(homeworkID)
+	homeworkID, err := getNumParam(ctx, "homeworkId")
 
 	if err != nil {
 		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid homework id"))
-
-		return
-	}
-
-	homework, err := models.FindHomework(ctx.Request.Context(), db, homeworkIDNum)
-	if err != nil {
-		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
 	}
 
 	body := SubmitHomeworkBody{}
@@ -362,7 +355,8 @@ func SubmitHomework(ctx *gin.Context) {
 	}
 
 	submission := models.HomeworkSubmission{
-		HomeworkID: homework.ID,
+		UserID:     int(session.UserID),
+		HomeworkID: homeworkID,
 		Submission: body.Submission,
 	}
 

@@ -167,6 +167,7 @@ func main() {
 	r.POST("/api/course/:courseId/homework", routes.CreateHomework)
 	r.PUT("/api/course/:courseId/homework/:homeworkId", routes.UpdateHomework)
 	r.GET("/api/course/:courseId/homework/:homeworkId", routes.GetHomework)
+	r.POST("/api/course/:courseId/homework/:homeworkId/submit", routes.SubmitHomework)
 
 	r.POST("/api/course/:courseId/homework/:homeworkId/submission", routes.SubmitHomework)
 	r.GET("/api/course/:courseId/homework/:homeworkId/submissions", routes.GetHomeworkSubmissions)
