@@ -439,3 +439,95 @@ func SubmitComment(ctx *gin.Context) (*models.HomeworkSubmissionComment, error) 
 
 	return &comment, nil
 }
+
+func GetStudentSubmissions(ctx *gin.Context) {
+	db := GetDBFromContext(ctx)
+
+	courseId, err := getNumParam(ctx, "course_id")
+
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid course id"))
+
+		return
+	}
+
+	userId, err := getNumParam(ctx, "user_id")
+
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid user id"))
+
+		return
+	}
+
+	submissions, err := models.HomeworkSubmissions(
+		qm.Where("course_id = ?", courseId),
+		qm.Where("user_id = ?", userId),
+	).All(ctx.Request.Context(), db)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+	}
+
+	ctx.JSON(200, submissions)
+}
+
+func GetCourseStudents(ctx *gin.Context) {
+	db := GetDBFromContext(ctx)
+
+	courseID, err := getNumParam(ctx, "courseId")
+
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid course id"))
+	}
+
+	students := []models.User{}
+
+	err = models.NewQuery(
+		qm.Select("users.*"),
+		qm.InnerJoin("course_users cu on users.id = cu.user_id"),
+		qm.Where("cu.course_id = ?", courseID),
+		qm.From("users"),
+	).Bind(ctx.Request.Context(), db, &students)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+	}
+
+	ctx.JSON(200, students)
+}
+
+type AddUserToCourseBody struct {
+	UserID int    `json:"userId"`
+	Role   string `json:"role"`
+}
+
+func AddUserToCourse(ctx *gin.Context) {
+	db := GetDBFromContext(ctx)
+
+	courseID, err := getNumParam(ctx, "courseId")
+
+	if err != nil {
+		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid course id"))
+	}
+
+	body := AddUserToCourseBody{}
+
+	err = ctx.BindJSON(&body)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+	}
+
+	newCourseUser := models.CourseUser{
+		CourseID: courseID,
+		UserID:   body.UserID,
+	}
+
+	err = newCourseUser.Insert(ctx.Request.Context(), db, boil.Infer())
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+	}
+
+	ctx.JSON(200, newCourseUser)
+}

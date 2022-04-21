@@ -1,5 +1,6 @@
 import Link from "next/link";
 import React from "react";
+import { CourseStudentsList } from "../../../src/components/course/course_students_list";
 import { HomeworkList } from "../../../src/components/homework/homework_list";
 import { PageContainer } from "../../../src/components/page_container";
 import { useCourseMyMeta, useParam } from "../../../src/utility/hokers";
@@ -23,6 +24,7 @@ export default function CoursePage() {
 			</Link>)}
 			{courseId &&
 			<HomeworkList courseId={courseId} />}
+			<CourseStudentsList courseId={courseId} />
 		</PageContainer>
 	)
 }
