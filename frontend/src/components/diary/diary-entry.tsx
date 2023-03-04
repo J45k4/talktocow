@@ -14,7 +14,7 @@ export const DiaryEntry = (props: {
 
     const [newComment, setNewComment] = React.useState("")
 
-    const [comments, setComments] = React.useState([])
+    const [comments, setComments] = React.useState<any[]>([])
 
     const [commentOffset, setCommentOffset] = React.useState(0)
 

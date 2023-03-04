@@ -5,7 +5,7 @@ import { useGetData, useParam } from "../../utility/hokers"
 export const CoursesList = () => {
 	// const courseId = useParam("courseId")
 
-	const [courses] = useGetData(`/api/courses`, [])
+	const [courses] = useGetData<any[]>(`/api/courses`, [])
 	
 	return (
 		<div>

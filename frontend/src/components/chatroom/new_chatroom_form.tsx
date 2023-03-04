@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import { getJson, postJson } from "../../utility/talktocow-api-helpers"
 
 export const NewChatroomForm = () => {
-    const [users, setUsers] = useState([])
+    const [users, setUsers] = useState<any[]>([])
     const [selected, setSelected] = useState<string[]>([])
     
     useEffect(() => {
@@ -21,7 +21,7 @@ export const NewChatroomForm = () => {
                     }} style={{
                         cursor: "pointer",
                         border: selected.includes(p.id) ? "1px solid black" : "none"
-                    }}>
+                    }} key={p.id}>
                         {p.name}
                     </div>
                 ))}

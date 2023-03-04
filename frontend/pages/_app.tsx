@@ -16,7 +16,7 @@ if (typeof window !== "undefined") {
 
 const isServer = () => typeof window === 'undefined';
 
-export default function App({ Component, pageProps }) {
+export default function App({ Component, pageProps }: { Component: any, pageProps: any }) {
     return (
         <Fragment>
             <Head>
@@ -28,7 +28,7 @@ export default function App({ Component, pageProps }) {
                 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet"></link>
                 <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, width=device-width, user-scalable=no" />
             </Head>
-            {isServer &&
+            {isServer() &&
             <Component {...pageProps} />}
         </Fragment>
     )

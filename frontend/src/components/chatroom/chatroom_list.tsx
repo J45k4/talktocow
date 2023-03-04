@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react"
 import { getJson } from "../../utility/talktocow-api-helpers"
 
 export const ChatroomList = () => {
-    const [chatrooms, setChatrooms] = useState([])
+    const [chatrooms, setChatrooms] = useState<any[]>([])
 
     useEffect(() => {
         getJson<any>("/api/chatrooms").then(r => {
@@ -22,7 +22,7 @@ export const ChatroomList = () => {
     return (
         <div>
             {chatrooms.map(p => (
-                <Link href={`/chatroom/${p.id}`}>
+                <Link href={`/chatroom/${p.id}`} key={p.id}>
                     <div key={p.id} style={{ cursor: "pointer" }}>
                         {"chatroom " + p.id}
                     </div>

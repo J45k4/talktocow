@@ -10,7 +10,7 @@ import { getJson, postJson, putJson } from "../../../../../src/utility/talktocow
 
 export default function EditHomewWorkPage() {
 	const [title, setTitle] = useState("")
-	const [ description, setDescription ] = useState<string>()
+	const [ description, setDescription ] = useState<string>("")
 
 	const courseId = useParam("courseId");
 	const homeworkId = useParam("homeworkId");

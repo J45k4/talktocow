@@ -23,13 +23,13 @@ export const useIsLoggedIn = () => {
     return isLoggedin
 }
 
-export const IsLoggedIn = ({ children }) => {
+export const IsLoggedIn = (props: any) => {
     const isLoggedin = useIsLoggedIn()
 
     if (isLoggedin) {
         return (
             <Fragment>
-                {children}
+                {props.children}
             </Fragment>
         )
     }
@@ -37,12 +37,14 @@ export const IsLoggedIn = ({ children }) => {
     return <Fragment />
 }
 
-export const IsNotLoggedIn = ({ children }) => {
+export const IsNotLoggedIn = (props: {
+	children: any
+}) => {
     const isLoggedin = useIsLoggedIn()
 
     if (isLoggedin == false) {
         return <Fragment>
-            {children}
+            {props.children}
         </Fragment>
     }
 

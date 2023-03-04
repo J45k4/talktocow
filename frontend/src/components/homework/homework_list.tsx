@@ -5,7 +5,7 @@ import { useGetData } from "../../utility/hokers";
 export const HomeworkList = (props: {
 	courseId: string
 }) => {
-	const [homeworks] = useGetData(`/api/course/${props.courseId}/homeworks`, []);
+	const [homeworks] = useGetData<any[]>(`/api/course/${props.courseId}/homeworks`, []);
 	
 	return (
 		<div>

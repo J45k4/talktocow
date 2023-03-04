@@ -9,11 +9,11 @@ export const formatMessageTime = (writenAt: Date) => {
     return `${hours}:${minues < 10 ? "0" + minues : minues}`
 }
 
-export const YourMessage = memo((props: {
+export const YourMessage = memo(function YourMessage(props: {
     writenAt: string
     messageText: string
     status: "notsend" | "serverReceived" | "participantsReceived" | "participantsRead"
-}) => {
+}) {
     const writenAt = new Date(props.writenAt)
 
     return (
@@ -40,11 +40,11 @@ export const YourMessage = memo((props: {
     )
 })
 
-export const ParticipantMessage = memo((props: {
+export const ParticipantMessage = memo(function ParticipantMessage(props: {
     writenAt: string
     messageText: string
     status: "notsend" | "serverReceived" | "participantsReceived" | "participantsRead"
-}) => {
+}) {
     const writenAt = new Date(props.writenAt)
 
     return (

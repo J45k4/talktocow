@@ -3,7 +3,7 @@ import { ChatroomMessage, subscribeToNewChatroomMessages, unsubscribeToNewChatro
 import { OrderedMap } from "immutable"
 
 
-export const useChatroomMessages = (chatroomId) => {
+export const useChatroomMessages = (chatroomId: string) => {
     const [currentChatroomMessages, setChatroomMessages] = useState(OrderedMap<string, ChatroomMessage>())
 
     useEffect(() => {
@@ -16,8 +16,10 @@ export const useChatroomMessages = (chatroomId) => {
 
             deezNuts = deezNuts.withMutations(m => {
                 for (const chatroomMessage of chatroomMessages) {
-                    m.set(chatroomMessage.reference, chatroomMessage)
-                }
+					if (chatroomMessage.reference) {
+                    	m.set(chatroomMessage.reference, chatroomMessage)
+					}
+				}
             }).sort((a, b) => {
                 const aWritenAt = new Date(a.writenAt).getTime()
                 const bWritenAt = new Date(b.writenAt).getTime()
