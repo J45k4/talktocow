@@ -46,24 +46,28 @@ export const LoginForm = () => {
                     <button onClick={async () => {
                         setCurrentlyLogining(true);
 
-                        const res = await postJson<any>("/api/login", {
-                            username: username,
-                            password: password
-                        })
-
-                        if (res.error) {
-                            setCurrentlyLogining(false)
-                            setLoginError(res.error.message)
-
-                            return
-                        }
-                        
-                        setSession({
-                            token: res.payload.token,
-                            userId: res.payload.userId,
-                            username: res.payload.username
-                        })
-
+						try {
+							const res = await postJson<any>("/api/login", {
+								username: username,
+								password: password
+							})
+	
+							if (res.error) {
+								setCurrentlyLogining(false)
+								setLoginError(res.error.message)
+	
+								return
+							}
+							
+							setSession({
+								token: res.payload.token,
+								userId: res.payload.userId,
+								username: res.payload.username
+							})
+						} catch (e) {
+							setLoginError("Unknown login error")
+							setCurrentlyLogining(false)
+						}
                     }}>
                         Login
 					</button>}

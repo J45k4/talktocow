@@ -9,19 +9,10 @@ import styles from "./page-container.module.css"
 export const PageContainer = (props: {
     children: any
 }) => {
-    // const isLoggedin = useIsLoggedIn()
-
     return (
         <div className={styles.pageContainer}>
             <NavigationBar />
-            
-
-            {/* <IsLoggedIn>
-                <NavigationBar />
-                {props.children}
-            </IsLoggedIn> */}
             <IsNotLoggedIn>
-                
                 <LoginForm />
             </IsNotLoggedIn>
             <IsLoggedIn>

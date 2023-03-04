@@ -1,4 +1,4 @@
-import { Edit } from "@material-ui/icons"
+import { FaEdit } from "react-icons/fa";
 import Link from "next/link"
 import React, { useCallback, useEffect } from "react"
 import { getJson, postJson } from "../../utility/talktocow-api-helpers";
@@ -55,7 +55,7 @@ export const DiaryEntry = (props: {
             <div className={styles.title}>
                 {props.title}
                 <Link href={"/diary/entry/" + props.id}>
-                    <Edit />
+                    <FaEdit />
                 </Link>
             </div>
             <div className={styles.body}>

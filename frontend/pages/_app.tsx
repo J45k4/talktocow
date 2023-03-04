@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import Head from 'next/head'
 
-import '../styles/global.css'
+import '../styles/globals.css'
 import { startNotificationHandler } from '../src/logic/notification-handler'
 
 if (typeof window !== "undefined") {
