@@ -3,6 +3,7 @@ module github.com/j45k4/talktocow
 go 1.15
 
 require (
+	github.com/PullRequestInc/go-gpt3 v1.1.13 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/bytedance/sonic v1.8.3 // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0
@@ -21,6 +22,7 @@ require (
 	github.com/lib/pq v1.10.7
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
 	github.com/rubenv/sql-migrate v1.3.1
+	github.com/sashabaranov/go-openai v1.4.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/viper v1.12.0
 	github.com/ugorji/go/codec v1.2.10 // indirect
