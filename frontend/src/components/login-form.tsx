@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useState } from "react";
 import { setSession } from "../logic/session-manager";
 import { postJson } from "../utility/talktocow-api-helpers";
@@ -9,6 +10,33 @@ export const LoginForm = () => {
     const [currentlyLogining, setCurrentlyLogining] = useState(false);
     const [loginError, setLoginError] = useState("");
 
+	const login = useCallback(async () => {
+		setCurrentlyLogining(true);
+
+		try {
+			const res = await postJson<any>("/api/login", {
+				username: username,
+				password: password
+			})
+
+			if (res.error) {
+				setCurrentlyLogining(false)
+				setLoginError(res.error.message)
+
+				return
+			}
+			
+			setSession({
+				token: res.payload.token,
+				userId: res.payload.userId,
+				username: res.payload.username
+			})
+		} catch (e) {
+			setLoginError("Unknown login error")
+			setCurrentlyLogining(false)
+		}
+	}, [password, username, setCurrentlyLogining, setLoginError])
+
     return (
         <div>
             <div>
@@ -19,7 +47,11 @@ export const LoginForm = () => {
                 </div>
                 <input type="text" value={username} onChange={(e: any) => {
                     setUsername(e.target.value)
-                }} />
+                }} onKeyDown={async (e) => {
+					if (e.key === "Enter") {
+						await login()
+					}
+				}} />
             </div>
             <div>
                 <div>
@@ -29,7 +61,11 @@ export const LoginForm = () => {
                 </div>
                 <input type="password" value={password} onChange={(e: any) => {
                     setPassword(e.target.value)
-                }} />
+                }} onKeyDown={async (e) => {
+					if (e.key === "Enter") {
+						await login()
+					}
+				}} />
             </div>
 
             <div>
@@ -43,32 +79,7 @@ export const LoginForm = () => {
                         Logining...
 								</div>
                     :
-                    <button onClick={async () => {
-                        setCurrentlyLogining(true);
-
-						try {
-							const res = await postJson<any>("/api/login", {
-								username: username,
-								password: password
-							})
-	
-							if (res.error) {
-								setCurrentlyLogining(false)
-								setLoginError(res.error.message)
-	
-								return
-							}
-							
-							setSession({
-								token: res.payload.token,
-								userId: res.payload.userId,
-								username: res.payload.username
-							})
-						} catch (e) {
-							setLoginError("Unknown login error")
-							setCurrentlyLogining(false)
-						}
-                    }}>
+                    <button onClick={login}>
                         Login
 					</button>}
             </div>

@@ -20,16 +20,10 @@ export default function App({ Component, pageProps }: { Component: any, pageProp
     return (
         <Fragment>
             <Head>
-                <link rel="manifest" href="/manifest.json" />
                 <title>Talktocow 🥰 </title>
-
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" />
-                <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet"></link>
-                <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, width=device-width, user-scalable=no" />
+				<meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, width=device-width, user-scalable=no" />
             </Head>
-            {isServer() &&
-            <Component {...pageProps} />}
+            <Component {...pageProps} />
         </Fragment>
     )
 }
