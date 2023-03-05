@@ -33,3 +33,16 @@ jobs:
           context: ${{ github.workspace }}/frontend
           push: true
           tags: jaska/talktocow-web:${{ github.sha }}
+  deploy:
+    needs: [build-server, build-web]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            /home/githubci/upgrade-talktocow ${{ github.sha }}
