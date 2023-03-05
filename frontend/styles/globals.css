@@ -7,7 +7,7 @@ textarea {
 
 html,
 body,
-body > div:first-child {
+body > div {
   height: 100%;
 }
 
