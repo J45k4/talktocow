@@ -6,22 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/models"
-	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
-
-type ChatroomMessage struct {
-	ChatroomID   string      `json:"chatroomId" boil:"chatroom_id"`
-	UserID       string      `json:"userId" boil:"user_id"`
-	UserName     string      `json:"userName" boil:"user_name"`
-	MessageID    string      `json:"messageId" boil:"message_id"`
-	MessageText  string      `json:"messageText" boil:"message_text"`
-	WritenAt     string      `json:"writenAt" boil:"writen_at"`
-	TransmitedAt string      `json:"transmitedAt" boil:"transmited_at"`
-	Platform     string      `json:"platform" boil:"platform"`
-	Reference    null.String `json:"reference" boil:"reference"`
-}
 
 type MessageAndUser struct {
 	models.Message `boil:",bind"`

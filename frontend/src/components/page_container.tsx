@@ -17,8 +17,7 @@ export const PageContainer = (props: {
             </IsNotLoggedIn>
             <IsLoggedIn>
             {props.children}
-            </IsLoggedIn>
-            
+            </IsLoggedIn>    
         </div>
     )
 }

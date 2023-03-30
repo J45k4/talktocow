@@ -1,7 +1,12 @@
 import React from "react"
 import { BsSearch } from "react-icons/bs"
+import { sendMessage } from "../../ws"
+import { CowGPTChatroom } from "./cowgpt-chatroom"
+import { CowGPTChatrooms } from "./cowgpt-chatrooms"
 
-export const CowGPT = () => {
+export const CowGPT = (props: {
+	chatroomId?: string
+}) => {
 	return (
 		<div style={{
 			display: "flex",
@@ -9,7 +14,18 @@ export const CowGPT = () => {
 			flexGrow: 1,
 		}}>
 			<div>
-				asd
+				<div>
+					<button onClick={() => {
+						sendMessage({
+							type: "askQuestion"
+						})
+					}}>
+						Ask question
+					</button>
+				</div>
+				<div>
+					<CowGPTChatrooms />
+				</div>
 			</div>
 			<div style={{
 				display: "flex",
@@ -30,37 +46,8 @@ export const CowGPT = () => {
 					</div>
 					
 				</div>
-				<div style={{
-					display: "flex",
-					flexGrow: 1,
-					padding: "1em",
-				}}>
-					<div>
-						qwer
-					</div>
-				</div>
-				<div style={{
-					display: "flex",
-
-				}}>
-					<div style={{
-						border: "solid 1px #8E8E8E",
-						flexGrow: 1,
-						margin: "2em",
-						fontSize: "1.5em",
-						padding: "0.2em",
-					}}>
-						<input style={{
-							border: "none",
-							width: "100%",
-							height: "100%",
-						}} onKeyDown={e => {
-							if (e.key === "Enter") {
-								console.log("Enter")
-							}
-						}} />
-					</div>
-				</div>
+				{props.chatroomId &&
+				<CowGPTChatroom chatroomId={props.chatroomId} />}
 			</div>
 		</div>
 	)

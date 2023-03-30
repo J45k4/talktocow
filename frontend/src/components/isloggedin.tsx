@@ -2,9 +2,12 @@ import { Fragment, useEffect, useState } from "react"
 import { getSession, SessionChangeNotify, subscribeToSessionEvents, unsubscribeToSessionEvents } from "../logic/session-manager"
 
 export const useIsLoggedIn = () => {
-    const [isLoggedin, setIsloggedin] = useState(getSession().token != null)
+    const [isLoggedin, setIsloggedin] = useState(true)
     
     useEffect(() => {
+		const a = getSession().token != null
+		setIsloggedin(a)
+
         function handle(s: SessionChangeNotify) {
             if (s.token != null) {
                 setIsloggedin(true)
@@ -18,7 +21,7 @@ export const useIsLoggedIn = () => {
         return () => {
             unsubscribeToSessionEvents(handle)
         }
-    }, [])
+    }, [, setIsloggedin])
 
     return isLoggedin
 }

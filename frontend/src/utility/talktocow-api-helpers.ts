@@ -1,5 +1,7 @@
 import { getSession } from "../logic/session-manager"
 import { serverUrl } from "../config";
+import { resolveServerUrl } from "../utility";
+import { getHeaders } from "../headers";
 
 export interface ApiError {
     code: number
@@ -34,26 +36,6 @@ const customFetch = async <T>(
 	})
 })
 
-const getHeaders = () => {
-    const session = getSession();
-
-    console.log("session", session)
-
-    const headers = {
-        ["Content-Type"]: "application/json"
-    }
-
-    if (session.token) {
-        headers["Authorization"] = "Bearer " + session.token
-    }
-
-    if (session.deviceId) {
-        headers["x-device-id"] = session.deviceId
-    }
-
-    return headers
-}
-
 const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> => {
     const statusCode = r.status
 
@@ -74,14 +56,6 @@ const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> => {
     return {
         payload: jsonRes
     }
-}
-
-const resolveServerUrl = (path: string) => {
-    if (serverUrl) {
-        return serverUrl + path
-    }
-
-    return path
 }
 
 export const postJson = async <T>(path: string, payload: any): Promise<ApiResponse<T>> => {

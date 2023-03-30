@@ -29,6 +29,7 @@ type User struct {
 	Username     null.String `boil:"username" json:"username,omitempty" toml:"username" yaml:"username,omitempty"`
 	PasswordHash null.String `boil:"password_hash" json:"password_hash,omitempty" toml:"password_hash" yaml:"password_hash,omitempty"`
 	CreatedAt    time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	Bot          bool        `boil:"bot" json:"bot" toml:"bot" yaml:"bot"`
 
 	R *userR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L userL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -40,12 +41,14 @@ var UserColumns = struct {
 	Username     string
 	PasswordHash string
 	CreatedAt    string
+	Bot          string
 }{
 	ID:           "id",
 	Name:         "name",
 	Username:     "username",
 	PasswordHash: "password_hash",
 	CreatedAt:    "created_at",
+	Bot:          "bot",
 }
 
 var UserTableColumns = struct {
@@ -54,15 +57,26 @@ var UserTableColumns = struct {
 	Username     string
 	PasswordHash string
 	CreatedAt    string
+	Bot          string
 }{
 	ID:           "users.id",
 	Name:         "users.name",
 	Username:     "users.username",
 	PasswordHash: "users.password_hash",
 	CreatedAt:    "users.created_at",
+	Bot:          "users.bot",
 }
 
 // Generated where
+
+type whereHelperbool struct{ field string }
+
+func (w whereHelperbool) EQ(x bool) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
+func (w whereHelperbool) NEQ(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
+func (w whereHelperbool) LT(x bool) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
+func (w whereHelperbool) LTE(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
+func (w whereHelperbool) GT(x bool) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
+func (w whereHelperbool) GTE(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
 
 var UserWhere = struct {
 	ID           whereHelperint
@@ -70,12 +84,14 @@ var UserWhere = struct {
 	Username     whereHelpernull_String
 	PasswordHash whereHelpernull_String
 	CreatedAt    whereHelpertime_Time
+	Bot          whereHelperbool
 }{
 	ID:           whereHelperint{field: "\"users\".\"id\""},
 	Name:         whereHelpernull_String{field: "\"users\".\"name\""},
 	Username:     whereHelpernull_String{field: "\"users\".\"username\""},
 	PasswordHash: whereHelpernull_String{field: "\"users\".\"password_hash\""},
 	CreatedAt:    whereHelpertime_Time{field: "\"users\".\"created_at\""},
+	Bot:          whereHelperbool{field: "\"users\".\"bot\""},
 }
 
 // UserRels is where relationship names are stored.
@@ -129,9 +145,9 @@ func (*userR) NewStruct() *userR {
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "name", "username", "password_hash", "created_at"}
+	userAllColumns            = []string{"id", "name", "username", "password_hash", "created_at", "bot"}
 	userColumnsWithoutDefault = []string{"name", "username", "password_hash", "created_at"}
-	userColumnsWithDefault    = []string{"id"}
+	userColumnsWithDefault    = []string{"id", "bot"}
 	userPrimaryKeyColumns     = []string{"id"}
 )
 

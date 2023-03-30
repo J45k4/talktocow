@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/j45k4/talktocow/eventbus"
 )
 
 func GetDBFromContext(ctx *gin.Context) *sql.DB {
@@ -13,6 +14,14 @@ func GetDBFromContext(ctx *gin.Context) *sql.DB {
 	db2 := db.(*sql.DB)
 
 	return db2
+}
+
+func GetEventbusFromContext(ctx *gin.Context) *eventbus.Eventbus {
+	e, _ := ctx.Get("eventbus")
+
+	e2 := e.(*eventbus.Eventbus)
+
+	return e2
 }
 
 func GetUserSessionFromContext(ctx *gin.Context) UserSession {

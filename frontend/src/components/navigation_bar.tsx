@@ -37,7 +37,7 @@ export const NavigationBar = () => {
                     flexDirection: "row"
                 }}>
                     <NavigationBarItem href="/chatrooms" text="Chatrooms" />
-					{/* <NavigationBarItem href="/cowgpt" text="CowGPT" /> */}
+					<NavigationBarItem href="/cowgpt" text="CowGPT" />
                     <NavigationBarItem href="/diary" text="Diary" />
 					<NavigationBarItem href="/courses" text="Courses" />
                 </div>

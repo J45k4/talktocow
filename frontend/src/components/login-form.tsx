@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useState } from "react";
 import { setSession } from "../logic/session-manager";
 import { postJson } from "../utility/talktocow-api-helpers";
+import { openConn } from "../ws";
 
 export const LoginForm = () => {
     const [username, setUsername] = useState();
@@ -25,6 +26,8 @@ export const LoginForm = () => {
 
 				return
 			}
+
+			openConn(res.payload.token)
 			
 			setSession({
 				token: res.payload.token,

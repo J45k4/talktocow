@@ -3,84 +3,21 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"log"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/j45k4/talktocow/bot"
 	"github.com/j45k4/talktocow/chatroom"
 	"github.com/j45k4/talktocow/config"
-	"github.com/j45k4/talktocow/models"
+	"github.com/j45k4/talktocow/eventbus"
 	"github.com/j45k4/talktocow/routes"
 	_ "github.com/lib/pq"
 	migrate "github.com/rubenv/sql-migrate"
 )
-
-type LoginPayload struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type UserSession struct {
-	UserID int32
-	Name   string
-}
-
-type LoginResponse struct {
-	Token        string `json:"token"`
-	ErrorMessage string `json:"errorMessage"`
-}
-
-func loadPrivateKey() []byte {
-	privateKeyBytes, err := ioutil.ReadFile(config.PrivateKeyPath)
-
-	if err != nil {
-		panic("Reading private key failed")
-	}
-
-	return privateKeyBytes
-}
-
-func loadPublicKey() []byte {
-	publicKeyBytes, err := ioutil.ReadFile(config.PublicKeyPath)
-
-	if err != nil {
-		panic("No public key found")
-	}
-
-	return publicKeyBytes
-}
-
-//func EchoServer(ws *websocket.Conn) {
-//	io.Copy(ws, ws)
-//}
-
-type MessageToChatroom struct {
-	MessageText  string `json:"messageText"`
-	CreateTime   string `json:"createTime"`
-	TransmitTime string `json:"transmitTime"`
-}
-
-type WebsocketReceiveMessage struct {
-	MessageToChatRoom *MessageToChatroom `json:"messageToChatroom"`
-}
-
-type NewChatroomMessage struct {
-	MessageText   string `json:"messageText"`
-	FromUserName  string `json:"fromUserName"`
-	TransmittedAt string `json:"transmittedAt"`
-}
-
-type WebsocketTransmitMessage struct {
-	NewChatroomMessage *NewChatroomMessage `json:"newChatroomMessage"`
-}
-
-type MessageAndUser struct {
-	models.Message `boil:",bind"`
-	models.User    `boil:",bind"`
-}
 
 func main() {
 	log.Printf("Private key path %v", config.PrivateKeyPath)
@@ -110,6 +47,10 @@ func main() {
 		panic("Failed to execute migrations")
 	}
 
+	bot.InitializeBots(db, context.Background())
+
+	eventbus := eventbus.New()
+
 	chatroomEventbus := chatroom.NewChatroomEventbus()
 
 	r := gin.Default()
@@ -126,10 +67,12 @@ func main() {
 
 	r.Use(func(ctx *gin.Context) {
 		ctx.Set("db", db)
+		ctx.Set("eventbus", eventbus)
 		chatroom.SetChatroomEventbus(ctx, chatroomEventbus)
 	})
 
 	r.POST("/api/login", routes.HandleLogin)
+	r.GET("/api/ws", routes.HandleWs)
 
 	r.Use(routes.SessionMiddleware)
 

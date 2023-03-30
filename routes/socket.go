@@ -28,38 +28,8 @@ type UserSession struct {
 	UserName string `json:"userName"`
 }
 
-type MessageToChatroom struct {
-	MessageText  string `json:"messageText"`
-	ChatroomID   string `json:"chatroomId"`
-	WritenAt     string `json:"writenAt"`
-	TransmitedAt string `json:"transmitedAt"`
-	Reference    string `json:"reference"`
-}
-
 type WebsocketMessageToServer struct {
 	MessageToChatroom *MessageToChatroom `json:"messageToChatroom"`
-}
-
-type UserStatus struct {
-	Online    bool   `json:"online"`
-	UserID    string `json:"userId"`
-	Username  string `json:"username"`
-	Lastseen  string `json:"lastseen"`
-	Sleeping  bool   `json:"sleeping"`
-	Timestamp string `json:"timestamp"`
-}
-
-type NewChatroomMessage struct {
-	ChatroomID       string `json:"chatroomId"`
-	UserID           string `json:"userId"`
-	UserName         string `json:"userName"`
-	MessageID        string `json:"messageId"`
-	MessageText      string `json:"messageText"`
-	WritenAt         string `json:"writenAt"`
-	TransmitedAt     string `json:"transmitedAt"`
-	ServerReceivedAt string `json:"serverReceivedAt"`
-	Platform         string `json:"platform"`
-	Reference        string `json:"reference"`
 }
 
 type WebsocketMessageToClient struct {
