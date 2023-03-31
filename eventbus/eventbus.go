@@ -3,11 +3,13 @@ package eventbus
 import (
 	"sync"
 
+	"github.com/j45k4/talktocow/models"
 	"github.com/sashabaranov/go-openai"
 )
 
 type Event struct {
-	ChatGPTRes *openai.ChatCompletionResponse
+	ChatGPTRes      *openai.ChatCompletionResponse
+	ChatroomMessage *models.Message
 }
 
 type Eventbus struct {

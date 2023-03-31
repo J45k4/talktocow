@@ -176,6 +176,10 @@ func (h *WsHandler) handleSendMessage(msg WsMsgFromClient) bool {
 		return false
 	}
 
+	h.eventbus.Publish(eventbus.Event{
+		ChatroomMessage: &newMessage,
+	})
+
 	return false
 }
 
@@ -232,42 +236,27 @@ func (h *WsHandler) Run() {
 	fmt.Println("running ws handler")
 
 	readerChan := wsChan(h.ws)
-	//eventChan := h.eventbus.Subscribe()
+	eventChan := h.eventbus.Subscribe()
 
 	fmt.Println("starting event loop")
 
-	// stop := false
+	for {
 
-	for msg := range readerChan {
-		fmt.Println("received wsMsg: ", msg)
+		select {
+		case msg, ok := <-readerChan:
+			if !ok {
+				fmt.Println("readerChan closed")
 
-		h.handleWsMsg(msg)
+				return
+			}
 
-		//stop = h.handleWsMsg(msg)
+			fmt.Println("received wsMsg: ", msg)
+
+			h.handleWsMsg(msg)
+		case event := <-eventChan:
+			h.handleEvent(event)
+		}
 	}
-
-	// for {
-
-	// 	select {
-	// 	case msg := <-readerChan:
-	// 		wsMsg, ok := msg.(WsMsgFromClient)
-
-	// 		if !ok {
-	// 			continue
-	// 		}
-
-	// 		fmt.Println("received wsMsg: ", wsMsg)
-
-	// 		stop = h.handleWsMsg(wsMsg)
-
-	// 	case event := <-eventChan:
-	// 		h.ws.WriteJSON(event)
-	// 	}
-
-	// 	if stop {
-	// 		break
-	// 	}
-	// }
 }
 
 func HandleWs(ctx *gin.Context) {
