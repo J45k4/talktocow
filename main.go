@@ -51,6 +51,10 @@ func main() {
 
 	eventbus := eventbus.New()
 
+	cowgpt := bot.NewCowGPT(eventbus)
+
+	go cowgpt.Run()
+
 	chatroomEventbus := chatroom.NewChatroomEventbus()
 
 	r := gin.Default()
