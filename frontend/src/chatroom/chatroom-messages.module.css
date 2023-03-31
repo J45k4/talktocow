@@ -1,0 +1,17 @@
+.body {
+    flex-grow: 1;
+    /* background-color: #525252; */
+	/* border: solid 1px #525252; */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    padding-bottom: 10px;
+}
+
+.messageRow {
+	display: flex;
+	flex-direction: row;
+	margin-bottom: 10px;
+	margin-left: 10px;
+	margin-right: 10px;
+}

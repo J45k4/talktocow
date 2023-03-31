@@ -3,18 +3,7 @@ import { MessageFromServer } from "./websocket-types";
 import { sendMessageToServer, subscribeToNewMessages, subscribeToSocketStatusChanged } from "./websocket-conn";
 import { v4 } from "uuid"
 import { getJson } from "../utility/talktocow-api-helpers";
-
-export type ChatroomMessage = {
-    userId: string
-    userName: string
-    messageId?: string
-    messageText: string
-    writenAt: string
-    transmitedAt?: string
-    serverReceivedAt?: string
-    platform?: string
-    reference?: string
-}
+import { ChatroomMessage } from "../types";
 
 type SubscriberCallback = (payload: ChatroomMessage[]) => void;
 

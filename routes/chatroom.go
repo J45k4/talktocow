@@ -39,7 +39,6 @@ func GetChatroomMessages(ctx *gin.Context) {
 			"messages.message_text as message_text",
 			"messages.written_at as writen_at",
 			"messages.transmited_at as transmited_at",
-			"messages.platform as platform",
 			"messages.reference as reference"),
 		qm.OrderBy("transmited_at desc"),
 		qm.Limit(35),

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,8 +30,8 @@ const (
 type WsMsgFromClient struct {
 	Type         WsMessageFromClientType `json:"type"`
 	Token        *string                 `json:"token"`
-	MessageText  *string                 `json:"message"`
-	ChatroomID   *int32                  `json:"chatroomID"`
+	MessageText  *string                 `json:"messageText"`
+	ChatroomID   *string                 `json:"chatroomID"`
 	UserID       *string                 `json:"userID"`
 	UserName     *string                 `json:"userName"`
 	WrittenAt    *string                 `json:"writtenAt"`
@@ -120,7 +121,14 @@ func (h *WsHandler) handleAuthenticate(msg WsMsgFromClient) bool {
 func (h *WsHandler) handleSendMessage(msg WsMsgFromClient) bool {
 	fmt.Println("handleSendMessage", msg)
 
-	chatroom, err := models.FindChatroom(h.ctx, h.db, int(*msg.ChatroomID))
+	chatroomID, err := strconv.Atoi(*msg.ChatroomID)
+
+	if err != nil {
+		fmt.Println("error converting chatroomID to int: ", err)
+		return false
+	}
+
+	chatroom, err := models.FindChatroom(h.ctx, h.db, chatroomID)
 
 	if err != nil {
 		fmt.Println("error finding chatroom: ", err)
@@ -150,11 +158,9 @@ func (h *WsHandler) handleSendMessage(msg WsMsgFromClient) bool {
 		reference = null.NewString(*msg.Reference, true)
 	}
 
-	// chatroomID, err := strconv.Atoi(*msg.ChatroomID))
-
 	newMessage := models.Message{
 		MessageText:      null.NewString(*msg.MessageText, true),
-		ChatroomID:       int(*msg.ChatroomID),
+		ChatroomID:       chatroomID,
 		UserID:           int(h.userID),
 		WrittenAt:        writtenAtTime,
 		TransmitedAt:     transmitedAtTime,

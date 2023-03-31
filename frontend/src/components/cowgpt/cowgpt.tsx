@@ -1,6 +1,6 @@
 import React from "react"
 import { BsSearch } from "react-icons/bs"
-import { sendMessage } from "../../ws"
+import { ws } from "../../ws"
 import { CowGPTChatroom } from "./cowgpt-chatroom"
 import { CowGPTChatrooms } from "./cowgpt-chatrooms"
 
@@ -12,11 +12,12 @@ export const CowGPT = (props: {
 			display: "flex",
 			flexDirection: "row",
 			flexGrow: 1,
+			height: "calc(100vh - 100px)"
 		}}>
 			<div>
 				<div>
 					<button onClick={() => {
-						sendMessage({
+						ws.send({
 							type: "askQuestion"
 						})
 					}}>
@@ -24,7 +25,7 @@ export const CowGPT = (props: {
 					</button>
 				</div>
 				<div>
-					<CowGPTChatrooms />
+					<CowGPTChatrooms selectedChatroomId={props.chatroomId} />
 				</div>
 			</div>
 			<div style={{

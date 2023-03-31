@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
-import { ChatroomMessage, subscribeToNewChatroomMessages, unsubscribeToNewChatroomMessages } from "../logic/chatroom-messages"
+import {subscribeToNewChatroomMessages, unsubscribeToNewChatroomMessages } from "../logic/chatroom-messages"
 import { OrderedMap } from "immutable"
+import { ChatroomMessage } from "../types"
 
 
 export const useChatroomMessages = (chatroomId: string) => {

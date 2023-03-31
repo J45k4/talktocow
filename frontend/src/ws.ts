@@ -1,6 +1,7 @@
 import { serverUrl } from "./config"
+import { eventbus } from "./eventbus";
 import { createLogger } from "./logger";
-import { MessageToServer } from "./types"
+import { MessageFromServer, MessageToServer } from "./types"
 
 const logger = createLogger("ws")
 
@@ -12,29 +13,46 @@ var wsURL = `${scheme}://${url.hostname}${port}/api/ws`
 
 console.log("wsURL", wsURL)
 
-let ws: WebSocket
+let wsSocket: WebSocket
 
-export const sendMessage = (msg: MessageToServer) => {
+const sendBuffer = []
+
+const send = (msg: MessageToServer) => {
 	logger.info("sendMessage", msg)
 
-	if (ws.readyState === WebSocket.OPEN) {
-		ws.send(JSON.stringify(msg))
+	if (wsSocket.readyState === WebSocket.OPEN) {
+		wsSocket.send(JSON.stringify(msg))
+
+		return
 	}
+
+	sendBuffer.push(msg)
 }
 
 const createConn = (token: string) => {
-	ws = new WebSocket(wsURL)
+	wsSocket = new WebSocket(wsURL)
 
-	ws.onopen = () => {
+	wsSocket.onopen = () => {
 		console.log("Socket onopen")
 
-		sendMessage({
+		send({
 			type: "authenticate",
-			token: token
+			token: token,
+			transmitedAt: new Date().toISOString()
 		})
+
+		let buffItem = sendBuffer.shift()
+
+		while (buffItem) {
+			buffItem.transmitedAt = new Date().toISOString()
+
+			send(buffItem)
+
+			buffItem = sendBuffer.shift()
+		}
 	}
 
-	ws.onclose = () => {
+	wsSocket.onclose = () => {
 		console.log("socketclose")
 
 		setTimeout(() => {
@@ -42,13 +60,21 @@ const createConn = (token: string) => {
 		}, 1000)
 	}
 
-	ws.onmessage = (msg) => {
+	wsSocket.onmessage = (msg) => {
 		console.log("parsedMessage", msg)
+
+		const parsedMessage = JSON.parse(msg.data) as MessageFromServer
+
+		if (parsedMessage.type === "chatroomMessages") {
+			const messages = parsedMessage.messages
+
+			eventbus.publish("chatroomMessages", messages)
+		}
 	}
 }
 
-export const openConn = (token: string) => {
-	if (!ws) {
+const openConn = (token: string) => {
+	if (!wsSocket) {
 		return
 	}
 
@@ -61,4 +87,9 @@ if (typeof window !== "undefined") {
 	if (token) {
 		createConn(token)
 	}
+}
+
+export const ws = {
+	send,
+	openConn
 }

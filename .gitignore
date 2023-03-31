@@ -7,3 +7,4 @@ frontend/public/sw.js
 __debug_bin
 __debug_bin.exe
 talktocow
+node_modules
