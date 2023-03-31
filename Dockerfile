@@ -14,6 +14,8 @@ COPY models models
 COPY chatroom chatroom
 COPY migrations migrations
 COPY routes routes
+COPY eventbus eventbus
+COPY bot bot
 
 RUN go build
 
