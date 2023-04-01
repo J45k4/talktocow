@@ -2,19 +2,19 @@ import { memo } from "react"
 import styles from "./chatroom-message.module.css"
 import { MessageIndicator } from "./icons/message-indicators"
 
-export const formatMessageTime = (writenAt: Date) => {
-    const hours = writenAt.getHours();
-    const minues = writenAt.getMinutes();
+export const formatMessageTime = (writtenAt: Date) => {
+    const hours = writtenAt.getHours();
+    const minues = writtenAt.getMinutes();
 
     return `${hours}:${minues < 10 ? "0" + minues : minues}`
 }
 
 export const YourMessage = memo(function YourMessage(props: {
-    writenAt: string
+    writtenAt: string
     messageText: string
     status: "notsend" | "serverReceived" | "participantsReceived" | "participantsRead"
 }) {
-    const writenAt = new Date(props.writenAt)
+    const writtenAt = new Date(props.writtenAt)
 
     return (
         <div className={styles.yourMessageLine}>
@@ -27,7 +27,7 @@ export const YourMessage = memo(function YourMessage(props: {
                 }}>
                     <div className={styles.yourMessageTime}>
                         <span>
-                            {isNaN(writenAt.getTime()) ? "" : formatMessageTime(writenAt)}
+                            {isNaN(writtenAt.getTime()) ? "" : formatMessageTime(writtenAt)}
                         </span>
                         <span>
                             {props.status !== "notsend" && 
@@ -41,11 +41,11 @@ export const YourMessage = memo(function YourMessage(props: {
 })
 
 export const ParticipantMessage = memo(function ParticipantMessage(props: {
-    writenAt: string
+    writtenAt: string
     messageText: string
     status: "notsend" | "serverReceived" | "participantsReceived" | "participantsRead"
 }) {
-    const writenAt = new Date(props.writenAt)
+    const writtenAt = new Date(props.writtenAt)
 
     return (
         <div className={styles.participantMessageLine}>
@@ -58,7 +58,7 @@ export const ParticipantMessage = memo(function ParticipantMessage(props: {
                 }}>
                     <div className={styles.participantMessageTime}>
                         <span>
-                            {isNaN(writenAt.getTime()) ? "" : formatMessageTime(writenAt)}
+                            {isNaN(writtenAt.getTime()) ? "" : formatMessageTime(writtenAt)}
                         </span>
                     </div>
                 </div>

@@ -1,17 +1,25 @@
 .body {
-    flex-grow: 1;
+    /* flex-grow: 1; */
     /* background-color: #525252; */
 	/* border: solid 1px #525252; */
+	height: 100%;
     overflow-y: auto;
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column;
     padding-bottom: 10px;
+	align-self: flex-end;
 }
 
 .messageRow {
 	display: flex;
-	flex-direction: row;
+	flex-direction: column;
 	margin-bottom: 10px;
 	margin-left: 10px;
 	margin-right: 10px;
+}
+
+.messageAuthor {
+	font-size: 20px;
+	font-weight: bold;
+	margin-bottom: 5px;
 }

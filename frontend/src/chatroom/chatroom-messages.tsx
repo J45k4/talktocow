@@ -23,12 +23,17 @@ export const ChatroomMessages = (props: {
 
 	return (
 		<div className={styles.body}>
-			<div ref={messagesEndRef} />
 			{messages.map(p => (
 				<div key={p.reference} className={styles.messageRow}>
-					{p.messageText}
+					<div className={styles.messageAuthor}>
+						{p.userName}
+					</div>
+					<div>
+						{p.messageText}
+					</div>
 				</div>
 			))}
+			<div ref={messagesEndRef} />
 		</div>
 	)
 }

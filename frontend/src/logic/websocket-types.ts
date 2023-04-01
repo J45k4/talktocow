@@ -15,7 +15,7 @@ export interface NewChatroomMessage {
     userName: string
     messageId: string
     messageText: string    
-    writenAt: string
+    writtenAt: string
     transmitedAt: string
     serverReceivedAt?: string
     platform: string
@@ -33,7 +33,7 @@ export interface MessageFromServer {
 export interface MessageToChatroom {
     messageText: string
     chatroomId: string
-    writenAt: string
+    writtenAt: string
     transmitedAt: string
     reference: string
 }

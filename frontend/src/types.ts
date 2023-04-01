@@ -23,7 +23,7 @@ export type ChatroomMessage = {
 	userName: string
 	messageId?: string
 	messageText: string
-	writenAt: string
+	writtenAt: string
 	transmitedAt?: string
 	serverReceivedAt?: string
 	platform?: string

@@ -12,13 +12,13 @@ const logger = createLogger("chatroomMessageManager")
 export const sendMessageToChatroom = (chatroomId: string, message: string) => {
 	const session = getSession()
 
-	const writenAt = new Date().toISOString()
+	const writtenAt = new Date().toISOString()
 
     const chatroomMessage: ChatroomMessage = {
         userId: session.userId,
         userName: session.username,
         messageText: message,
-        writenAt: writenAt,
+        writtenAt: writtenAt,
         reference: v4(),
 		chatroomId: chatroomId
     }
@@ -40,7 +40,9 @@ export const loadChatroomMessages = (chatroomId: string, n: number) => {
 				logger.info("Loaded chatroom messages", res.payload)
 
 				chatroomMessageStore.addMessages(res.payload)
-				eventbus.publish("chatroomMessages", res.payload)
+				eventbus.publish(
+					"chatroomMessages", 
+					chatroomMessageStore.getAllMessages(chatroomId))
 			}
 		})
 }

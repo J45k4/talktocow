@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/j45k4/talktocow/models"
 	"github.com/volatiletech/null/v8"
@@ -29,6 +30,20 @@ func InitializeBot(name string, db *sql.DB, ctx context.Context) {
 	}
 }
 
-func InitializeBots(db *sql.DB, ctx context.Context) {
-	InitializeBot("CowGPT", db, ctx)
+func InitializeBots(db *sql.DB) {
+	InitializeBot("CowGPT", db, context.Background())
+}
+
+func GetCowGPTUser(db *sql.DB) *models.User {
+	ctx := context.Background()
+
+	user, err := models.Users(qm.Where("name = ?", "CowGPT")).One(ctx, db)
+
+	if err != nil {
+		fmt.Printf("error finding user: %v", err)
+
+		return nil
+	}
+
+	return user
 }

@@ -60,7 +60,7 @@ func processMessageRead(
 			chatroomID, _ := strconv.Atoi(msg.MessageToChatroom.ChatroomID)
 
 			transmittedAt, _ := time.Parse(time.RFC3339Nano, msg.MessageToChatroom.TransmitedAt)
-			writenAt, _ := time.Parse(time.RFC3339Nano, msg.MessageToChatroom.WritenAt)
+			writtenAt, _ := time.Parse(time.RFC3339Nano, msg.MessageToChatroom.WrittenAt)
 			//createdAt, _ := time.Parse(time.RFC3339Nano, msg.MessageToChatRoom.CreateTime)
 
 			serverReceivedAt := time.Now()
@@ -76,7 +76,7 @@ func processMessageRead(
 				Platform:         null.StringFrom(platform),
 				ChatroomID:       chatroomIDNum,
 				TransmitedAt:     transmittedAt,
-				WrittenAt:        writenAt,
+				WrittenAt:        writtenAt,
 				Reference:        null.StringFrom(msg.MessageToChatroom.Reference),
 			}
 
@@ -100,7 +100,7 @@ func processMessageRead(
 				UserID:           fmt.Sprint(userSession.UserID),
 				UserName:         userSession.UserName,
 				MessageText:      msg.MessageToChatroom.MessageText,
-				WritenAt:         msg.MessageToChatroom.WritenAt,
+				WrittenAt:        msg.MessageToChatroom.WrittenAt,
 				TransmitedAt:     msg.MessageToChatroom.TransmitedAt,
 				ServerReceivedAt: serverReceivedAt.Format(time.RFC3339),
 				Platform:         platform,
@@ -162,7 +162,7 @@ func HandleSocket(ctx *gin.Context) {
 				UserName:         chatroomMessage.UserName,
 				MessageID:        chatroomMessage.MessageID,
 				MessageText:      chatroomMessage.MessageText,
-				WritenAt:         chatroomMessage.WritenAt,
+				WrittenAt:        chatroomMessage.WrittenAt,
 				TransmitedAt:     chatroomMessage.TransmitedAt,
 				ServerReceivedAt: chatroomMessage.ServerReceivedAt,
 				Platform:         chatroomMessage.Platform,

@@ -1,15 +1,13 @@
 package eventbus
 
 import (
+	"encoding/json"
+	"log"
 	"sync"
-
-	"github.com/j45k4/talktocow/models"
-	"github.com/sashabaranov/go-openai"
 )
 
 type Event struct {
-	ChatGPTRes      *openai.ChatCompletionResponse
-	ChatroomMessage *models.Message
+	ChatroomMessage *ChatroomMessage
 }
 
 type Eventbus struct {
@@ -26,15 +24,21 @@ func New() *Eventbus {
 func (e *Eventbus) Subscribe() chan Event {
 	e.lock.Lock()
 	defer e.lock.Unlock()
-	ch := make(chan Event)
+	ch := make(chan Event, 10)
 	e.subscribers = append(e.subscribers, ch)
 	return ch
 }
 
 func (e *Eventbus) Publish(event Event) {
+	res2B, _ := json.Marshal(event)
+	log.Printf("Eventbus publish event: %v", string(res2B))
+
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 	for _, ch := range e.subscribers {
-		ch <- event
+		select {
+		case ch <- event:
+		default:
+		}
 	}
 }

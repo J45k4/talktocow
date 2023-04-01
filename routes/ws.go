@@ -46,9 +46,15 @@ type Authenticated struct {
 type WsMessageToClientType string
 
 const (
-	WsAuthenticated   WsMessageToClientType = "authenticated"
-	WsUnauthenticated WsMessageToClientType = "unauthenticated"
+	WsAuthenticated        WsMessageToClientType = "authenticated"
+	WsUnauthenticated      WsMessageToClientType = "unauthenticated"
+	WsChatroomMessagesType WsMessageToClientType = "chatroomMessages"
 )
+
+type ChatroomMessages struct {
+	Type     WsMessageToClientType `json:"type"`
+	Messages []ChatroomMessage     `json:"messages"`
+}
 
 type WsMsgToClient struct {
 	Type      WsMessageToClientType `json:"type"`
@@ -89,7 +95,7 @@ type WsHandler struct {
 	userName string
 }
 
-func (h *WsHandler) sendMessage(msg WsMsgToClient) {
+func (h *WsHandler) sendMessage(msg interface{}) {
 	h.ws.WriteJSON(msg)
 }
 
@@ -176,9 +182,21 @@ func (h *WsHandler) handleSendMessage(msg WsMsgFromClient) bool {
 		return false
 	}
 
+	log.Printf("ws publish message")
+
 	h.eventbus.Publish(eventbus.Event{
-		ChatroomMessage: &newMessage,
+		ChatroomMessage: &eventbus.ChatroomMessage{
+			ChatroomID:   chatroomID,
+			ID:           newMessage.ID,
+			MessageText:  *msg.MessageText,
+			UserID:       int(h.userID),
+			WrittenAt:    writtenAtTime,
+			TransmitedAt: transmitedAtTime,
+			Reference:    *msg.Reference,
+		},
 	})
+
+	log.Printf("ws message sent message handled")
 
 	return false
 }
@@ -227,8 +245,24 @@ func (h *WsHandler) handleWsMsg(msg WsMsgFromClient) bool {
 }
 
 func (h *WsHandler) handleEvent(event eventbus.Event) {
-	if event.ChatGPTRes != nil {
+	fmt.Println("ws handler got event: ", event)
 
+	if event.ChatroomMessage != nil {
+		chatroomMessage := ChatroomMessage{
+			ChatroomID:   strconv.Itoa(event.ChatroomMessage.ChatroomID),
+			MessageText:  event.ChatroomMessage.MessageText,
+			UserID:       strconv.Itoa(event.ChatroomMessage.UserID),
+			WrittenAt:    event.ChatroomMessage.WrittenAt.Format(time.RFC3339),
+			TransmitedAt: event.ChatroomMessage.TransmitedAt.Format(time.RFC3339),
+			Reference:    event.ChatroomMessage.Reference,
+		}
+
+		chatroomMessages := ChatroomMessages{
+			Type:     WsChatroomMessagesType,
+			Messages: []ChatroomMessage{chatroomMessage},
+		}
+
+		h.sendMessage(chatroomMessages)
 	}
 }
 
@@ -241,6 +275,7 @@ func (h *WsHandler) Run() {
 	fmt.Println("starting event loop")
 
 	for {
+		log.Printf("ws waiting for next")
 
 		select {
 		case msg, ok := <-readerChan:
@@ -257,6 +292,8 @@ func (h *WsHandler) Run() {
 			h.handleEvent(event)
 		}
 	}
+
+	fmt.Println("exiting ws handler")
 }
 
 func HandleWs(ctx *gin.Context) {

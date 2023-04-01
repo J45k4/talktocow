@@ -14,7 +14,7 @@ type ChatroomMessage struct {
 	UserID           string `json:"userId"`
 	UserName         string `json:"userName"`
 	MessageText      string `json:"messageText"`
-	WritenAt         string `json:"writenAt"`
+	WrittenAt        string `json:"writtenAt"`
 	TransmitedAt     string `json:"transmitedAt"`
 	ServerReceivedAt string
 	Platform         string `json:"platform"`

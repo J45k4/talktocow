@@ -17,6 +17,7 @@ import (
 	"github.com/j45k4/talktocow/routes"
 	_ "github.com/lib/pq"
 	migrate "github.com/rubenv/sql-migrate"
+	"github.com/sashabaranov/go-openai"
 )
 
 func main() {
@@ -47,11 +48,17 @@ func main() {
 		panic("Failed to execute migrations")
 	}
 
-	bot.InitializeBots(db, context.Background())
+	bot.InitializeBots(db)
 
 	eventbus := eventbus.New()
 
-	cowgpt := bot.NewCowGPT(eventbus)
+	cowgpt := bot.CowGPT{
+		Eventbus:   eventbus,
+		Client:     openai.NewClient(config.OpenAIApiKey),
+		CowGPTUser: bot.GetCowGPTUser(db),
+		Ctx:        context.Background(),
+		DB:         db,
+	}
 
 	go cowgpt.Run()
 

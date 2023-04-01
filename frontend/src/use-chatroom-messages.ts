@@ -31,7 +31,7 @@ export const useChatroomMessages = (chatroomId: string): ChatroomMessage[] => {
 
 						logger.info("addMessage", msg);
 						chatroomMessageStore.addMessage(msg);
-						draft.unshift(msg);
+						draft.push(msg);
 					}
 				}
 			})

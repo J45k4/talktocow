@@ -46,10 +46,11 @@ function handle(message: MessageFromServer) {
             notifyChatroomSubscribers(newChatroomMessage.chatroomId, [existingMessage])
         } else {
             const chatroomMessage: ChatroomMessage = {
+				chatroomId: newChatroomMessage.chatroomId,
                 messageText: newChatroomMessage.messageText,
                 userId: newChatroomMessage.userId,
                 userName: newChatroomMessage.userName,
-                writenAt: newChatroomMessage.writenAt,
+                writtenAt: newChatroomMessage.writtenAt,
                 messageId: newChatroomMessage.messageId,
                 platform: newChatroomMessage.platform,
                 reference: newChatroomMessage.reference,
@@ -81,13 +82,14 @@ export const getChatroomEvents = (chatroomId: string) => {
 export const sendMessageToChatroom = (chatroomId: string, message: string) => {
     const session = getSession()
 
-    const writenAt = new Date().toISOString()
+    const writtenAt = new Date().toISOString()
 
     const chatroomMessage: ChatroomMessage = {
+		chatroomId: chatroomId,
         userId: session.userId,
         userName: session.username,
         messageText: message,
-        writenAt: writenAt,
+        writtenAt: writtenAt,
         reference: v4()
     }
 
@@ -103,7 +105,7 @@ export const sendMessageToChatroom = (chatroomId: string, message: string) => {
             messageText: message,
             reference: chatroomMessage.reference,
             transmitedAt: new Date().toISOString(),
-            writenAt: writenAt
+            writtenAt: writtenAt
         }
     })
 

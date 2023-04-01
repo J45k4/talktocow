@@ -33,7 +33,7 @@ const MessagesArea = (props: {
                 <YourMessage
                     key={msg.reference}
                     messageText={msg.messageText}
-                    writenAt={msg.writenAt}
+                    writtenAt={msg.writtenAt}
                     status="participantsReceived"/>
             )
         } else {
@@ -41,7 +41,7 @@ const MessagesArea = (props: {
                 <ParticipantMessage
                     key={msg.reference}
                     messageText={msg.messageText} 
-                    writenAt={msg.writenAt} 
+                    writtenAt={msg.writtenAt} 
                     status="participantsReceived" />
             )
         }

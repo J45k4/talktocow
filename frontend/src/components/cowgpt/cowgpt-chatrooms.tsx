@@ -19,6 +19,7 @@ export const CowGPTChatrooms = (props: {
 						<div key={chatroom.id} style={{
 							cursor: "pointer",
 							padding: "10px",
+							whiteSpace: "nowrap",
 							border: props.selectedChatroomId == chatroom.id ? "solid 1px black" : ""
 						}}>
 							{chatroom.name}

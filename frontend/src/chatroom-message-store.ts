@@ -3,17 +3,40 @@ import { ChatroomMessage } from "./types";
 
 const logger = createLogger("chatroomMessageStore")
 
-export const chatroomMessageStore = {
-	messagesByChatroom: {} as Record<number, ChatroomMessage[]>,
+const messagesByChatroom = new Map<string, ChatroomMessage[]>()
 
+const sortMessages = (chatroomId: string) => {
+	logger.info("sortMessages", chatroomId);
+
+	const messages = messagesByChatroom.get(chatroomId);
+
+	if (!messages) {
+		return;
+	}
+
+	logger.info("messages", messages)
+
+	// Sort messages by writtenAt so that latest messages are at the bottom
+	// strings are first converted to dates and then sorted
+	messages.sort((a, b) => {
+		const aDate = new Date(a.writtenAt);
+		const bDate = new Date(b.writtenAt);
+
+		return aDate.getTime() - bDate.getTime();	
+	})
+
+	logger.info("sorted messages", messages)
+}
+
+export const chatroomMessageStore = {
 	addMessage(message: ChatroomMessage) {
 		const chatroomId = message.chatroomId;
 
-		let chatroomMessages = this.messagesByChatroom[chatroomId];
+		let chatroomMessages = messagesByChatroom.get(chatroomId);
 
 		if (!chatroomMessages) {
 			chatroomMessages = [];
-			this.messagesByChatroom[chatroomId] = chatroomMessages;
+			messagesByChatroom.set(chatroomId, chatroomMessages);
 		}
 
 		if (chatroomMessages.some((m) => m.reference === message.reference)) {
@@ -22,8 +45,9 @@ export const chatroomMessageStore = {
 
 		logger.info("addMessage", message);
 
-		this.messagesByChatroom[chatroomId].push(message);
-		this.sortMessages(chatroomId);
+		chatroomMessages.push(message);
+
+		sortMessages(chatroomId);
 	},
 	addMessages(messages: ChatroomMessage[]) {
 		logger.info("addMessages", messages);
@@ -34,37 +58,33 @@ export const chatroomMessageStore = {
 			const chatroomId = message.chatroomId;
 			chatroomsToUpdate.add(chatroomId);
 
-			let chatroomMessages = this.messagesByChatroom[chatroomId];
+			let chatroomMessages = messagesByChatroom.get(chatroomId);
 
 			if (!chatroomMessages) {
 				chatroomMessages = [];
-				this.messagesByChatroom[chatroomId] = chatroomMessages;
+				messagesByChatroom.set(chatroomId, chatroomMessages);
 			}
 
 			if (chatroomMessages.some((m) => m.reference === message.reference)) {
 				return;
 			}
 
-			this.messagesByChatroom[chatroomId].push(message);
+			chatroomMessages.push(message);
 		});
 
 		chatroomsToUpdate.forEach((chatroomId) => {
-			this.sortMessages(chatroomId);
+			sortMessages(chatroomId);
 		});
 	},
 	getAllMessages(chatroomId: string): ChatroomMessage[] {
 		logger.info("getAllMessages", chatroomId);
 
-		return this.messagesByChatroom[chatroomId] || [];
+		const messages = messagesByChatroom.get(chatroomId);
+
+		if (!messages) {
+			return [];
+		}
+
+		return [...messages];
 	},
-	sortMessages(chatroomId: number) {
-		logger.info("sortMessages", chatroomId);
-	
-		const messages = this.messagesByChatroom[chatroomId] || [];
-		const messagesCopy = [...messages];
-		messagesCopy.sort((a, b) => {
-			return a.writenAt.localeCompare(b.writenAt);
-		});
-		this.messagesByChatroom[chatroomId] = messagesCopy;
-	}
 };

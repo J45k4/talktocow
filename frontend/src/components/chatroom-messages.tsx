@@ -22,10 +22,10 @@ export const useChatroomMessages = (chatroomId: string) => {
 					}
 				}
             }).sort((a, b) => {
-                const aWritenAt = new Date(a.writenAt).getTime()
-                const bWritenAt = new Date(b.writenAt).getTime()
+                const aWrittenAt = new Date(a.writtenAt).getTime()
+                const bWrittenAt = new Date(b.writtenAt).getTime()
 
-                return aWritenAt - bWritenAt
+                return aWrittenAt - bWrittenAt
             })
             
             console.log("deeznuts", deezNuts)
