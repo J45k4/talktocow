@@ -128,7 +128,7 @@ subscribeToSessionEvents((s) => {
     }
 })
 
-if (typeof document !== "undefined") {
+if (typeof window !== "undefined") {
     createClient();
 }
 

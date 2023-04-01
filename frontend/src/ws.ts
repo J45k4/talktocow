@@ -5,14 +5,6 @@ import { MessageFromServer, MessageToServer } from "./types"
 
 const logger = createLogger("ws")
 
-const url = serverUrl ? new URL(serverUrl) : document.location
-
-var scheme = url.protocol == "https:" ? "wss" : "ws";
-var port = url.port ? ":" + url.port : "";
-var wsURL = `${scheme}://${url.hostname}${port}/api/ws`
-
-console.log("wsURL", wsURL)
-
 let wsSocket: WebSocket
 
 const sendBuffer = []
@@ -30,10 +22,18 @@ const send = (msg: MessageToServer) => {
 }
 
 const createConn = (token: string) => {
+	const url = serverUrl ? new URL(serverUrl) : window.location
+
+	var scheme = url.protocol == "https:" ? "wss" : "ws";
+	var port = url.port ? ":" + url.port : "";
+	var wsURL = `${scheme}://${url.hostname}${port}/api/ws`
+	
+	logger.info("wsURL", wsURL)
+
 	wsSocket = new WebSocket(wsURL)
 
 	wsSocket.onopen = () => {
-		console.log("Socket onopen")
+		logger.info("Socket onopen")
 
 		send({
 			type: "authenticate",
@@ -53,7 +53,7 @@ const createConn = (token: string) => {
 	}
 
 	wsSocket.onclose = () => {
-		console.log("socketclose")
+		logger.info("socketclose")
 
 		setTimeout(() => {
 			createConn(token)
@@ -61,7 +61,7 @@ const createConn = (token: string) => {
 	}
 
 	wsSocket.onmessage = (msg) => {
-		console.log("parsedMessage", msg)
+		logger.info("parsedMessage", msg)
 
 		const parsedMessage = JSON.parse(msg.data) as MessageFromServer
 
