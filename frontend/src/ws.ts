@@ -32,7 +32,17 @@ const createConn = (token: string) => {
 	
 	logger.info("creating websocket", wsURL)
 
-	wsSocket = new WebSocket(wsURL)
+	try {
+		wsSocket = new WebSocket(wsURL)
+	} catch (e) {
+		logger.error("error creating websocket", e)
+
+		setTimeout(() => {
+			createConn(token)
+		}, 1000)
+
+		return
+	}
 
 	logger.info("websocket created")
 
