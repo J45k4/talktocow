@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { serverUrl } from './config';
+import { getHTTPServerUrl, serverUrl } from './config';
 import { getHeaders } from './headers';
+import { createLogger } from './logger';
+
+const logger = createLogger("useFetch")
 
 type QueryParams = Record<string, string | number>;
 
@@ -27,7 +30,7 @@ export const useFetch = <Data = any, RequestBody = any>(
   const fetchData = () => {
     setLoading(true);
 
-    let url = new URL(options.path, serverUrl);
+	let url = getHTTPServerUrl(options.path) 
 
     if (options.query) {
       url.search = new URLSearchParams(options.query as any).toString();

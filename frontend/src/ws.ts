@@ -1,4 +1,4 @@
-import { serverUrl } from "./config"
+import { getWebsocketServerUrl } from "./config"
 import { eventbus } from "./eventbus";
 import { createLogger } from "./logger";
 import { MessageFromServer, MessageToServer } from "./types"
@@ -21,19 +21,11 @@ const send = (msg: MessageToServer) => {
 	sendBuffer.push(msg)
 }
 
-const createConn = (token: string) => {
-	logger.info("serverUrl", serverUrl)
-
-	const url = serverUrl ? new URL(serverUrl) : window.location
-
-	var scheme = url.protocol == "https:" ? "wss" : "ws";
-	var port = url.port ? ":" + url.port : "";
-	var wsURL = `${scheme}://${url.hostname}${port}/api/ws`
-	
-	logger.info("creating websocket", wsURL)
+const createConn = (token: string) => {	
+	logger.info("creating websocket")
 
 	try {
-		wsSocket = new WebSocket(wsURL)
+		wsSocket = new WebSocket(getWebsocketServerUrl("/api/ws"))
 	} catch (e) {
 		logger.error("error creating websocket", e)
 
