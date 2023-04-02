@@ -6,7 +6,7 @@ const logger = createLogger("chatroomMessageStore")
 const messagesByChatroom = new Map<string, ChatroomMessage[]>()
 
 const sortMessages = (chatroomId: string) => {
-	logger.info("sortMessages", chatroomId);
+	logger.debug("sortMessages", chatroomId);
 
 	const messages = messagesByChatroom.get(chatroomId);
 
@@ -14,7 +14,7 @@ const sortMessages = (chatroomId: string) => {
 		return;
 	}
 
-	logger.info("messages", messages)
+	logger.debug("messages", messages)
 
 	// Sort messages by writtenAt so that latest messages are at the bottom
 	// strings are first converted to dates and then sorted
@@ -25,7 +25,7 @@ const sortMessages = (chatroomId: string) => {
 		return aDate.getTime() - bDate.getTime();	
 	})
 
-	logger.info("sorted messages", messages)
+	logger.debug("sorted messages", messages)
 }
 
 export const chatroomMessageStore = {
@@ -43,14 +43,14 @@ export const chatroomMessageStore = {
 			return
 		}
 
-		logger.info("addMessage", message);
+		logger.debug("addMessage", message);
 
 		chatroomMessages.push(message);
 
 		sortMessages(chatroomId);
 	},
 	addMessages(messages: ChatroomMessage[]) {
-		logger.info("addMessages", messages);
+		logger.debug("addMessages", messages);
 
 		const chatroomsToUpdate = new Set<string>();
 
@@ -77,7 +77,7 @@ export const chatroomMessageStore = {
 		});
 	},
 	getAllMessages(chatroomId: string): ChatroomMessage[] {
-		logger.info("getAllMessages", chatroomId);
+		logger.debug("getAllMessages", chatroomId);
 
 		const messages = messagesByChatroom.get(chatroomId);
 
