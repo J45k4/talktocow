@@ -30,9 +30,11 @@ const createConn = (token: string) => {
 	var port = url.port ? ":" + url.port : "";
 	var wsURL = `${scheme}://${url.hostname}${port}/api/ws`
 	
-	logger.info("wsURL", wsURL)
+	logger.info("creating websocket", wsURL)
 
 	wsSocket = new WebSocket(wsURL)
+
+	logger.info("websocket created")
 
 	wsSocket.onopen = () => {
 		logger.info("Socket onopen")
