@@ -22,6 +22,8 @@ const send = (msg: MessageToServer) => {
 }
 
 const createConn = (token: string) => {
+	logger.info("serverUrl", serverUrl)
+
 	const url = serverUrl ? new URL(serverUrl) : window.location
 
 	var scheme = url.protocol == "https:" ? "wss" : "ws";
