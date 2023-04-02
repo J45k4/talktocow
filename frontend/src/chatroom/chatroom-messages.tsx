@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react"
 import { loadChatroomMessages } from "../chatroom-message-managers"
 import { useChatroomMessages } from "../use-chatroom-messages"
 import styles from "./chatroom-messages.module.css"
+import { ChatroomMessageRow } from "./chatroom-row"
 
 export const ChatroomMessages = (props: {
 	chatroomId: string
@@ -23,15 +24,11 @@ export const ChatroomMessages = (props: {
 
 	return (
 		<div className={styles.body}>
-			{messages.map(p => (
-				<div key={p.reference} className={styles.messageRow}>
-					<div className={styles.messageAuthor}>
-						{p.userName}
-					</div>
-					<div>
-						{p.messageText}
-					</div>
-				</div>
+			{messages.map((p, index) => (
+				<ChatroomMessageRow 
+					key={p.reference} 
+					chatroomMessage={p}
+					grayBackground={index % 2 === 0} />
 			))}
 			<div ref={messagesEndRef} />
 		</div>
