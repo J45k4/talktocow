@@ -1,6 +1,6 @@
 import { useRouter } from "next/router"
 import React from "react"
-import { CowGPTChatroom } from "../components/cowgpt/cowgpt-chatroom"
+import { Chatroom } from "./chatroom"
 import { CowGPTChatrooms } from "../components/cowgpt/cowgpt-chatrooms"
 import { ChatroomSearchButton } from "./chatroom-search-button"
 
@@ -11,9 +11,7 @@ export const NarrowChatroom = (props: {
 
 	if (props.chatroomId) {
 		return (
-			<div style={{
-				height: "calc(100vh - 100px)"
-			}}>
+			<>
 				<div style={{
 					display: "flex",
 					flexDirection: "row",
@@ -37,8 +35,8 @@ export const NarrowChatroom = (props: {
 						<ChatroomSearchButton />
 					</div>
 				</div>
-				<CowGPTChatroom chatroomId={props.chatroomId} />
-			</div>
+				<Chatroom chatroomId={props.chatroomId} />
+			</>
 		)
 	}
 

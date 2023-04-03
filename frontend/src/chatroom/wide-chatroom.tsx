@@ -1,6 +1,6 @@
 import React from "react"
 import { ChatroomSearchButton } from "./chatroom-search-button"
-import { CowGPTChatroom } from "../components/cowgpt/cowgpt-chatroom"
+import { Chatroom } from "./chatroom"
 import { CowGPTChatrooms } from "../components/cowgpt/cowgpt-chatrooms"
 import { ws } from "../ws"
 
@@ -43,7 +43,7 @@ const RightSide = (props: {
 				<ChatroomSearchButton />
 			</div>
 			{props.chatroomId &&
-			<CowGPTChatroom chatroomId={props.chatroomId} />}
+			<Chatroom chatroomId={props.chatroomId} />}
 		</div>
 	)
 }
