@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React from "react"
 import { ChatroomMessages } from "../../chatroom/chatroom-messages"
 import { ChatroomSendMessage } from "../../chatroom/chatroom-send-message"
 

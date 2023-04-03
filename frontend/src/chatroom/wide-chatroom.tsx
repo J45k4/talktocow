@@ -10,7 +10,7 @@ const LeftSide = (props: {
 	chatroomId?: string
 }) => {
 	return (
-		<div>
+		<div className={styles.leftSide}>
 			<div>
 				<button onClick={() => {
 					ws.send({
@@ -31,15 +31,14 @@ const RightSide = (props: {
 	chatroomId?: string
 }) => {
 	return (
-		<div>
+		<div className={styles.rightSide}>
 			<div style={{
-					border: "solid 1px #8E8E8E",
-					flexGrow: 1,
-					marginLeft: "1em",
-					marginRight: "1em",
-					marginBottom: "0.2em",
-					fontSize: "1.5em",
-					padding: "0.2em",
+				border: "solid 1px #8E8E8E",
+				marginLeft: "1em",
+				marginRight: "1em",
+				marginBottom: "0.2em",
+				fontSize: "1.5em",
+				padding: "0.2em",
 			}}>
 				<ChatroomSearchButton />
 			</div>

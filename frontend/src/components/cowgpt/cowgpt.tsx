@@ -1,10 +1,11 @@
-import { useRouter } from "next/router"
 import React from "react"
 import { WideChatroom } from "../../chatroom/wide-chatroom"
 import { useWindowWiderThan } from "../../use-window-width"
 import { NarrowChatroom } from "../../chatroom/narrow-chatroom"
 
-export const CowGPT = (props: {
+import styles from "./cowgpt.module.css"
+
+const Content = (props: {
 	chatroomId?: string
 }) => {
 	const wideScreen = useWindowWiderThan(500)
@@ -14,4 +15,14 @@ export const CowGPT = (props: {
 	}
 
 	return <NarrowChatroom chatroomId={props.chatroomId} />
+}
+
+export const CowGPT = (props: {
+	chatroomId?: string
+}) => {
+	return (
+		<div className={styles.chatrooms}>
+			<Content chatroomId={props.chatroomId} />
+		</div>	
+	)
 }
