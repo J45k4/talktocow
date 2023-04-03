@@ -1,0 +1,5 @@
+
+.wideChatroom {
+	display: flex;
+	flex-direction: row;
+}
