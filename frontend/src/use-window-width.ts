@@ -22,6 +22,10 @@ export const useWindowWiderThan = (threshold: number) => {
 	const [cond, setCond] = useState(false);
 
 	useEffect(() => {
+		setCond(window.innerWidth > threshold);
+	}, [])
+
+	useEffect(() => {
 		const handleResize = () => {
 			setCond(window.innerWidth > threshold);
 		};
