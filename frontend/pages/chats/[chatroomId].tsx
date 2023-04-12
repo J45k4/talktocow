@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { CowGPT } from "../../src/components/cowgpt/cowgpt";
+import { ChatroomView } from "../../src/chatroom/chatroom-view";
 import { PageContainer } from "../../src/components/page_container";
 
 export default function CowGPTChatroomPage() {
@@ -7,7 +7,7 @@ export default function CowGPTChatroomPage() {
 
 	return (
 		<PageContainer>
-			<CowGPT chatroomId={chatroomId} />
+			<ChatroomView chatroomId={chatroomId} />
 		</PageContainer>
 	)
 }

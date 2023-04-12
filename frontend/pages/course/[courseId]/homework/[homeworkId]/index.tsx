@@ -1,8 +1,8 @@
 import Link from "next/link";
 import React from "react";
 import { PageContainer } from "../../../../../src/components/page_container";
-import { useAsync, useGetData, useParam } from "../../../../../src/utility/hokers";
-import { getJson } from "../../../../../src/utility/talktocow-api-helpers";
+import { useAsync, useGetData, useParam } from "../../../../../src/hokers";
+import { getJson } from "../../../../../src/api-methods";
 
 
 export default function HomeworkPage() {

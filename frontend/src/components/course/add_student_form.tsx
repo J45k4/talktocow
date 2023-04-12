@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useSearchUsers } from "../../data_hooks";
-import { postJson } from "../../utility/talktocow-api-helpers";
+import { postJson } from "../../api-methods";
 
 export const AddStudentForm = (props: {
 	courseId: string

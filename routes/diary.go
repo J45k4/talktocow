@@ -54,6 +54,10 @@ func GetDiaryEntry(ctx *gin.Context) {
 
 	entryId, err := strconv.Atoi(ctx.Params.ByName("diaryEntryId"))
 
+	if err != nil {
+
+	}
+
 	if entryId == 0 {
 		fmt.Errorf("no entry id provided")
 

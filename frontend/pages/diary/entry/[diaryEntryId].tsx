@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { getJson, putJson } from "../../../src/utility/talktocow-api-helpers"
+import { getJson, putJson } from "../../../src/api-methods"
 
 import { useRouter } from "next/dist/client/router"
 

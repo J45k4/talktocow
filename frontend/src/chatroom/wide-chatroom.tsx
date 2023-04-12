@@ -1,10 +1,10 @@
 import React from "react"
-import { ChatroomSearchButton } from "./chatroom-search-button"
 import { Chatroom } from "./chatroom"
-import { CowGPTChatrooms } from "../components/cowgpt/cowgpt-chatrooms"
-import { ws } from "../ws"
+import { Chats } from "../chatroom/chatrooms"
 
 import styles from "./wide-chatroom.module.css"
+import { CreateChatroomButton } from "./create-chatroom-button"
+import Link from "next/link"
 
 const LeftSide = (props: {
 	chatroomId?: string
@@ -12,16 +12,14 @@ const LeftSide = (props: {
 	return (
 		<div className={styles.leftSide}>
 			<div>
-				<button onClick={() => {
-					ws.send({
-						type: "askQuestion"
-					})
-				}}>
-					Ask question
-				</button>
+				<Link href="/chats/new">
+					<button>
+						New chat
+					</button>
+				</Link>
 			</div>
 			<div>
-				<CowGPTChatrooms selectedChatroomId={props.chatroomId} />
+				<Chats selectedChatroomId={props.chatroomId} />
 			</div>
 		</div>
 	)
@@ -32,7 +30,7 @@ const RightSide = (props: {
 }) => {
 	return (
 		<div className={styles.rightSide}>
-			<div style={{
+			{/* <div style={{
 				border: "solid 1px #8E8E8E",
 				marginLeft: "1em",
 				marginRight: "1em",
@@ -41,7 +39,7 @@ const RightSide = (props: {
 				padding: "0.2em",
 			}}>
 				<ChatroomSearchButton />
-			</div>
+			</div> */}
 			{props.chatroomId &&
 			<Chatroom chatroomId={props.chatroomId} />}
 		</div>

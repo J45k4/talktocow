@@ -2,7 +2,7 @@ import { getSession } from "./session-manager";
 import { MessageFromServer } from "./websocket-types";
 import { sendMessageToServer, subscribeToNewMessages, subscribeToSocketStatusChanged } from "./websocket-conn";
 import { v4 } from "uuid"
-import { getJson } from "../utility/talktocow-api-helpers";
+import { getJson } from "../api-methods";
 import { ChatroomMessage } from "../types";
 
 type SubscriberCallback = (payload: ChatroomMessage[]) => void;

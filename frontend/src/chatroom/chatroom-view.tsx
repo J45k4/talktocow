@@ -1,14 +1,19 @@
 import React from "react"
-import { WideChatroom } from "../../chatroom/wide-chatroom"
-import { useWindowWiderThan } from "../../use-window-width"
-import { NarrowChatroom } from "../../chatroom/narrow-chatroom"
+import { WideChatroom } from "./wide-chatroom"
+import { useWindowWiderThan } from "../use-window-width"
+import { NarrowChatroom } from "./narrow-chatroom"
 
-import styles from "./cowgpt.module.css"
+import styles from "./chatrooms.module.css"
 
 const Content = (props: {
 	chatroomId?: string
 }) => {
 	const wideScreen = useWindowWiderThan(500)
+	// const creatingChatroom = useReactVar(creatingChatroomState)
+
+	// if (creatingChatroom) {
+	// 	return <NewChatForm />
+	// }
 
 	if (wideScreen) {
 		return <WideChatroom chatroomId={props.chatroomId} />
@@ -17,7 +22,7 @@ const Content = (props: {
 	return <NarrowChatroom chatroomId={props.chatroomId} />
 }
 
-export const CowGPT = (props: {
+export const ChatroomView = (props: {
 	chatroomId?: string
 }) => {
 	return (

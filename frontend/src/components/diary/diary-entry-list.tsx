@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 
 import { DiaryEntry } from "./diary-entry"
-import { getJson } from "../../utility/talktocow-api-helpers"
+import { getJson } from "../../api-methods"
 
 import styles from "./diary-entry-list.module.css"
 

@@ -1,0 +1,15 @@
+
+.userRow {
+	cursor: pointer;
+	font-size: 20px;
+	margin-bottom: 10px;
+}
+
+.userRow:hover {
+	background-color: #f5f5f5;
+}
+
+.selectUsers {
+	margin: 10px;
+}
+

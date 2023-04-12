@@ -37,3 +37,13 @@ export type ChatroomMessages = {
 }
 
 export type MessageFromServer = ChatroomMessages
+
+export type Chatroom = {
+	id: string
+	name: string
+}
+
+export type User = {
+	id: string
+	name: string
+}

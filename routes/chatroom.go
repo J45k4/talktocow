@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/models"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
@@ -57,25 +58,57 @@ func GetChatroomMessages(ctx *gin.Context) {
 	ctx.JSON(200, rows)
 }
 
+func GetChatroomMembers(ctx *gin.Context) {
+	chatroomId := ctx.Param("chatroomId")
+
+	chatroomIdNum, err := strconv.Atoi(chatroomId)
+
+	if err != nil {
+		fmt.Println("Chatroom ID is not a number", err)
+	}
+
+	db := GetDBFromContext(ctx)
+
+	rows := []models.User{}
+
+	err = models.NewQuery(
+		qm.Select("users.*"),
+		qm.From("chatroom_users"),
+		qm.Where("chatroom_users.chatroom_id = ?", chatroomIdNum),
+		qm.InnerJoin("users on chatroom_users.user_id = users.id"),
+	).Bind(ctx.Request.Context(), db, &rows)
+
+	if err != nil {
+		fmt.Println("Chatroom members fetch failed", err)
+
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+	}
+
+	ctx.JSON(200, rows)
+}
+
 type CreateChatroomBody struct {
+	Name    string   `json:"name"`
 	UserIds []uint32 `json:"userIds"`
 }
 
 func CreateChatroom(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 
-	chatroom := models.Chatroom{}
+	body := CreateChatroomBody{}
 
-	err := chatroom.Insert(ctx.Request.Context(), db, boil.Infer())
+	err := ctx.BindJSON(&body)
 
 	if err != nil {
 		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
 		return
 	}
 
-	body := CreateChatroomBody{}
+	chatroom := models.Chatroom{
+		Name: null.NewString(body.Name, true),
+	}
 
-	err = ctx.BindJSON(&body)
+	err = chatroom.Insert(ctx.Request.Context(), db, boil.Infer())
 
 	if err != nil {
 		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
@@ -101,6 +134,72 @@ func CreateChatroom(ctx *gin.Context) {
 			ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
 			return
 		}
+	}
+
+	ctx.JSON(200, chatroom)
+}
+
+func GetChatroom(ctx *gin.Context) {
+	chatroomId := ctx.Param("chatroomId")
+
+	chatroomIdNum, err := strconv.Atoi(chatroomId)
+
+	if err != nil {
+		fmt.Println("Chatroom ID is not a number", err)
+	}
+
+	db := GetDBFromContext(ctx)
+
+	chatroom, err := models.FindChatroom(ctx.Request.Context(), db, chatroomIdNum)
+
+	if err != nil {
+		fmt.Println("Chatroom fetch failed", err)
+
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+	}
+
+	ctx.JSON(200, chatroom)
+}
+
+type PatchChatroomBody struct {
+	Name string `json:"name"`
+}
+
+func PatchChatroom(ctx *gin.Context) {
+	chatroomId := ctx.Param("chatroomId")
+
+	chatroomIdNum, err := strconv.Atoi(chatroomId)
+
+	if err != nil {
+		fmt.Println("Chatroom ID is not a number", err)
+	}
+
+	db := GetDBFromContext(ctx)
+
+	body := PatchChatroomBody{}
+
+	err = ctx.BindJSON(&body)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	chatroom, err := models.FindChatroom(ctx.Request.Context(), db, chatroomIdNum)
+
+	if err != nil {
+		fmt.Println("Chatroom fetch failed", err)
+
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+	}
+
+	chatroom.Name = null.NewString(body.Name, true)
+
+	_, err = chatroom.Update(ctx.Request.Context(), db, boil.Infer())
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
 	}
 
 	ctx.JSON(200, chatroom)

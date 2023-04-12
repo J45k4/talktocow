@@ -1,6 +1,6 @@
 import Link from "next/link"
 import React, { useEffect, useState } from "react"
-import { getJson } from "../../utility/talktocow-api-helpers"
+import { getJson } from "../../api-methods"
 
 export const ChatroomList = () => {
     const [chatrooms, setChatrooms] = useState<any[]>([])

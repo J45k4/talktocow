@@ -1,8 +1,11 @@
+import { CSSProperties } from "react"
 import { BsSearch } from "react-icons/bs"
 
-export const ChatroomSearchButton = () => {
+export const ChatroomSearchButton = (props: {
+	style?: CSSProperties
+}) => {
 	return (
-		<BsSearch onClick={() => {
+		<BsSearch style={props.style} onClick={() => {
 			console.log("search button clicked")
 		}} />
 	)

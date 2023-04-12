@@ -1,7 +1,7 @@
 import { FaEdit } from "react-icons/fa";
 import Link from "next/link"
 import React, { useCallback, useEffect } from "react"
-import { getJson, postJson } from "../../utility/talktocow-api-helpers";
+import { getJson, postJson } from "../../api-methods";
 import styles from "./diary-entry.module.css";
 
 export const DiaryEntry = (props: {

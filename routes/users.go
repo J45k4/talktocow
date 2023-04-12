@@ -17,7 +17,7 @@ func GetUsers(ctx *gin.Context) {
 		limit, _ = strconv.Atoi(limitStr)
 	}
 
-	search, _ := ctx.GetQuery("searchword")
+	// search, _ := ctx.GetQuery("searchword")
 
 	// if err != nil {
 	// 	search = ""
@@ -28,7 +28,7 @@ func GetUsers(ctx *gin.Context) {
 
 	err := models.Users(
 		qm.Limit(limit),
-		qm.Where("username LIKE ?", "%"+search+"%"),
+		// qm.Where("username LIKE ?", "%"+search+"%"),
 	).Bind(ctx.Request.Context(), db, &users)
 
 	if err != nil {

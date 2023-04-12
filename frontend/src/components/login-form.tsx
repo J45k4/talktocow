@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useState } from "react";
 import { setSession } from "../logic/session-manager";
-import { postJson } from "../utility/talktocow-api-helpers";
+import { postJson } from "../api-methods";
 import { ws } from "../ws";
 
 export const LoginForm = () => {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import React from "react"
-import { useGetData } from "../../utility/hokers";
+import { useGetData } from "../../hokers";
 
 export const HomeworkList = (props: {
 	courseId: string

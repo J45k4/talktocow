@@ -1,7 +1,7 @@
-import { getSession } from "../logic/session-manager"
-import { serverUrl } from "../config";
-import { resolveServerUrl } from "../utility";
-import { getHeaders } from "../headers";
+import { getSession } from "./logic/session-manager"
+import { serverUrl } from "./config";
+import { resolveServerUrl } from "./utility";
+import { getHeaders } from "./headers";
 
 export interface ApiError {
     code: number
@@ -80,6 +80,18 @@ export const putJson = async <T>(path: string, payload: any): Promise<ApiRespons
     })
 
     return handleFetchResult(res)
+}
+
+export const patchJson = async <T>(path: string, payload: any): Promise<ApiResponse<T>> => {
+	const headers = getHeaders()
+
+	let res = await fetch(resolveServerUrl(path), {
+		method: "PATCH",
+		headers: headers,
+		body: JSON.stringify(payload)
+	})
+
+	return handleFetchResult(res)
 }
 
 export const getJson = async <T>(path: string, query?): Promise<ApiResponse<T>> => {

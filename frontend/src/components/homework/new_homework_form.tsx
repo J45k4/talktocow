@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { postJson } from "../../utility/talktocow-api-helpers";
+import { postJson } from "../../api-methods";
 
 export const NewHomeworkForm = (props: {
 	courseId: string

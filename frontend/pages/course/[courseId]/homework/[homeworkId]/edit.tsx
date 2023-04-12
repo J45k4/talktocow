@@ -4,8 +4,8 @@ import React, { useState } from "react"
 import { Button } from "../../../../../src/components/button";
 import { HomeworkDescriptionEdit } from "../../../../../src/components/homework/homework_description_edit";
 import { PageContainer } from "../../../../../src/components/page_container"
-import { useAsync, useParam } from "../../../../../src/utility/hokers";
-import { getJson, postJson, putJson } from "../../../../../src/utility/talktocow-api-helpers";
+import { useAsync, useParam } from "../../../../../src/hokers";
+import { getJson, postJson, putJson } from "../../../../../src/api-methods";
 
 
 export default function EditHomewWorkPage() {

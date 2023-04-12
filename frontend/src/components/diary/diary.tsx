@@ -1,7 +1,7 @@
 import { FaPlus } from "react-icons/fa"
 import { useRouter } from 'next/router'
 import React from "react"
-import { postJson } from "../../utility/talktocow-api-helpers"
+import { postJson } from "../../api-methods"
 import { DiaryEntryList } from "./diary-entry-list"
 import styles from "./diary.module.css"
 

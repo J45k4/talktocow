@@ -1,11 +1,11 @@
 import React from "react"
-import { CowGPT } from "../../src/components/cowgpt/cowgpt"
+import { ChatroomView } from "../../src/chatroom/chatroom-view"
 import { PageContainer } from "../../src/components/page_container"
 
 export default function CowGPTPage() {
 	return (
 		<PageContainer>
-			<CowGPT />
+			<ChatroomView />
 		</PageContainer>
 	)
 }

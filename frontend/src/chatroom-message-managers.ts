@@ -4,7 +4,7 @@ import { eventbus } from "./eventbus"
 import { createLogger } from "./logger"
 import { getSession } from "./logic/session-manager"
 import { ChatroomMessage } from "./types"
-import { getJson } from "./utility/talktocow-api-helpers"
+import { getJson } from "./api-methods"
 import { ws } from "./ws"
 
 const logger = createLogger("chatroomMessageManager")

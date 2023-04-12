@@ -3,8 +3,8 @@ import { async } from "rxjs";
 import { Button } from "../../../../../src/components/button";
 import { PageContainer } from "../../../../../src/components/page_container";
 import { useCurrHomework } from "../../../../../src/data_hooks";
-import { useAsync, useParam } from "../../../../../src/utility/hokers";
-import { getJson, postJson } from "../../../../../src/utility/talktocow-api-helpers";
+import { useAsync, useParam } from "../../../../../src/hokers";
+import { getJson, postJson } from "../../../../../src/api-methods";
 
 export default function SubmitHomeworkPage() {
 	const { homework, courseId, homeworkId } = useCurrHomework()

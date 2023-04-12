@@ -1,6 +1,6 @@
 import Link from "next/link"
 import React from "react"
-import { useGetData, useParam } from "../../utility/hokers"
+import { useGetData, useParam } from "../../hokers"
 
 export const CoursesList = () => {
 	// const courseId = useParam("courseId")

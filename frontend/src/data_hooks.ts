@@ -1,5 +1,5 @@
-import { useAsync, useParam } from "./utility/hokers";
-import { getJson } from "./utility/talktocow-api-helpers";
+import { useAsync, useParam } from "./hokers";
+import { getJson } from "./api-methods";
 
 export const useCurrHomework = () => {
 	const courseId = useParam("courseId");

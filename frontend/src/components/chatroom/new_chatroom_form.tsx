@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { getJson, postJson } from "../../utility/talktocow-api-helpers"
+import { getJson, postJson } from "../../api-methods"
 
 export const NewChatroomForm = () => {
     const [users, setUsers] = useState<any[]>([])

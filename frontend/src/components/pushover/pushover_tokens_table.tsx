@@ -1,5 +1,5 @@
 import React from "react"
-import { useGetData } from "../../utility/hokers"
+import { useGetData } from "../../hokers"
 
 export const PushoverTokensTable = () => {
 	const [tokens, error] = useGetData<any>("/api/pushovertokens", [])

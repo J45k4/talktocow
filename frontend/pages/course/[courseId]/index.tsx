@@ -3,7 +3,7 @@ import React from "react";
 import { CourseStudentsList } from "../../../src/components/course/course_students_list";
 import { HomeworkList } from "../../../src/components/homework/homework_list";
 import { PageContainer } from "../../../src/components/page_container";
-import { useCourseMyMeta, useParam } from "../../../src/utility/hokers";
+import { useCourseMyMeta, useParam } from "../../../src/hokers";
 
 export default function CoursePage() {
 	const courseId = useParam("courseId");
