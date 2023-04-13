@@ -1,5 +1,5 @@
 import Link from "next/link"
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { BiEdit } from "react-icons/bi"
 import { Chatroom } from "../types"
 import { useChatrooms } from "../hokers"
@@ -7,6 +7,7 @@ import { api } from "../api"
 
 const EditChatroomName = (props: {
 	chatroomId: string
+	onEditCompleted: () => void
 }) => {
 	const [name, setName] = useState("")
 
@@ -21,8 +22,14 @@ const EditChatroomName = (props: {
 					api.patchChatroom({
 						chatroomId: props.chatroomId,
 						name,
+					}).then(() => {
+						props.onEditCompleted()
 					})
 				}
+
+				if (e.key == "Escape") {
+					props.onEditCompleted()
+				}	
 			}} />
 	)
 }
@@ -30,27 +37,33 @@ const EditChatroomName = (props: {
 const ChatRow = (props: {
 	selectedChatroomId: string
 	chatroom: Chatroom
+	editing: boolean
+	onStartEditing: () => void
+	onEditCompleted: () => void
 }) => {
-	const [editMode, setEditMode] = React.useState(false)
-
 	return (
 		<div style={{
 			cursor: "pointer",
 			padding: "10px",
 			whiteSpace: "nowrap",
 			border: props.selectedChatroomId == props.chatroom.id ? "solid 1px black" : ""
+		}} onKeyDown={e => {
+			if (e.key == "Escape") {
+				props.onEditCompleted()
+			}
 		}}>
 			<Link key={props.chatroom.id} href={`/chats/${props.chatroom.id}`} style={{
 				textDecoration: "none",
 				marginRight: "10px",
 			}}>
-				{editMode && 
+				{props.editing && 
 				<EditChatroomName
-					chatroomId={props.chatroom.id} />}
-				{!editMode && props.chatroom.name}
+					chatroomId={props.chatroom.id}
+					onEditCompleted={props.onEditCompleted} />}
+				{!props.editing && props.chatroom.name}
 			</Link>
 			<BiEdit onClick={() => {
-				setEditMode(!editMode)
+				props.onStartEditing()
 			}} />
 		</div>
 	)
@@ -60,6 +73,15 @@ export const Chats = (props: {
 	selectedChatroomId?: string
 }) => {
 	const chatrooms = useChatrooms()
+	const [editingChatroomId, setEditingChatroomId] = useState("")
+
+	useEffect(() => {
+		window.onkeydown = (e) => {
+			if (e.key == "Escape") {
+				setEditingChatroomId("")
+			}
+		}
+	}, [setEditingChatroomId])
 
 	return (
 		<div>
@@ -69,6 +91,13 @@ export const Chats = (props: {
 						chatroom={chatroom}
 						selectedChatroomId={props.selectedChatroomId}
 						key={chatroom.id}
+						editing={editingChatroomId == chatroom.id}
+						onEditCompleted={() => {
+							setEditingChatroomId("")
+						}}
+						onStartEditing={() => {
+							setEditingChatroomId(chatroom.id)
+						}}
 					/>
 				)
 			})}

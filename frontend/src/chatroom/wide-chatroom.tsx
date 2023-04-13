@@ -4,6 +4,7 @@ import { Chats } from "../chatroom/chatrooms"
 
 import styles from "./wide-chatroom.module.css"
 import Link from "next/link"
+import { Button } from "../components"
 
 const LeftSide = (props: {
 	chatroomId?: string
@@ -12,9 +13,9 @@ const LeftSide = (props: {
 		<div className={styles.leftSide}>
 			<div>
 				<Link href="/chats/new">
-					<button>
-						New chat
-					</button>
+					<Button
+						title="New Chatroom"
+					/>
 				</Link>
 			</div>
 			<div>

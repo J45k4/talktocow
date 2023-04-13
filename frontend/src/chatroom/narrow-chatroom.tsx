@@ -1,6 +1,8 @@
 import React from "react"
 import { Chatroom } from "./chatroom"
 import { Chats } from "../chatroom/chatrooms"
+import Link from "next/link"
+import { Button } from "../components"
 
 export const NarrowChatroom = (props: {
 	chatroomId?: string
@@ -9,5 +11,14 @@ export const NarrowChatroom = (props: {
 		return <Chatroom chatroomId={props.chatroomId} />
 	}
 
-	return <Chats />
+	return (
+		<div>
+			<Link href="/chats/new">
+				<Button 
+					title="New chat"
+				/>
+			</Link>
+			<Chats />
+		</div>
+	)
 }

@@ -7,6 +7,7 @@ import { useUsers } from "../hokers"
 import { creatingChatroomState, selectedUsersState } from "../state"
 import Link from "next/link"
 import { useRouter } from "next/router"
+import { Button } from "../components"
 
 const SelectUsers = () => {
 	const users = useUsers()
@@ -53,7 +54,7 @@ export const NewChatForm = () => {
 
 	return (
 		<div>
-			NewChatForm
+			Create new chat
 			<div>
 				<input 
 					type="text" 
@@ -66,20 +67,18 @@ export const NewChatForm = () => {
 			<SelectUsers />
 			<div>
 				<Link href="/chats">
-					<button>
-						Cancel
-					</button>
+					<Button
+						title="Cancel"
+					/>
 				</Link>
-				<button onClick={() => {
+				<Button onClick={() => {
 					api.createChatroom({
 						userIds: selectedUsersState.get(),
 						name: newChatroomName,
 					}).then(res => {
 						router.push(`/chats/${res.payload.id}`)
 					})
-				}}>
-					Create chatroom
-				</button>
+				}} title="Create chatroom" />
 			</div>
 		</div>
 	)

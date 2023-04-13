@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ReactiveVar } from "./reactive-var";
+import { ReactVar } from "./react-var";
 
-export const useReactVar = <T>(rv: ReactiveVar<T>): T => {
+export const useReactVar = <T>(rv: ReactVar<T>): T => {
 	const [state, setState] = useState(rv.get());
 
 	useEffect(() => {		

@@ -11,7 +11,9 @@ export default function ChatroomsPage() {
             <div style={{
                 flexGrow: 1
             }}>
-                <Link href={"/chatroom/new"}>
+                <Link href={"/chatroom/new"} style={{
+					marginBottom: "10px"
+				}}>
                     <button>
                         New chatroom
                     </button>
