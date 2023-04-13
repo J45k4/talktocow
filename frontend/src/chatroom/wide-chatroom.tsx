@@ -3,7 +3,6 @@ import { Chatroom } from "./chatroom"
 import { Chats } from "../chatroom/chatrooms"
 
 import styles from "./wide-chatroom.module.css"
-import { CreateChatroomButton } from "./create-chatroom-button"
 import Link from "next/link"
 
 const LeftSide = (props: {
