@@ -38,9 +38,7 @@ export const ChatroomMessageRow = (props: {
 				writtenAt={props.chatroomMessage.writtenAt}
 			/>
 			<div>
-				<pre>
-					{props.chatroomMessage.messageText}
-				</pre>
+				{props.chatroomMessage.messageText}
 			</div>
 		</div>
 	)
