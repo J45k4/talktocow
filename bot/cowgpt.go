@@ -37,6 +37,15 @@ func (cowGPT *CowGPT) handleChatroomMessage(msg *eventbus.ChatroomMessage) {
 		return
 	}
 
+	// check cowgpt user is member of chatroom
+	_, err := models.ChatroomUsers(
+		qm.Where("chatroom_id = ? and user_id = ?", msg.ChatroomID, cowGPT.CowGPTUser.ID),
+	).One(cowGPT.Ctx, cowGPT.DB)
+
+	if err != nil {
+		return
+	}
+
 	// Fetch last messages
 	messages, err := models.Messages(
 		qm.Where("chatroom_id = ?", msg.ChatroomID),
