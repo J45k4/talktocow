@@ -1,7 +1,7 @@
 import React from "react"
 import { PageContainer } from "../src/components/page-container"
 import { Window } from "../src/window"
-import VideoCapture from "../src/video/video-capture"
+import { VideoCapture } from "../src/video/video-capture"
 
 export default function ExperimentsPage() {
 	const [show, setShow] = React.useState(true)
