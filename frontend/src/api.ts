@@ -24,7 +24,7 @@ export const api = {
 		})
 
 		if (res.payload) {
-			cache.chatroom.update(res.payload)
+			cache.chatroom.upsert(res.payload)
 		}
 
 		return res
