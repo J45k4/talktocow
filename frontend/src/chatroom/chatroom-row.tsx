@@ -25,6 +25,18 @@ const MessageTitle = (props: {
 	)
 }
 
+const MessageContent = (props: {
+	messageText: string
+}) => {
+	return (
+		<div>
+			{props.messageText.split("\n").map((p, index) => (
+				<p key={index}>{p}</p>
+			))}
+		</div>
+	)
+}
+
 export const ChatroomMessageRow = (props: {
 	chatroomMessage: ChatroomMessage
 	grayBackground?: boolean
@@ -37,9 +49,8 @@ export const ChatroomMessageRow = (props: {
 				userName={props.chatroomMessage.userName}
 				writtenAt={props.chatroomMessage.writtenAt}
 			/>
-			<div>
-				{props.chatroomMessage.messageText}
-			</div>
+			<MessageContent 
+				messageText={props.chatroomMessage.messageText} />
 		</div>
 	)
 }
