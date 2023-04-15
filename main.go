@@ -94,6 +94,7 @@ func main() {
 	r.PATCH("/api/chatroom/:chatroomId", routes.PatchChatroom)
 	r.GET("/api/chatroom/:chatroomId/members", routes.GetChatroomMembers)
 	r.GET("/api/chatroom/:chatroomId/messages", routes.GetChatroomMessages)
+	r.GET("/api/mychatrooms", routes.GetMyChatrooms)
 	r.GET("/api/messages", routes.HandleGetMessages)
 	r.GET("/api/socket", routes.HandleSocket)
 	r.POST("/api/diary/entry", routes.CreateDiaryEntry)

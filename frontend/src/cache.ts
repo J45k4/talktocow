@@ -339,7 +339,7 @@ export const cache: Cache = cacheBuilder({
 		array: true,
 		default: [],
 		initialFetch: () => {
-			return getJson<Chatroom[]>("/api/chatrooms").then(res => res.payload)
+			return getJson<Chatroom[]>("/api/mychatrooms").then(res => res.payload)
 		}
 	},
 	"user": {
