@@ -1,6 +1,6 @@
 import { FaReply } from "react-icons/fa"
 import { ChatroomMessage } from "../types"
-import { formatTime } from "../utility"
+import { formatTime, formatTimestamp } from "../utility"
 
 import styles from "./chatroom-row.module.css"
 
@@ -15,7 +15,7 @@ const MessageTitle = (props: {
 					{props.userName}
 				</div>
 				<div className={styles.messageTime}>
-					{formatTime(props.writtenAt)}
+					{formatTimestamp(props.writtenAt)}
 				</div>
 			</div>
 			<div className={styles.messageTitleRightSide}>
