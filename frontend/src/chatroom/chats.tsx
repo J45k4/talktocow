@@ -62,18 +62,18 @@ const ChatRow = (props: {
 				<div style={{
 					flex: 1,
 				}}>
-				{props.editing && 
-				<EditChatroomName
-					chatroomId={props.chatroom.id}
-					onEditCompleted={props.onEditCompleted} />}
-				{!props.editing && props.chatroom.name}
+					{props.editing && 
+					<EditChatroomName
+						chatroomId={props.chatroom.id}
+						onEditCompleted={props.onEditCompleted} />}
+					{!props.editing && props.chatroom.name}
 				</div>
 				<div>
-				<BiEdit onClick={(e) => {
-					e.stopPropagation()
-					e.preventDefault()
-					props.onStartEditing()
-				}} />
+					<BiEdit onClick={(e) => {
+						e.stopPropagation()
+						e.preventDefault()
+						props.onStartEditing()
+					}} />
 				</div>
 			</div>
 		</Link>
