@@ -44,9 +44,9 @@ func GetMyChatrooms(
 	chatrooms, err := models.Chatrooms(
 		qm.InnerJoin("chatroom_users on chatroom_users.chatroom_id = chatrooms.id"),
 		qm.Where("chatroom_users.user_id = ?", userSession.UserID),
-		qm.InnerJoin("(SELECT chatroom_id, MAX(created_at) AS latest_message FROM messages GROUP BY chatroom_id) AS latest_messages ON latest_messages.chatroom_id = chatrooms.id"),
-		qm.InnerJoin("messages ON messages.chatroom_id = chatrooms.id AND messages.created_at = latest_messages.latest_message"),
-		qm.OrderBy("latest_message DESC"),
+		qm.LeftOuterJoin("(SELECT chatroom_id, MAX(created_at) AS latest_message FROM messages GROUP BY chatroom_id) AS latest_messages ON latest_messages.chatroom_id = chatrooms.id"),
+		qm.LeftOuterJoin("messages ON messages.chatroom_id = chatrooms.id AND messages.created_at = latest_messages.latest_message"),
+		qm.OrderBy("COALESCE(latest_messages.latest_message, '1970-01-01') DESC"),
 	).All(ctx, db)
 
 	if err != nil {
