@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import React from "react";
 
 import { NewCourseForm } from "../../src/components/course/new_course_form";
-import { PageContainer } from "../../src/components/page_container";
+import { PageContainer } from "../../src/components/page-container";
 
 export default function NewCoursePage() {
 	const router = useRouter();

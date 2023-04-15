@@ -1,6 +1,6 @@
 import React from "react"
 import { UserSubmissionsList } from "../../../../src/components/homework/user_submissions_list"
-import { PageContainer } from "../../../../src/components/page_container"
+import { PageContainer } from "../../../../src/components/page-container"
 import { useParam } from "../../../../src/hokers"
 
 export default function UserHomeworkSubmission() {

@@ -2,9 +2,10 @@ import Link from "next/link"
 import React, { useEffect, useState } from "react"
 import { BiEdit } from "react-icons/bi"
 import { Chatroom } from "../types"
-import { useChatrooms } from "../hokers"
 import { api } from "../api"
 import { cache, useCache } from "../cache"
+
+import styles from "./chats.module.css"
 
 const EditChatroomName = (props: {
 	chatroomId: string
@@ -93,9 +94,7 @@ export const Chats = (props: {
 	console.log("chatrooms", chatrooms)
 
 	return (
-		<div style={{
-			overflow: "auto"
-		}}>
+		<div className={styles.chats}>
 			{chatrooms.map((chatroom) => {
 				return (
 					<ChatRow 

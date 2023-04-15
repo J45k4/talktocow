@@ -1,11 +1,13 @@
-import React from "react"
-import { ChatroomMessages } from "./chatroom-messages"
-import { ChatroomSendMessage } from "./chatroom-send-message"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 
 import styles from "./chatroom.module.css"
 import { BsSnapchat } from "react-icons/bs"
 import { ChatroomSearchButton } from "./chatroom-search-button"
 import { useChatroom, useChatroomMembers } from "../hokers"
+import { useChatroomMessages } from "../use-chatroom-messages"
+import { loadChatroomMessages, sendMessageToChatroom } from "../chatroom-message-managers"
+import { ChatroomMessageRow } from "./chatroom-row"
+import { Button } from "../components/button"
 
 const ChatroomTitle = (props: {
 	chatroomId: string
@@ -37,6 +39,91 @@ const ChatroomTitle = (props: {
 					paddingRight: "15px"
 				}} />
 			</div>
+		</div>
+	)
+}
+
+const ChatroomMessages = (props: {
+	chatroomId: string
+}) => {
+	const messages = useChatroomMessages(props.chatroomId)
+	const messagesEndRef = useRef(null);
+
+	const scrollToBottom = () => {
+		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+	};
+
+	useEffect(() => {
+		scrollToBottom();
+	}, [messages]);
+
+	useEffect(() => {
+		loadChatroomMessages(props.chatroomId, 20)
+	}, [props.chatroomId])
+
+	return (
+		<div className={styles.chatroomMessages}>
+			{messages.map((p, index) => (
+				<ChatroomMessageRow 
+					key={p.reference} 
+					chatroomMessage={p}
+					grayBackground={index % 2 === 0} />
+			))}
+			<div ref={messagesEndRef} />
+		</div>
+	)
+}
+
+const ChatroomSendMessage = (props: {
+	chatroomId: string
+}) => {
+	const [newMessage, setNewMessage] = useState("")
+
+	const sendMessage = useCallback(() => {
+		if (newMessage === "") {
+			return
+		}
+
+		sendMessageToChatroom(
+			props.chatroomId,
+			newMessage
+		)
+
+		setNewMessage("")
+	}, [newMessage])
+
+	return (
+		<div style={{
+			border: "solid 1px #8E8E8E",
+			// flexGrow: 1,
+			margin: "1em",
+			fontSize: "1.5em",
+			padding: "0.2em",
+			display: "flex",
+			flexDirection: "row",
+		}}>
+			<input style={{
+				border: "none",
+				width: "100%",
+				height: "100%",
+				outline: "none",
+			}} onKeyDown={e => {
+				if (e.key === "Enter") {
+					console.log("Enter")
+
+					sendMessage()
+				}
+			}}
+				value={newMessage}
+				onChange={e => {
+					setNewMessage(e.target.value)
+				}}
+			/>
+			<Button onClick={() => {
+				sendMessage()
+			}}>
+				Send
+			</Button>
 		</div>
 	)
 }

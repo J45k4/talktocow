@@ -1,6 +1,6 @@
 import React from "react"
 import { Chatroom } from "./chatroom"
-import { Chats } from "../chatroom/chatrooms"
+import { Chats } from "./chats"
 import Link from "next/link"
 import { Button } from "../components"
 

@@ -3,7 +3,7 @@ import { WideChatroom } from "./wide-chatroom"
 import { useWindowWiderThan } from "../use-window-width"
 import { NarrowChatroom } from "./narrow-chatroom"
 
-import styles from "./chatrooms.module.css"
+import styles from "./chatroom-view.module.css"
 
 const Content = (props: {
 	chatroomId?: string

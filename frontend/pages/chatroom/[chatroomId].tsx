@@ -1,7 +1,7 @@
 import { useRouter } from "next/router"
 import React from "react"
 import { Chatroom } from "../../src/components/chatroom"
-import { PageContainer } from "../../src/components/page_container"
+import { PageContainer } from "../../src/components/page-container"
 
 export default function ChatroomPage() {
     const router = useRouter()

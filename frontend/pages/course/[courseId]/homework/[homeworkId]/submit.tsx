@@ -1,7 +1,7 @@
 import React from "react"
 import { async } from "rxjs";
 import { Button } from "../../../../../src/components/button";
-import { PageContainer } from "../../../../../src/components/page_container";
+import { PageContainer } from "../../../../../src/components/page-container";
 import { useCurrHomework } from "../../../../../src/data_hooks";
 import { useAsync, useParam } from "../../../../../src/hokers";
 import { getJson, postJson } from "../../../../../src/api-methods";

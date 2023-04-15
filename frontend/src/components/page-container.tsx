@@ -1,8 +1,7 @@
 import React from "react"
-import { getSession } from "../logic/session-manager"
-import { IsLoggedIn, IsNotLoggedIn, useIsLoggedIn } from "./isloggedin"
+import { IsLoggedIn, IsNotLoggedIn } from "./isloggedin"
 import { LoginForm } from "./login-form"
-import { NavigationBar } from "./navigation_bar"
+import { NavigationBar } from "./navigation-bar"
 
 import styles from "./page-container.module.css"
 
@@ -16,7 +15,11 @@ export const PageContainer = (props: {
                 <LoginForm />
             </IsNotLoggedIn>
             <IsLoggedIn>
-            {props.children}
+				<div className={styles.pageContainerContent}>
+					{props.children}
+				</div>
+
+				{/* {props.children} */}
             </IsLoggedIn>    
         </div>
     )

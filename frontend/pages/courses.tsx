@@ -1,7 +1,7 @@
 import Link from "next/link"
 import React from "react"
 import { CoursesList } from "../src/components/course/courses_list"
-import { PageContainer } from "../src/components/page_container"
+import { PageContainer } from "../src/components/page-container"
 
 export default function CoursesPage() {
 	return (

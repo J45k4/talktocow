@@ -1,5 +1,5 @@
 import React from "react"
-import { PageContainer } from "../src/components/page_container"
+import { PageContainer } from "../src/components/page-container"
 import { PushoverTokensTable } from "../src/components/pushover/pushover_tokens_table"
 
 export default function PushoverTokensPage() {

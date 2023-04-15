@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import React, { useState } from "react"
 import { Button } from "../../../../../src/components/button";
 import { HomeworkDescriptionEdit } from "../../../../../src/components/homework/homework_description_edit";
-import { PageContainer } from "../../../../../src/components/page_container"
+import { PageContainer } from "../../../../../src/components/page-container"
 import { useAsync, useParam } from "../../../../../src/hokers";
 import { getJson, postJson, putJson } from "../../../../../src/api-methods";
 

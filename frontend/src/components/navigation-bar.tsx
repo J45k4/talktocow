@@ -27,6 +27,7 @@ const NavigationBarItem = (props: {
 export const NavigationBar = () => {
     return (
         <div style={{
+			height: "55px",
             display: "flex",
             flexDirection: "row",
             justifyContent: "space-between"
