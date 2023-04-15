@@ -11,31 +11,37 @@ export const setLogLevel = (level: LogLevel) => {
     loglevel = level
 }
 
-export const createLogger = (name: string) => {
+export const createLogger = (
+	name: string, 
+	currentLoglevel: LogLevel = loglevel
+) => {
     return {
+		setLogLevel: (level: LogLevel) => {
+			currentLoglevel = level
+		},
         info: (...data: any[]) => {
-            if (loglevel > LogLevel.Info) {
+            if (currentLoglevel > LogLevel.Info) {
                 return
             }
 
             console.log(`[${name}]`, ...data)
         },
         error: (...data: any[]) => {
-            if (loglevel > LogLevel.Error) {
+            if (currentLoglevel > LogLevel.Error) {
                 return
             }
 
             console.error(`[${name}]`, ...data)
         },
         warn: (...data: any[]) => {
-            if (loglevel > LogLevel.Warn) {
+            if (currentLoglevel > LogLevel.Warn) {
                 return
             }
 
             console.warn(`[${name}]`, ...data)
         },
         debug: (...data: any[]) => {
-            if (loglevel > LogLevel.Debug) {
+            if (currentLoglevel > LogLevel.Debug) {
                 return
             }
 

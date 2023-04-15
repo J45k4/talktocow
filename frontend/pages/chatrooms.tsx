@@ -15,7 +15,7 @@ export default function ChatroomsPage() {
 					marginBottom: "10px"
 				}}>
                     <button>
-                        New chatroom
+                        New
                     </button>
                 </Link>
                 

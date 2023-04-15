@@ -4,6 +4,7 @@ import { BiEdit } from "react-icons/bi"
 import { Chatroom } from "../types"
 import { useChatrooms } from "../hokers"
 import { api } from "../api"
+import { cache, useCache } from "../cache"
 
 const EditChatroomName = (props: {
 	chatroomId: string
@@ -42,38 +43,44 @@ const ChatRow = (props: {
 	onEditCompleted: () => void
 }) => {
 	return (
-		<div style={{
-			cursor: "pointer",
-			padding: "10px",
-			whiteSpace: "nowrap",
-			border: props.selectedChatroomId == props.chatroom.id ? "solid 1px black" : ""
-		}} onKeyDown={e => {
-			if (e.key == "Escape") {
-				props.onEditCompleted()
-			}
+		<Link key={props.chatroom.id} href={`/chats/${props.chatroom.id}`} style={{
+			textDecoration: "none",
+			marginRight: "10px",
 		}}>
-			<Link key={props.chatroom.id} href={`/chats/${props.chatroom.id}`} style={{
-				textDecoration: "none",
-				marginRight: "10px",
+			<div style={{
+				cursor: "pointer",
+				padding: "10px",
+				whiteSpace: "nowrap",
+				border: props.selectedChatroomId == props.chatroom.id ? "solid 1px black" : ""
+			}} onKeyDown={e => {
+				if (e.key == "Escape") {
+					props.onEditCompleted()
+				}
 			}}>
 				{props.editing && 
 				<EditChatroomName
 					chatroomId={props.chatroom.id}
 					onEditCompleted={props.onEditCompleted} />}
 				{!props.editing && props.chatroom.name}
-			</Link>
-			<BiEdit onClick={() => {
-				props.onStartEditing()
-			}} />
-		</div>
+			
+				<BiEdit onClick={(e) => {
+					e.stopPropagation()
+					e.preventDefault()
+					props.onStartEditing()
+				}} />
+			</div>
+		</Link>
 	)
 }
 
 export const Chats = (props: {
 	selectedChatroomId?: string
 }) => {
-	const chatrooms = useChatrooms()
 	const [editingChatroomId, setEditingChatroomId] = useState("")
+
+	const chatrooms = useCache(cache.myChatrooms)
+
+	cache.chatroom.get("1234").get()
 
 	useEffect(() => {
 		window.onkeydown = (e) => {
@@ -83,8 +90,12 @@ export const Chats = (props: {
 		}
 	}, [setEditingChatroomId])
 
+	console.log("chatrooms", chatrooms)
+
 	return (
-		<div>
+		<div style={{
+			overflow: "auto"
+		}}>
 			{chatrooms.map((chatroom) => {
 				return (
 					<ChatRow 

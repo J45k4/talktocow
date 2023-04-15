@@ -1,4 +1,5 @@
 import { getJson, patchJson, postJson } from "./api-methods"
+import { cache } from "./cache"
 import { chatroomState } from "./state"
 import { Chatroom, User } from "./types"
 import { resolveServerUrl } from "./utility"
@@ -23,12 +24,7 @@ export const api = {
 		})
 
 		if (res.payload) {
-			const chatroom = chatroomState.get(res.payload.id)
-
-			chatroom.set({
-				id: res.payload.id,
-				name: res.payload.name,
-			})
+			cache.chatroom.update(res.payload)
 		}
 
 		return res
