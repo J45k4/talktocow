@@ -61,6 +61,7 @@ const ChatRow = (props: {
 			}}>
 				<div style={{
 					flex: 1,
+					marginRight: "15px"
 				}}>
 					{props.editing && 
 					<EditChatroomName
