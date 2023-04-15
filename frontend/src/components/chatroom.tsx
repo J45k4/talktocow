@@ -2,7 +2,7 @@ import { CSSProperties, useEffect, useState } from "react"
 import { fetchChatroomMessages, sendMessageToChatroom } from "../logic/chatroom-messages";
 import { ParticipantMessage, YourMessage } from "./chatroom-message";
 
-import styles from "./chat.module.css";
+import styles from "./chatroom.module.css";
 import { ConnectionIndicator } from "./connection-indicator";
 import { useYourUserId } from "./user-indicator";
 import { useChatroomMessages } from "./chatroom-messages";
