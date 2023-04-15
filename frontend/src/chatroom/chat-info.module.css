@@ -1,0 +1,13 @@
+
+.chatInfo {
+	display: flex;
+	flex-direction: row;
+}
+
+.navigationSide {
+	width: 130px;
+}
+
+.chatInfoSide {
+
+}

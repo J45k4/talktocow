@@ -8,22 +8,26 @@ import { useChatroomMessages } from "../use-chatroom-messages"
 import { loadChatroomMessages, sendMessageToChatroom } from "../chatroom-message-managers"
 import { ChatroomMessageRow } from "./chatroom-row"
 import { Button } from "../components/button"
+import { ChatInfo } from "./chat-info"
 
 const ChatroomTitle = (props: {
 	chatroomId: string
+	onOpenInfo?: () => void
 }) => {
 	const members = useChatroomMembers(props.chatroomId)
 	const chatroom = useChatroom(props.chatroomId)
 
 	return (
 		<div className={styles.chatroomTitle}>
-			<div className={styles.chatroomTitleLeftSide}>
+			<div className={styles.chatroomTitleLeftSide}
+				onClick={props.onOpenInfo}>
 				<BsSnapchat style={{
 					width: "100%",
 					height: "100%",
 				}} />
 			</div>
-			<div className={styles.chatroomTitleCenter}>
+			<div className={styles.chatroomTitleCenter}
+				onClick={props.onOpenInfo}>
 				<div className={styles.chatroomChatGroup}>
 					{chatroom?.name}
 				</div>
@@ -131,9 +135,26 @@ const ChatroomSendMessage = (props: {
 export const Chatroom = (props: {
 	chatroomId: string
 }) => {
+	const [infoVisible, setInfoVisible] = useState(false)
+
 	return (
 		<div className={styles.chatroom}>
-			<ChatroomTitle chatroomId={props.chatroomId} />
+			{infoVisible &&
+			<div style={{
+				position: "absolute",
+				width: "500px",
+				height: "500px",
+				backgroundColor: "white",
+				border: "solid 1px black",
+			}}>
+				<ChatInfo
+					chatroomId={props.chatroomId}
+					onClose={() => setInfoVisible(false)} />
+			</div>}
+			<ChatroomTitle 
+				chatroomId={props.chatroomId}
+				onOpenInfo={() => setInfoVisible(true)}
+			/>
 			<ChatroomMessages chatroomId={props.chatroomId} />
 			<ChatroomSendMessage chatroomId={props.chatroomId} />
 		</div>

@@ -57,10 +57,6 @@ type CacheNode<T> = {
 	get: () => T
 } & Sub<T>
 
-type Cache = {
-	myChatrooms: ArrayNode<Chatroom>
-	chatroom: SingleNode<Chatroom>
-}
 
 class Subscriptions {
 	private map = new Map<string, Set<any>>()
@@ -224,7 +220,13 @@ export const cacheBuilder = (instructions: Instructions): any => {
 					}
 				}
 
+				logger.debug("getting array", key, entityMap)
+
 				const val = entityMap.get(key)
+
+				if (!val) {
+					return []
+				}
 
 				if ("reference" in instruction) {
 					return val.map((id) => entityMap.get(id))
@@ -331,6 +333,12 @@ export const cacheBuilder = (instructions: Instructions): any => {
 	}
 
 	return obj
+}
+
+type Cache = {
+	myChatrooms: ArrayNode<Chatroom>
+	chatroom: SingleNode<Chatroom>
+	users: ArrayNode<User>
 }
 
 export const cache: Cache = cacheBuilder({
