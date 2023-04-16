@@ -26,14 +26,15 @@
 
 .chatroomTitleCenter {
 	display: flex;
-	flex-direction: column;
-	flex-grow: 1;
+	flex-direction: row;
 	cursor: pointer;
 }
 
 .chatroomTitleRightSide {
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
+	flex: 1;
+	justify-content: end;
 }
 
 .chatroomChatGroup {
@@ -52,4 +53,31 @@
     flex-direction: column;
     padding-bottom: 10px;
 	align-self: flex-end;
+}
+
+.showChatroomSearchInput {
+	animation: slideIn 1s ease forwards;
+}
+
+@keyframes slideIn {
+	from {
+		width: 0;
+	}
+	to {
+		max-width: 400px;
+		flex: 1;		
+	}
+}
+
+.hideChatroomSearchInput {
+	animation: slideOut 1s ease forwards;
+}
+
+@keyframes slideOut {
+	from {
+		width: 300px;
+	}
+	to {
+		width: 0;
+	}
 }
