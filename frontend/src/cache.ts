@@ -9,15 +9,6 @@ type ReferenceEntity = {
 	reference: string
 }
 
-type ArrayInitialFetch = {
-	array: true
-	initialFetch?: () => Promise<any>
-}
-
-type SingleInitialFetch = {
-	array?: false
-	initialFetch?: (id: string) => Promise<any>
-}
 
 type FieldsEntity = {
 	fields?: {
@@ -25,10 +16,11 @@ type FieldsEntity = {
 	}
 }
 
-type EntityInstruction = (ArrayInitialFetch | SingleInitialFetch)
-	& (FieldsEntity | ReferenceEntity)
+type EntityInstruction = (FieldsEntity | ReferenceEntity)
 	& {
 		default?: any
+		array?: boolean
+		initialFetch?: (id: string[]) => Promise<any>
 	}
 
 type Instructions = {
@@ -111,7 +103,7 @@ export const cacheBuilder = (instructions: Instructions): any => {
 		subscriptions.pub(entityId, data)
 	}
 
-	const processInstruction = (key: string, instruction: EntityInstruction) => {
+	const processInstruction = (key: string, instruction: EntityInstruction, parentIds: string[]) => {
 		const obj: any = {}
 
 		if (instruction.array) {
@@ -190,7 +182,7 @@ export const cacheBuilder = (instructions: Instructions): any => {
 					if (instruction.initialFetch) {
 						logger.debug("instruction has initial fetch", key)
 
-						instruction.initialFetch().then((data) => {
+						instruction.initialFetch(parentIds).then((data) => {
 							logger.debug("initial fetch done", key, data)
 
 							if ("reference" in instruction) {
@@ -267,6 +259,34 @@ export const cacheBuilder = (instructions: Instructions): any => {
 				val.push(p)
 				subscriptions.pub(key, val)
 			}
+
+			obj.remove = (id: string) => {
+				if ("reference" in instruction) {
+					const entityId = createEntityId(instruction.reference, id)
+
+					let val = entityMap.get(key)
+
+					if (!val) {
+						return
+					}
+
+					val = val.filter((v) => v !== entityId)
+					entityMap.set(key, val)
+
+					subscriptions.pub(key, val)
+					return
+				}
+
+				let val = entityMap.get(key)
+
+				if (!val) {
+					return
+				}
+
+				val = val.filter((v) => v.id !== id)
+
+				entityMap.set(key, val)
+			}
 		} else {
 			obj.get = (id: string) => {
 				logger.debug("get", key, id)
@@ -274,8 +294,10 @@ export const cacheBuilder = (instructions: Instructions): any => {
 				const entityId = createEntityId(key, id)
 				const entity = entityMap.get(entityId)
 
+				const ids = [...parentIds, id]
+
 				if (!entity && instruction.initialFetch) {
-					instruction.initialFetch(id).then((data) => {
+					instruction.initialFetch(ids).then((data) => {
 						entityMap.set(entityId, entity)
 						subscriptions.pub(entityId, entity)
 					})
@@ -294,8 +316,8 @@ export const cacheBuilder = (instructions: Instructions): any => {
 				}
 
 				if ("fields" in instruction) {
-					for (const [key, field] of Object.entries(instruction.fields)) {
-						returnObj[key] = processInstruction(key, field)
+					for (const [localKey, field] of Object.entries(instruction.fields)) {
+						returnObj[localKey] = processInstruction(`${key}:${id}:${localKey}`, field, ids)
 					}
 				}
 
@@ -326,22 +348,30 @@ export const cacheBuilder = (instructions: Instructions): any => {
 		return obj
 	}
 
-	const obj = {}
+	const obj = {
+		getEntityMap: () => entityMap,
+	}
 
 	for (const [key, instruction] of Object.entries(instructions)) {
-		obj[key] = 	processInstruction(key, instruction)
+		obj[key] = 	processInstruction(key, instruction, [])
 	}
 
 	return obj
 }
 
+// type ChatroomNode = 
+
+type Members = {
+	members: ArrayNode<User>
+}
+
 type Cache = {
 	myChatrooms: ArrayNode<Chatroom>
-	chatroom: SingleNode<Chatroom>
+	chatroom: SingleNode<Chatroom & Members>
 	users: ArrayNode<User>
 }
 
-export const cache: Cache = cacheBuilder({
+export const cache: any = cacheBuilder({
 	"myChatrooms": {
 		reference: "chatroom",
 		array: true,
@@ -351,7 +381,7 @@ export const cache: Cache = cacheBuilder({
 		}
 	},
 	"user": {
-		initialFetch: (id: string) => {
+		initialFetch: ([id]) => {
 			return getJson<User>(`/api/user/${id}`).then(res => res.payload)
 		}
 	},
@@ -367,9 +397,9 @@ export const cache: Cache = cacheBuilder({
 			members: {
 				reference: "user",
 				array: true,
-				// initialFetch: () => {
-				// 	return getJson<User[]>(`/api/chatroom/1/members`).then(res => res.payload)
-				// }
+				initialFetch: ([chatroomId]) => {
+					return getJson<User[]>(`/api/chatroom/${chatroomId}/members`).then(res => res.payload)
+				}
 			}
 		},
 		// initialFetch: (id: string) => {
@@ -379,7 +409,7 @@ export const cache: Cache = cacheBuilder({
 })
 
 export const useCache = <T>(key: CacheNode<T>) => {
-	const [value, setValue] = useState(key.get())
+	const [value, setValue] = useState<any>(key.get())
 
 	useEffect(() => {
 		const unsub = key.sub(v => {

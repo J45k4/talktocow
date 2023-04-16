@@ -92,6 +92,8 @@ func main() {
 	r.POST("/api/chatroom", routes.CreateChatroom)
 	r.GET("/api/chatroom/:chatroomId", routes.GetChatroom)
 	r.PATCH("/api/chatroom/:chatroomId", routes.PatchChatroom)
+	r.POST("/api/chatroom/:chatroomId/member", routes.AddChatroomMember)
+	r.DELETE("/api/chatroom/:chatroomId/member/:userId", routes.RemoveChatroomMember)
 	r.GET("/api/chatroom/:chatroomId/members", routes.GetChatroomMembers)
 	r.GET("/api/chatroom/:chatroomId/messages", routes.GetChatroomMessages)
 	r.GET("/api/mychatrooms", routes.GetMyChatrooms)

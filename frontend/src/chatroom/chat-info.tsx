@@ -4,6 +4,11 @@ import styles from "./chat-info.module.css";
 import { useChatroomMembers } from '../hokers';
 import { useCache } from '../cache';
 import { cache } from '../cache';
+import { api } from '../api';
+import { getSession } from '../logic/session-manager';
+import { createLogger } from '../logger';
+
+const logger = createLogger("chat-info")
 
 const NavigationSide = (props: {
 	onClose: () => void	
@@ -26,7 +31,7 @@ const AddMember = (props: {
 	chatroomId: string
 }) => {
 	const users = useCache(cache.users)
-	const memebers = useChatroomMembers(props.chatroomId)
+	const memebers = useCache(cache.chatroom.get(props.chatroomId).members)
 
 	return (
 		<div>
@@ -38,6 +43,27 @@ const AddMember = (props: {
 						{u.name}
 						<input type="checkbox"
 							checked={selected}
+							onChange={(e) => {
+								if (selected) {
+									const session = getSession()
+
+									if (session?.userId == u.id) {
+										return
+									}
+
+									api.removeChatroomMember({
+										chatroomId: props.chatroomId,
+										userId: u.id,
+									})
+
+									return
+								}
+
+								api.addChatroomMember({
+									chatroomId: props.chatroomId,
+									userId: u.id,
+								})
+							}}
 						/>
 					</div>
 				)

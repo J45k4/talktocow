@@ -1,20 +1,49 @@
 import React, { useCallback, useEffect, useRef, useState } from "react"
 
 import styles from "./chatroom.module.css"
-import { BsSnapchat } from "react-icons/bs"
-import { ChatroomSearchButton } from "./chatroom-search-button"
+import { BsSearch, BsSnapchat } from "react-icons/bs"
 import { useChatroom, useChatroomMembers } from "../hokers"
 import { useChatroomMessages } from "../use-chatroom-messages"
 import { loadChatroomMessages, sendMessageToChatroom } from "../chatroom-message-managers"
 import { ChatroomMessageRow } from "./chatroom-row"
 import { Button } from "../components/button"
 import { ChatInfo } from "./chat-info"
+import { cache, useCache } from "../cache"
+
+const ChatroomSearch = () => {
+	const [searching, setSearching] = useState(false)
+
+	return (
+		<div className={styles.chatroomTitleRightSide}>
+			<input
+				hidden={!searching}
+				style={{
+					fontSize: "20px",
+				}}
+				className={searching ?
+					styles.showChatroomSearchInput :
+					styles.hideChatroomSearchInput}
+				type="text" />
+			<BsSearch style={{
+				width: "25px",
+				height: "25px",
+				padding: "10px",
+				paddingRight: "15px",
+				cursor: "pointer",
+			}} onClick={(e) => {
+				e.stopPropagation()
+				e.preventDefault()
+				setSearching(!searching)
+			}} />
+		</div>
+	)
+}
 
 const ChatroomTitle = (props: {
 	chatroomId: string
 	onOpenInfo?: () => void
 }) => {
-	const members = useChatroomMembers(props.chatroomId)
+	const members = useCache(cache.chatroom.get(props.chatroomId).members)
 	const chatroom = useChatroom(props.chatroomId)
 
 	return (
@@ -26,23 +55,18 @@ const ChatroomTitle = (props: {
 					height: "100%",
 				}} />
 			</div>
-			<div className={styles.chatroomTitleCenter}
-				onClick={props.onOpenInfo}>
-				<div className={styles.chatroomChatGroup}>
-					{chatroom?.name}
+			<div className={styles.chatroomTitleCenter}>
+				<div onClick={props.onOpenInfo}>
+					<div className={styles.chatroomChatGroup}>
+						{chatroom?.name}
+					</div>
+					<div className={styles.chatroomChatGroupMembers}>
+						{members.map(m => m.name).join(", ")}
+					</div>
 				</div>
-				<div className={styles.chatroomChatGroupMembers}>
-					{members.map(m => m.name).join(", ")}
-				</div>
+				
 			</div>
-			<div className={styles.chatroomTitleRightSide}>
-				<ChatroomSearchButton style={{
-					width: "25px",
-					height: "25px",
-					padding: "10px",
-					paddingRight: "15px"
-				}} />
-			</div>
+			<ChatroomSearch />
 		</div>
 	)
 }

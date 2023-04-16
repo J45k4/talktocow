@@ -204,3 +204,96 @@ func PatchChatroom(ctx *gin.Context) {
 
 	ctx.JSON(200, chatroom)
 }
+
+type AddChatroomMemberBody struct {
+	UserId uint32 `json:"userId"`
+}
+
+func AddChatroomMember(ctx *gin.Context) {
+	chatroomId := ctx.Param("chatroomId")
+
+	chatroomIdNum, err := strconv.Atoi(chatroomId)
+
+	if err != nil {
+		fmt.Println("Chatroom ID is not a number", err)
+	}
+
+	db := GetDBFromContext(ctx)
+
+	body := AddChatroomMemberBody{}
+
+	err = ctx.BindJSON(&body)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	//Check if user exists
+	_, err = models.FindUser(ctx.Request.Context(), db, int(body.UserId))
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	chatroomUser := models.ChatroomUser{
+		ChatroomID: chatroomIdNum,
+		UserID:     int(body.UserId),
+	}
+
+	err = chatroomUser.Insert(ctx.Request.Context(), db, boil.Infer())
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	user, err := models.FindUser(ctx.Request.Context(), db, int(body.UserId))
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	ctx.JSON(200, user)
+}
+
+func RemoveChatroomMember(ctx *gin.Context) {
+	chatroomId := ctx.Param("chatroomId")
+
+	chatroomIdNum, err := strconv.Atoi(chatroomId)
+
+	if err != nil {
+		fmt.Println("Chatroom ID is not a number", err)
+	}
+
+	db := GetDBFromContext(ctx)
+
+	userId := ctx.Param("userId")
+
+	userIdNum, err := strconv.Atoi(userId)
+
+	if err != nil {
+		fmt.Println("User ID is not a number", err)
+	}
+
+	chatroomUser, err := models.ChatroomUsers(
+		qm.Where("chatroom_id = ?", chatroomIdNum),
+		qm.And("user_id = ?", userIdNum),
+	).One(ctx.Request.Context(), db)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	_, err = chatroomUser.Delete(ctx.Request.Context(), db)
+
+	if err != nil {
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	ctx.JSON(200, gin.H{})
+}

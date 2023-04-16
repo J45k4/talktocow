@@ -94,6 +94,17 @@ export const patchJson = async <T>(path: string, payload: any): Promise<ApiRespo
 	return handleFetchResult(res)
 }
 
+export const deleteJson = async <T>(path: string): Promise<ApiResponse<T>> => {
+	const headers = getHeaders()
+
+	let res = await fetch(resolveServerUrl(path), {
+		method: "DELETE",
+		headers: headers
+	})
+
+	return handleFetchResult(res)
+}
+
 export const getJson = async <T>(path: string, query?): Promise<ApiResponse<T>> => {
     return customFetch<T>(path, "GET")
 }
