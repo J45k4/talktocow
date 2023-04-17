@@ -28,11 +28,16 @@ const MessageTitle = (props: {
 const MessageContent = (props: {
 	messageText: string
 }) => {
+	const content = []
+
+	for (const line of props.messageText.split("\n")) {
+		content.push(line)
+		content.push(<br />)
+	}
+
 	return (
 		<div>
-			{props.messageText.split("\n").map((p, index) => (
-				<p key={index}>{p}</p>
-			))}
+			{content}
 		</div>
 	)
 }

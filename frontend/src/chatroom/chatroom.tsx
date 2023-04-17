@@ -9,6 +9,9 @@ import { ChatroomMessageRow } from "./chatroom-row"
 import { Button } from "../components/button"
 import { ChatInfo } from "./chat-info"
 import { cache, useCache } from "../cache"
+import { createLogger } from "../logger"
+
+const logger = createLogger("chatroom")
 
 const ChatroomSearch = () => {
 	const [searching, setSearching] = useState(false)
@@ -130,16 +133,31 @@ const ChatroomSendMessage = (props: {
 			display: "flex",
 			flexDirection: "row",
 		}}>
-			<input style={{
+			<textarea style={{
 				border: "none",
 				width: "100%",
 				height: "100%",
 				outline: "none",
-			}} onKeyDown={e => {
-				if (e.key === "Enter") {
+				resize: "none",
+			}} 
+			rows={1}
+			onInput={e => {
+				const target = e.currentTarget;
+				target.style.height = "auto"; // reset the height to auto
+				target.style.height = `${target.scrollHeight}px`; // set the height to the scrollHeight
+				setNewMessage(target.value);
+			}}
+			onKeyDown={e => {
+				if (e.key === "Enter" && !e.shiftKey) {
 					console.log("Enter")
 
 					sendMessage()
+				}
+
+				if (e.key === "Enter" && e.shiftKey) {
+					logger.info("Shift + Enter")
+
+					setNewMessage(newMessage + "\n")
 				}
 			}}
 				value={newMessage}
