@@ -41,3 +41,13 @@ type NewChatroomMessage struct {
 	Platform         string `json:"platform"`
 	Reference        string `json:"reference"`
 }
+
+type VideoOffer struct {
+	SDP    string `json:"sdp"`
+	UserID string `json:"userId"`
+}
+
+type VideoAnswer struct {
+	SDP    string `json:"sdp"`
+	UserID string `json:"userId"`
+}

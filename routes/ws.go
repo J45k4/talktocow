@@ -21,10 +21,13 @@ import (
 type WsMessageFromClientType string
 
 const (
-	WsSendMessage  WsMessageFromClientType = "sendMessage"
-	WsAuthenticate WsMessageFromClientType = "authenticate"
-	WsAskQuestion  WsMessageFromClientType = "askQuestion"
-	WsGetQuestions WsMessageFromClientType = "getQuestions"
+	WsSendMessage     WsMessageFromClientType = "sendMessage"
+	WsAuthenticate    WsMessageFromClientType = "authenticate"
+	WsAskQuestion     WsMessageFromClientType = "askQuestion"
+	WsGetQuestions    WsMessageFromClientType = "getQuestions"
+	WsMakeVideoOffer  WsMessageFromClientType = "makeVideoOffer"
+	WsMakeVideoAnswer WsMessageFromClientType = "makeVideoAnswer"
+	WsNewIceCandidate WsMessageFromClientType = "newIceCandidate"
 )
 
 type WsMsgFromClient struct {
@@ -37,6 +40,8 @@ type WsMsgFromClient struct {
 	WrittenAt    *string                 `json:"writtenAt"`
 	TransmitedAt *string                 `json:"transmitedAt"`
 	Reference    *string                 `json:"reference"`
+	SDP          *string                 `json:"sdp"`
+	Candidate    *string                 `json:"candidate"`
 }
 
 type Authenticated struct {
@@ -231,6 +236,39 @@ func (h *WsHandler) handleAskQuestion(msg WsMsgFromClient) bool {
 	return false
 }
 
+func (h *WsHandler) handleMakeVideoOffer(msg WsMsgFromClient) bool {
+	h.eventbus.Publish(eventbus.Event{
+		VideoOffer: &eventbus.VideoOfferEvent{
+			SDP:    *msg.SDP,
+			UserID: int(h.userID),
+		},
+	})
+
+	return false
+}
+
+func (h *WsHandler) handleMakeVideoAnswer(msg WsMsgFromClient) bool {
+	h.eventbus.Publish(eventbus.Event{
+		VideoAnswer: &eventbus.VideoAnswerEvent{
+			SDP:    *msg.SDP,
+			UserID: int(h.userID),
+		},
+	})
+
+	return false
+}
+
+func (h *WsHandler) handleNewIceCandidate(msg WsMsgFromClient) bool {
+	h.eventbus.Publish(eventbus.Event{
+		NewIceCandidate: &eventbus.NewIceCandidateEvent{
+			Candidate: *msg.Candidate,
+			UserID:    int(h.userID),
+		},
+	})
+
+	return false
+}
+
 func (h *WsHandler) handleWsMsg(msg WsMsgFromClient) bool {
 	switch msg.Type {
 	case WsSendMessage:
@@ -239,6 +277,12 @@ func (h *WsHandler) handleWsMsg(msg WsMsgFromClient) bool {
 		return h.handleAuthenticate(msg)
 	case WsAskQuestion:
 		return h.handleAskQuestion(msg)
+	case WsMakeVideoOffer:
+		return h.handleMakeVideoOffer(msg)
+	case WsMakeVideoAnswer:
+		return h.handleMakeVideoAnswer(msg)
+	case WsNewIceCandidate:
+		return h.handleNewIceCandidate(msg)
 	default:
 		return false
 	}
@@ -263,6 +307,32 @@ func (h *WsHandler) handleEvent(event eventbus.Event) {
 		}
 
 		h.sendMessage(chatroomMessages)
+	}
+
+	if event.VideoAnswer != nil {
+		if event.VideoAnswer.UserID != int(h.userID) {
+			return
+		}
+
+		h.sendMessage(
+			VideoAnswer{
+				SDP:    event.VideoAnswer.SDP,
+				UserID: strconv.Itoa(event.VideoAnswer.UserID),
+			},
+		)
+	}
+
+	if event.VideoOffer != nil {
+		if event.VideoOffer.UserID != int(h.userID) {
+			return
+		}
+
+		h.sendMessage(
+			VideoOffer{
+				SDP:    event.VideoOffer.SDP,
+				UserID: strconv.Itoa(event.VideoOffer.UserID),
+			},
+		)
 	}
 }
 

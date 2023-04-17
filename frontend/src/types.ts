@@ -12,8 +12,16 @@ export type AskQuestion = {
 	type: "askQuestion"
 }
 
-export type MessageToServer = (SendMessage |
+export type CreateOffer = {
+	type: "createOffer"
+	sdp: string
+}
+
+export type MessageToServer = (
+	SendMessage |
 	Authenticate |
+	CreateOffer |
+
 	AskQuestion) & {
 		transmitedAt?: string
 	}
@@ -36,7 +44,19 @@ export type ChatroomMessages = {
 	messages: ChatroomMessage[]
 }
 
-export type MessageFromServer = ChatroomMessages
+export type VideoOfferAnswer = {
+	type: "videoOfferAnswer"
+	sdp: string
+}
+
+export type NewIceCandidate = {
+	type: "newIceCandidate"
+	candidate: string
+}
+
+export type MessageFromServer = ChatroomMessages | 
+	VideoOfferAnswer |
+	NewIceCandidate
 
 export type Chatroom = {
 	id: string

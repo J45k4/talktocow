@@ -6,10 +6,6 @@ import (
 	"sync"
 )
 
-type Event struct {
-	ChatroomMessage *ChatroomMessage
-}
-
 type Eventbus struct {
 	subscribers []chan Event
 	lock        sync.RWMutex
