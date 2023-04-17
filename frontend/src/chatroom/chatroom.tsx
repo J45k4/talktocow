@@ -85,7 +85,11 @@ const ChatroomMessages = (props: {
 	};
 
 	useEffect(() => {
-		scrollToBottom();
+		logger.debug("scrolling to bottom")
+
+		setTimeout(() => {
+			scrollToBottom();
+		}, 100);
 	}, [messages]);
 
 	useEffect(() => {
