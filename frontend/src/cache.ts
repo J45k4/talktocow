@@ -185,6 +185,10 @@ export const cacheBuilder = (instructions: Instructions): any => {
 						instruction.initialFetch(parentIds).then((data) => {
 							logger.debug("initial fetch done", key, data)
 
+							if (!data) {
+								return
+							}
+
 							if ("reference" in instruction) {
 								const entityIds = data.map(p => createEntityId(instruction.reference, p.id))
 								entityMap.set(key, entityIds)
