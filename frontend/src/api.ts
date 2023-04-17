@@ -15,7 +15,13 @@ export const api = {
 		name?: string
 		userIds?: string[]
 	}) => {
-		return await postJson<Chatroom>("/api/chatroom", args)
+		const res = await postJson<Chatroom>("/api/chatroom", args)
+
+		if (res.payload) {
+			cache.myChatrooms.add(res.payload)
+		}
+
+		return res
 	},
 	patchChatroom: async (args: {
 		chatroomId?: string
