@@ -233,10 +233,17 @@ func (h *WsHandler) handleAskQuestion(msg WsMsgFromClient) bool {
 
 func (h *WsHandler) handleWsMsg(msg WsMsgFromClient) bool {
 	switch msg.Type {
-	case WsSendMessage:
-		return h.handleSendMessage(msg)
 	case WsAuthenticate:
 		return h.handleAuthenticate(msg)
+	}
+
+	if h.userID == 0 {
+		return true
+	}
+
+	switch msg.Type {
+	case WsSendMessage:
+		return h.handleSendMessage(msg)
 	case WsAskQuestion:
 		return h.handleAskQuestion(msg)
 	default:
@@ -287,7 +294,11 @@ func (h *WsHandler) Run() {
 
 			fmt.Println("received wsMsg: ", msg)
 
-			h.handleWsMsg(msg)
+			if h.handleWsMsg(msg) {
+				log.Printf("ws handler exiting")
+
+				return
+			}
 		case event := <-eventChan:
 			h.handleEvent(event)
 		}
