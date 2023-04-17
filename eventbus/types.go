@@ -15,3 +15,25 @@ type ChatroomMessage struct {
 	Reference        string    `json:"reference"`
 	Bot              bool      `json:"bot"`
 }
+
+type VideoOfferEvent struct {
+	SDP    string `json:"sdp"`
+	UserID int    `json:"userId"`
+}
+
+type VideoAnswerEvent struct {
+	SDP    string `json:"sdp"`
+	UserID int    `json:"userId"`
+}
+
+type NewIceCandidateEvent struct {
+	UserID    int    `json:"userId"`
+	Candidate string `json:"candidate"`
+}
+
+type Event struct {
+	ChatroomMessage *ChatroomMessage
+	VideoOffer      *VideoOfferEvent
+	VideoAnswer     *VideoAnswerEvent
+	NewIceCandidate *NewIceCandidateEvent
+}
