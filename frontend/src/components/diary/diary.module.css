@@ -1,6 +1,7 @@
 
 .container {
     padding: 1em;
+	overflow: auto;
 }
 
 .backArrow {
