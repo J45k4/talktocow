@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -94,6 +95,7 @@ type CreateChatroomBody struct {
 
 func CreateChatroom(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
+	session := GetUserSessionFromContext(ctx)
 
 	body := CreateChatroomBody{}
 
@@ -111,11 +113,41 @@ func CreateChatroom(ctx *gin.Context) {
 	err = chatroom.Insert(ctx.Request.Context(), db, boil.Infer())
 
 	if err != nil {
+		log.Printf("Creating new chatroom failed %v", err)
+
+		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
+		return
+	}
+
+	processedUserIds := map[uint32]bool{}
+
+	// Add the creator of the chatroom to the chatroom
+
+	processedUserIds[uint32(ctx.GetInt("userId"))] = true
+
+	chatroomUser := models.ChatroomUser{
+		ChatroomID: chatroom.ID,
+		UserID:     int(session.UserID),
+	}
+
+	err = chatroomUser.Insert(ctx.Request.Context(), db, boil.Infer())
+
+	if err != nil {
+		log.Printf("Inserting request user to chatroom failed %v", err)
+
 		ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
 		return
 	}
 
 	for _, userId := range body.UserIds {
+		_, ok := processedUserIds[userId]
+
+		if ok {
+			continue
+		}
+
+		processedUserIds[userId] = true
+
 		// userIdNum, err := strconv.Atoi(userId)
 
 		// if err != nil {
@@ -131,6 +163,8 @@ func CreateChatroom(ctx *gin.Context) {
 		err = chatroomUser.Insert(ctx.Request.Context(), db, boil.Infer())
 
 		if err != nil {
+			log.Printf("inserting user %v to chatroom %v failed %v", userId, chatroom.ID, err)
+
 			ctx.JSON(500, CreateErrorResponse(InternalServerError, "Internal server error"))
 			return
 		}
