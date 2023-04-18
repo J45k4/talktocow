@@ -1,5 +1,7 @@
 import React from "react";
 
+import styles from "./browser.module.css";
+
 export default function BrowserInfoPage() {
 	const [devices, setDevices] = React.useState([]);
 	const [notificationsAvailable, setNotificationsAvailable] = React.useState(false);
@@ -76,16 +78,32 @@ export default function BrowserInfoPage() {
 	return (
 		<div>
 			<h1>Browser info</h1>
-			{devices.map((device) => {
-				return (
-					<div key={device.deviceId}>
-						<p>{device.kind}</p>
-						<p>{device.label}</p>
-						<p>{device.deviceId}</p>
-					</div>
-				)	
-			})}
 
+			<h2>Devices</h2>
+			<table>
+				<thead style={{
+				border: "1px solid black"
+			}}>
+					<tr>
+						<th>Kind</th>
+						<th>Label</th>
+						<th>Device ID</th>
+					</tr>
+				</thead>
+				<tbody>
+					{devices.map((device, i) => {
+						return (
+							<tr key={i}>
+								<td>{device.kind}</td>
+								<td>{device.label}</td>
+								<td>{device.deviceId}</td>
+							</tr>
+						)
+					})}
+				</tbody>
+			</table>
+
+			<h2>Other</h2>
 			<table>
 				<tbody>
 					<tr>
