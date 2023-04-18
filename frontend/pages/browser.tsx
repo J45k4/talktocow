@@ -1,7 +1,5 @@
 import React from "react";
 
-import styles from "./browser.module.css";
-
 export default function BrowserInfoPage() {
 	const [devices, setDevices] = React.useState([]);
 	const [notificationsAvailable, setNotificationsAvailable] = React.useState(false);
