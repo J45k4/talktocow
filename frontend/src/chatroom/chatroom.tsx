@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 
 import styles from "./chatroom.module.css"
 import { BsSearch, BsSnapchat } from "react-icons/bs"
+import { IoIosCall } from "react-icons/io"
 import { useChatroom, useChatroomMembers } from "../hokers"
 import { useChatroomMessages } from "../use-chatroom-messages"
 import { loadChatroomMessages, sendMessageToChatroom } from "../chatroom-message-managers"
@@ -10,6 +11,7 @@ import { Button } from "../components/button"
 import { ChatInfo } from "./chat-info"
 import { cache, useCache } from "../cache"
 import { createLogger } from "../logger"
+import { ws } from "../ws"
 
 const logger = createLogger("chatroom")
 
@@ -70,6 +72,17 @@ const ChatroomTitle = (props: {
 				
 			</div>
 			<ChatroomSearch />
+			<IoIosCall style={{
+				width: "25px",
+				height: "25px",
+				padding: "10px",
+				cursor: "pointer",
+			}} onClick={() => {
+				ws.send({
+					type: "createCall",
+					chatroomId: props.chatroomId,
+				})
+			}} />
 		</div>
 	)
 }
