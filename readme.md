@@ -1,6 +1,12 @@
 # Application for talking to cow
 i
 
+## Development
+
+```
+cp example.env .env
+```
+
 ## Install dependecies
 
 ```
@@ -12,4 +18,11 @@ go get github.com/volatiletech/sqlboiler/v4
 
 ```
 go run scripts/migrate/migrate.go
+```
+
+## Database
+
+Start database with docker compose
+```
+docker compose up
 ```
