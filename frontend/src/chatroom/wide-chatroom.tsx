@@ -11,9 +11,10 @@ const LeftSide = (props: {
 }) => {
 	return (
 		<div className={styles.leftSide}>
-			<div>
+			<div style={{ whiteSpace: "nowrap" }}>
 				<Link href="/chats/new">
 					<Button
+						
 						title="New Chatroom"
 					/>
 				</Link>

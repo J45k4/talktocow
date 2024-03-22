@@ -28,6 +28,7 @@ const (
 	WsMakeVideoOffer  WsMessageFromClientType = "makeVideoOffer"
 	WsMakeVideoAnswer WsMessageFromClientType = "makeVideoAnswer"
 	WsNewIceCandidate WsMessageFromClientType = "newIceCandidate"
+	WsCreateCall      WsMessageFromClientType = "createCall"
 )
 
 type WsMsgFromClient struct {
