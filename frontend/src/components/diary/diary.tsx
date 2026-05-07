@@ -2,6 +2,7 @@ import { FaPlus } from "react-icons/fa"
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { postJson } from "../../api-methods"
+import { Modal } from "../modal"
 import { DiaryEntryList } from "./diary-entry-list"
 import styles from "./diary.module.css"
 
@@ -53,7 +54,7 @@ export const Diary = () => {
                     </button>
                 </div>
             </div>
-            {isCreatingEntry && (
+            <Modal isOpen={isCreatingEntry} title="New diary entry" onClose={resetDraft}>
                 <div className={styles.draftForm}>
                     <label className={styles.draftField}>
                         Entry date
@@ -88,7 +89,7 @@ export const Diary = () => {
                         </button>
                     </div>
                 </div>
-            )}
+            </Modal>
             <DiaryEntryList />
         </div>
     )
