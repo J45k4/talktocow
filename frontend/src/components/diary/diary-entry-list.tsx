@@ -32,7 +32,7 @@ export const DiaryEntryList = () => {
     }, [fetchFirstPage])
 
     return (
-        <PullToRefresh onRefresh={fetchFirstPage}>
+        <PullToRefresh onRefresh={() => window.location.reload()}>
             <div className={styles.container}>
                 <InfiniteScroll
                     dataLength={entries.length}
