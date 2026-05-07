@@ -54,6 +54,12 @@ export const DiaryEntryList = () => {
                             title={p.title}
                             body={p.body}
                             postedAt={p.createdAt}
+                            postedByUserId={p.postedByUserId}
+                            onDelete={() => {
+                                setEntries(entries.filter(entry => entry.id !== p.id))
+                                setOffset(Math.max(offset - 1, 0))
+                                setCount(Math.max(count - 1, 0))
+                            }}
 
                         />
                     ))}

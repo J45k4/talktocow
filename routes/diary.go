@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -144,6 +145,7 @@ func UpdateDiaryEntry(ctx *gin.Context) {
 }
 
 func DeleteDiaryEntry(ctx *gin.Context) {
+	userSession := GetUserSessionFromContext(ctx)
 	db := GetDBFromContext(ctx)
 
 	entryId, _ := strconv.Atoi(ctx.Params.ByName("diaryEntryId"))
@@ -161,6 +163,11 @@ func DeleteDiaryEntry(ctx *gin.Context) {
 		fmt.Errorf("fetching diary entry failed %v", err)
 
 		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+		return
+	}
+
+	if diaryEntry.WhoPostedUserID != int(userSession.UserID) {
+		ctx.JSON(http.StatusForbidden, CreateErrorResponse(AuthorizationError, "Only the author can delete this diary entry"))
 		return
 	}
 

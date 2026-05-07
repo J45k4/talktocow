@@ -1,7 +1,8 @@
-import { FaEdit } from "react-icons/fa";
+import { FaEdit, FaTrash } from "react-icons/fa";
 import React, { useCallback, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { getJson, postJson } from "../../api-methods";
+import { deleteJson, getJson, postJson } from "../../api-methods";
+import { getSession } from "../../logic/session-manager";
 import styles from "./diary-entry.module.css";
 
 export const DiaryEntry = (props: {
@@ -9,8 +10,11 @@ export const DiaryEntry = (props: {
     title: string
     body: string
     postedAt: string
+    postedByUserId: string
+    onDelete: () => void
 }) => {
     const d = new Date(props.postedAt)
+    const isAuthor = getSession().userId === props.postedByUserId
 
     const [newComment, setNewComment] = React.useState("")
 
@@ -44,6 +48,18 @@ export const DiaryEntry = (props: {
         })
     }, [newComment, props.id, fetchComments])
 
+    const deleteEntry = useCallback(() => {
+        if (!window.confirm("Delete this diary entry?")) {
+            return
+        }
+
+        deleteJson(`/api/diary/entry/${props.id}`).then(r => {
+            if (!r.error) {
+                props.onDelete()
+            }
+        })
+    }, [props])
+
     return (
         <div className={styles.entry}>
             <div className={styles.date}>
@@ -52,11 +68,20 @@ export const DiaryEntry = (props: {
                 {d.toLocaleDateString("us", { month: "long" }) + " "}
                 {d.getFullYear()}
             </div>
-            <div className={styles.title}>
-                {props.title}
-                <Link to={"/diary/entry/" + props.id}>
-                    <FaEdit />
-                </Link>
+            <div className={styles.titleRow}>
+                <div className={styles.title}>
+                    {props.title}
+                </div>
+                {isAuthor && (
+                    <div className={styles.actions}>
+                        <Link className={styles.iconButton} to={"/diary/entry/" + props.id} aria-label="Edit diary entry">
+                            <FaEdit />
+                        </Link>
+                        <button className={styles.iconButton} onClick={deleteEntry} aria-label="Delete diary entry">
+                            <FaTrash />
+                        </button>
+                    </div>
+                )}
             </div>
             <div className={styles.body}>
                 {props.body}
