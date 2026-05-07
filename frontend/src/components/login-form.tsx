@@ -1,5 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useState } from "react";
+import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
 import { setSession } from "../logic/session-manager";
 import { postJson } from "../api-methods";
 import { ws } from "../ws";
@@ -9,10 +10,17 @@ export const LoginForm = () => {
     const [password, setPassword] = useState();
 
     const [currentlyLogining, setCurrentlyLogining] = useState(false);
+    const [currentlyPasskeyLogining, setCurrentlyPasskeyLogining] = useState(false);
     const [loginError, setLoginError] = useState("");
+    const [passkeysSupported, setPasskeysSupported] = useState(true);
+
+	useEffect(() => {
+		setPasskeysSupported(browserSupportsWebAuthn())
+	}, [])
 
 	const login = useCallback(async () => {
 		setCurrentlyLogining(true);
+		setLoginError("");
 
 		try {
 			const res = await postJson<any>("/api/login", {
@@ -32,13 +40,61 @@ export const LoginForm = () => {
 			setSession({
 				token: res.payload.token,
 				userId: res.payload.userId,
-				username: res.payload.username
+				username: res.payload.username,
+				authMethod: "password"
 			})
 		} catch (e) {
 			setLoginError("Unknown login error")
 			setCurrentlyLogining(false)
 		}
 	}, [password, username, setCurrentlyLogining, setLoginError])
+
+	const loginWithPasskey = useCallback(async () => {
+		if (!passkeysSupported) {
+			setLoginError("This browser does not support passkeys")
+			return
+		}
+
+		setCurrentlyPasskeyLogining(true)
+		setLoginError("")
+
+		try {
+			const begin = await postJson<any>("/api/passkeys/login/begin", {})
+
+			if (begin.error) {
+				setLoginError(begin.error.message)
+				setCurrentlyPasskeyLogining(false)
+				return
+			}
+
+			const assertion = await startAuthentication({
+				optionsJSON: begin.payload.options
+			})
+
+			const finish = await postJson<any>("/api/passkeys/login/finish", {
+				ceremonyId: begin.payload.ceremonyId,
+				response: assertion
+			})
+
+			if (finish.error) {
+				setLoginError(finish.error.message)
+				setCurrentlyPasskeyLogining(false)
+				return
+			}
+
+			ws.openConn(finish.payload.token)
+
+			setSession({
+				token: finish.payload.token,
+				userId: finish.payload.userId,
+				username: finish.payload.username,
+				authMethod: "passkey"
+			})
+		} catch (e) {
+			setLoginError(e instanceof Error ? e.message : "Unknown passkey login error")
+			setCurrentlyPasskeyLogining(false)
+		}
+	}, [passkeysSupported])
 
     return (
         <div>
@@ -85,6 +141,14 @@ export const LoginForm = () => {
                     <button onClick={login}>
                         Login
 					</button>}
+				<button onClick={loginWithPasskey} disabled={currentlyPasskeyLogining || !passkeysSupported}>
+					{currentlyPasskeyLogining ? "Waiting for passkey..." : "Sign in with passkey"}
+				</button>
+				{passkeysSupported ? null : (
+					<div>
+						This browser does not support passkeys.
+					</div>
+				)}
             </div>
         </div>
     )

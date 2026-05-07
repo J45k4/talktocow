@@ -1,7 +1,9 @@
 import React from "react"
 import { Link, useLocation } from "react-router-dom"
-import { clearSession } from "../logic/session-manager"
+import { clearSession, getSession, SessionChangeNotify, subscribeToSessionEvents, unsubscribeToSessionEvents } from "../logic/session-manager"
 import { IsLoggedIn } from "./isloggedin"
+import { useAddPasskey } from "../use-add-passkey"
+import { useEffect, useState } from "react"
 
 const NavigationBarItem = (props: {
     href: string
@@ -24,6 +26,25 @@ const NavigationBarItem = (props: {
 }
 
 export const NavigationBar = () => {
+	const [authMethod, setAuthMethod] = useState(getSession().authMethod)
+	const {
+		addPasskey,
+		loading,
+		error
+	} = useAddPasskey()
+
+	useEffect(() => {
+		const handle = (session: SessionChangeNotify) => {
+			setAuthMethod(session.authMethod)
+		}
+
+		subscribeToSessionEvents(handle)
+
+		return () => {
+			unsubscribeToSessionEvents(handle)
+		}
+	}, [])
+
     return (
         <div style={{
 			height: "55px",
@@ -42,14 +63,31 @@ export const NavigationBar = () => {
 					<NavigationBarItem href="/courses" text="Courses" />
                 </div>
                 <div style={{
-                    //display: "flex",
-                    cursor: "pointer",
+                    display: "flex",
+					gap: "14px",
                     alignSelf: "center",
-                    paddingRight: "20px"
-                }} onClick={e => {
-                    clearSession()
+                    paddingRight: "20px",
+					alignItems: "center"
                 }}>
-                    Logout
+					{authMethod !== "passkey" ? (
+						<button onClick={addPasskey} disabled={loading}>
+							{loading ? "Waiting for passkey..." : "Add passkey"}
+						</button>
+					) : null}
+					{error ? (
+						<div style={{
+							color: "red"
+						}}>
+							{error}
+						</div>
+					) : null}
+					<div style={{
+						cursor: "pointer"
+					}} onClick={() => {
+						clearSession()
+					}}>
+						Logout
+					</div>
                 </div>
             </IsLoggedIn>
             

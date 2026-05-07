@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/j45k4/talktocow/chatroom"
 	"github.com/j45k4/talktocow/models"
-	"github.com/aarondl/null/v8"
-	"github.com/aarondl/sqlboiler/v4/boil"
 )
 
 type ChatroomEventType uint32
@@ -24,8 +24,9 @@ const (
 )
 
 type UserSession struct {
-	UserID   int32  `json:"userId"`
-	UserName string `json:"userName"`
+	UserID     int32  `json:"userId"`
+	UserName   string `json:"userName"`
+	AuthMethod string `json:"authMethod,omitempty"`
 }
 
 type WebsocketMessageToServer struct {

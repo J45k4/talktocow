@@ -5,10 +5,15 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/auth"
 	"github.com/j45k4/talktocow/models"
-	"github.com/aarondl/sqlboiler/v4/queries/qm"
+)
+
+const (
+	authMethodPassword = "password"
+	authMethodPasskey  = "passkey"
 )
 
 type LoginRequest struct {
@@ -20,6 +25,24 @@ type LoginResponse struct {
 	Token    string `json:"token"`
 	UserID   string `json:"userId"`
 	Username string `json:"username"`
+}
+
+func CreateLoginResponseForUser(user *models.User, authMethod string) (LoginResponse, error) {
+	token, err := auth.GenerateTokenFromObject(UserSession{
+		UserID:     int32(user.ID),
+		UserName:   user.Name.String,
+		AuthMethod: authMethod,
+	})
+
+	if err != nil {
+		return LoginResponse{}, err
+	}
+
+	return LoginResponse{
+		Token:    string(token),
+		UserID:   fmt.Sprint(user.ID),
+		Username: user.Name.String,
+	}, nil
 }
 
 func HandleLogin(ctx *gin.Context) {
@@ -59,10 +82,7 @@ func HandleLogin(ctx *gin.Context) {
 		return
 	}
 
-	token, err := auth.GenerateTokenFromObject(UserSession{
-		UserID:   int32(user.ID),
-		UserName: user.Name.String,
-	})
+	resp, err := CreateLoginResponseForUser(user, authMethodPassword)
 
 	if err != nil {
 		fmt.Println("Generating token failed")
@@ -71,12 +91,6 @@ func HandleLogin(ctx *gin.Context) {
 		ctx.Abort()
 
 		return
-	}
-
-	resp := LoginResponse{
-		Token:    string(token),
-		UserID:   fmt.Sprint(user.ID),
-		Username: user.Name.String,
 	}
 
 	ctx.JSON(200, resp)

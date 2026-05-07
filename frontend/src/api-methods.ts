@@ -41,9 +41,32 @@ const customFetch = async <T>(
 const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> => {
     const statusCode = r.status
 
-    const jsonRes = await r.json()
+	const textRes = await r.text()
+	let jsonRes: any = null
+
+	if (textRes) {
+		try {
+			jsonRes = JSON.parse(textRes)
+		} catch (e) {
+			return {
+				error: {
+					code: statusCode,
+					message: r.ok ? `Invalid JSON response: ${textRes}` : `Request failed with status ${statusCode}: ${textRes || r.statusText}`
+				}
+			}
+		}
+	}
 
 	if (!jsonRes) {
+		if (!r.ok) {
+			return {
+				error: {
+					code: statusCode,
+					message: `Request failed with status ${statusCode}${r.statusText ? `: ${r.statusText}` : ""}`
+				}
+			}
+		}
+
 		return {
 			payload: null
 		}
@@ -54,6 +77,15 @@ const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> => {
             error: jsonRes.error,
         }
     }
+
+	if (!r.ok) {
+		return {
+			error: {
+				code: statusCode,
+				message: `Request failed with status ${statusCode}${r.statusText ? `: ${r.statusText}` : ""}`
+			}
+		}
+	}
 
     return {
         payload: jsonRes

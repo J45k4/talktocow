@@ -84,10 +84,15 @@ func main() {
 	})
 
 	r.POST("/api/login", routes.HandleLogin)
+	r.POST("/api/passkeys/login/begin", routes.HandlePasskeyLoginBegin)
+	r.POST("/api/passkeys/login/finish", routes.HandlePasskeyLoginFinish)
 	r.GET("/api/ws", routes.HandleWs)
 
 	r.Use(routes.SessionMiddleware)
 
+	r.GET("/api/passkeys", routes.GetPasskeys)
+	r.POST("/api/passkeys/registration/begin", routes.HandlePasskeyRegistrationBegin)
+	r.POST("/api/passkeys/registration/finish", routes.HandlePasskeyRegistrationFinish)
 	r.GET("/api/users", routes.GetUsers)
 	r.GET("/api/chatrooms", routes.GetChatrooms)
 	r.POST("/api/chatroom", routes.CreateChatroom)
