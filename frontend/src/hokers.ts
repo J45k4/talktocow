@@ -1,5 +1,5 @@
-import { useRouter } from "next/router"
 import { useEffect, useState } from "react"
+import { useParams } from "react-router-dom"
 import { ApiError, getJson } from "./api-methods"
 import { User, Chatroom } from "./types"
 
@@ -30,11 +30,8 @@ export const useGetData = <T>(path: string, def: T): [T, ApiError] => {
 }
 
 export const useParam = (param: string): string => {
-	const router = useRouter()
-
-	console.log("query", router.query)
-
-	const p: any = router.query[param] || ""
+	const params = useParams()
+	const p: any = params[param] || ""
 
 	return p
 }

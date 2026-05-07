@@ -6,7 +6,8 @@ import (
 	"log"
 
 	"github.com/j45k4/talktocow/config"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
 )
 
 func main() {
@@ -14,16 +15,13 @@ func main() {
 		log.Fatalln("Missing API KEY")
 	}
 
-	client := openai.NewClient(config.OpenAIApiKey)
-	resp, err := client.CreateChatCompletion(
+	client := openai.NewClient(option.WithAPIKey(config.OpenAIApiKey))
+	resp, err := client.Chat.Completions.New(
 		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: openai.GPT3Dot5Turbo,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: "Hello!",
-				},
+		openai.ChatCompletionNewParams{
+			Model: openai.ChatModelGPT5_4Mini,
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.UserMessage("Hello!"),
 			},
 		},
 	)

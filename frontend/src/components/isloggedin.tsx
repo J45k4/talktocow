@@ -21,7 +21,7 @@ export const useIsLoggedIn = () => {
         return () => {
             unsubscribeToSessionEvents(handle)
         }
-    }, [, setIsloggedin])
+    }, [setIsloggedin])
 
     return isLoggedin
 }

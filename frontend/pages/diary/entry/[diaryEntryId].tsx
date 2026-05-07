@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react"
 import { getJson, putJson } from "../../../src/api-methods"
 
-import { useRouter } from "next/dist/client/router"
+import { useNavigate, useParams } from "react-router-dom"
 
 export default function DiaryEntryPage() {
-    const router = useRouter()
-
-    const diaryEntryId = router.query.diaryEntryId
+    const navigate = useNavigate()
+    const { diaryEntryId } = useParams()
 
     const [entry, setEntry] = useState<any>()
 
@@ -27,7 +26,7 @@ export default function DiaryEntryPage() {
 
             }}>
                 <button onClick={() => {
-                    router.back()
+                    navigate(-1)
                 }}>
                     back
                 </button>

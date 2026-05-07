@@ -1,5 +1,5 @@
-import Link from "next/link"
 import React, { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { BiEdit } from "react-icons/bi"
 import { Chatroom } from "../types"
 import { api } from "../api"
@@ -44,7 +44,7 @@ const ChatRow = (props: {
 	onEditCompleted: () => void
 }) => {
 	return (
-		<Link key={props.chatroom.id} href={`/chats/${props.chatroom.id}`} style={{
+		<Link key={props.chatroom.id} to={`/chats/${props.chatroom.id}`} style={{
 			textDecoration: "none",
 			marginRight: "10px",
 		}}>

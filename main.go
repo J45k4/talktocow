@@ -16,8 +16,9 @@ import (
 	"github.com/j45k4/talktocow/eventbus"
 	"github.com/j45k4/talktocow/routes"
 	_ "github.com/lib/pq"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/sashabaranov/go-openai"
 )
 
 func main() {
@@ -54,7 +55,7 @@ func main() {
 
 	cowgpt := bot.CowGPT{
 		Eventbus:   eventbus,
-		Client:     openai.NewClient(config.OpenAIApiKey),
+		Client:     openai.NewClient(option.WithAPIKey(config.OpenAIApiKey)),
 		CowGPTUser: bot.GetCowGPTUser(db),
 		Ctx:        context.Background(),
 		DB:         db,

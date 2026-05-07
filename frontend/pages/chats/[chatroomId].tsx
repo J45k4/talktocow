@@ -1,9 +1,9 @@
-import { useRouter } from "next/router";
+import { useParams } from "react-router-dom";
 import { ChatroomView } from "../../src/chatroom/chatroom-view";
 import { PageContainer } from "../../src/components/page-container";
 
 export default function CowGPTChatroomPage() {
-	const chatroomId = useRouter().query.chatroomId as string
+	const { chatroomId } = useParams()
 
 	return (
 		<PageContainer>

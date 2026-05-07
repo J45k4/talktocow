@@ -1,6 +1,6 @@
 import { FaEdit } from "react-icons/fa";
-import Link from "next/link"
 import React, { useCallback, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { getJson, postJson } from "../../api-methods";
 import styles from "./diary-entry.module.css";
 
@@ -54,7 +54,7 @@ export const DiaryEntry = (props: {
             </div>
             <div className={styles.title}>
                 {props.title}
-                <Link href={"/diary/entry/" + props.id}>
+                <Link to={"/diary/entry/" + props.id}>
                     <FaEdit />
                 </Link>
             </div>

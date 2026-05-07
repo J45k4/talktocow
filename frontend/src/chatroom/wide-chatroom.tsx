@@ -3,7 +3,7 @@ import { Chatroom } from "./chatroom"
 import { Chats } from "./chats"
 
 import styles from "./wide-chatroom.module.css"
-import Link from "next/link"
+import { Link } from "react-router-dom"
 import { Button } from "../components"
 
 const LeftSide = (props: {
@@ -12,7 +12,7 @@ const LeftSide = (props: {
 	return (
 		<div className={styles.leftSide}>
 			<div>
-				<Link href="/chats/new">
+				<Link to="/chats/new">
 					<Button
 						title="New Chatroom"
 					/>

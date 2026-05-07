@@ -1,7 +1,7 @@
 import React from "react"
 import { Chatroom } from "./chatroom"
 import { Chats } from "./chats"
-import Link from "next/link"
+import { Link } from "react-router-dom"
 import { Button } from "../components"
 
 export const NarrowChatroom = (props: {
@@ -13,7 +13,7 @@ export const NarrowChatroom = (props: {
 
 	return (
 		<div>
-			<Link href="/chats/new">
+			<Link to="/chats/new">
 				<Button 
 					title="New chat"
 				/>

@@ -5,8 +5,7 @@ import styles from "./new-chat.module.css"
 import { useReactVar } from "../use-reactive-var"
 import { useUsers } from "../hokers"
 import { creatingChatroomState, selectedUsersState } from "../state"
-import Link from "next/link"
-import { useRouter } from "next/router"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../components"
 
 const SelectUsers = () => {
@@ -48,7 +47,7 @@ const SelectUsers = () => {
 }
 
 export const NewChatForm = () => {
-	const router = useRouter()
+	const navigate = useNavigate()
 
 	const [newChatroomName, setNewChatroomName] = React.useState("")
 
@@ -66,7 +65,7 @@ export const NewChatForm = () => {
 			</div>
 			<SelectUsers />
 			<div>
-				<Link href="/chats">
+				<Link to="/chats">
 					<Button
 						title="Cancel"
 					/>
@@ -76,7 +75,7 @@ export const NewChatForm = () => {
 						userIds: selectedUsersState.get(),
 						name: newChatroomName,
 					}).then(res => {
-						router.push(`/chats/${res.payload.id}`)
+						navigate(`/chats/${res.payload.id}`)
 					})
 				}} title="Create chatroom" />
 			</div>

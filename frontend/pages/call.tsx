@@ -9,8 +9,10 @@ export default function CallPage() {
 			const offerRes = await peer.createOffer()
 
 			ws.send({
-				type: "createOffer",
-				sdp: offerRes.sdp
+				type: "createWebRTCOffer",
+				sdp: offerRes.sdp || "",
+				userId: "",
+				deviceId: ""
 			})
 		}
 

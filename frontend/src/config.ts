@@ -2,11 +2,11 @@ import { createLogger, LogLevel, setLogLevel } from "./logger"
 
 const logger = createLogger("config")
 
-export const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL
+export const serverUrl = import.meta.env.VITE_SERVER_URL
 
 console.log("Serverurl ", serverUrl)
 
-export const configLogLevel = process.env.NEXT_PUBLIC_LOG_LEVEL
+export const configLogLevel = import.meta.env.VITE_LOG_LEVEL
 
 if (configLogLevel === "debug") {
 	setLogLevel(LogLevel.Debug)

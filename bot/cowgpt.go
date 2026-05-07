@@ -7,18 +7,18 @@ import (
 	"log"
 	"time"
 
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/google/uuid"
 	"github.com/j45k4/talktocow/eventbus"
 	"github.com/j45k4/talktocow/models"
-	"github.com/sashabaranov/go-openai"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"github.com/openai/openai-go/v3"
 )
 
 type CowGPT struct {
 	Eventbus   *eventbus.Eventbus
-	Client     *openai.Client
+	Client     openai.Client
 	CowGPTUser *models.User
 	Ctx        context.Context
 	DB         *sql.DB
@@ -58,7 +58,7 @@ func (cowGPT *CowGPT) handleChatroomMessage(msg *eventbus.ChatroomMessage) {
 		return
 	}
 
-	chatcompletionMessages := []openai.ChatCompletionMessage{}
+	chatcompletionMessages := []openai.ChatCompletionMessageParamUnion{}
 
 	contextLenght := len(systemMessage)
 
@@ -69,30 +69,25 @@ func (cowGPT *CowGPT) handleChatroomMessage(msg *eventbus.ChatroomMessage) {
 			break
 		}
 
-		role := openai.ChatMessageRoleUser
+		chatcompletionMessage := openai.UserMessage(message.MessageText.String)
 
 		if message.UserID == cowGPT.CowGPTUser.ID {
-			role = openai.ChatMessageRoleAssistant
+			chatcompletionMessage = openai.AssistantMessage(message.MessageText.String)
 		}
 
-		chatcompletionMessages = append([]openai.ChatCompletionMessage{{
-			Role:    role,
-			Content: message.MessageText.String,
-		}}, chatcompletionMessages...)
+		chatcompletionMessages = append([]openai.ChatCompletionMessageParamUnion{chatcompletionMessage}, chatcompletionMessages...)
 	}
 
-	chatcompletionMessages = append([]openai.ChatCompletionMessage{
-		{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: "You are helpfull bot developed by COW named CowGPT. You can ask me anything and I will try to answer you.",
-		}},
+	chatcompletionMessages = append([]openai.ChatCompletionMessageParamUnion{
+		openai.SystemMessage(systemMessage),
+	},
 		chatcompletionMessages...,
 	)
 
-	res, err := cowGPT.Client.CreateChatCompletion(
+	res, err := cowGPT.Client.Chat.Completions.New(
 		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:    openai.GPT3Dot5Turbo,
+		openai.ChatCompletionNewParams{
+			Model:    openai.ChatModelGPT5_4Mini,
 			Messages: chatcompletionMessages,
 		},
 	)

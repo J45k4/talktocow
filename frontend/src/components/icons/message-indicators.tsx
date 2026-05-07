@@ -1,7 +1,7 @@
 import { memo } from "react"
 
 
-export const MessageIndicator = memo(function MessageIndicator(props:  {
+export const MessageIndicator = memo(function MessageIndicator(props: {
     status: "serverReceived" | "participantsReceived" | "participantsRead"
 }) {
     if (props.status === "serverReceived") {

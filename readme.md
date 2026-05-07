@@ -10,8 +10,8 @@ cp example.env .env
 ## Install dependecies
 
 ```
-go install github.com/volatiletech/sqlboiler/v4/drivers/sqlboiler-psql@latest
-go get github.com/volatiletech/sqlboiler/v4
+go install github.com/aarondl/sqlboiler/v4/drivers/sqlboiler-psql@latest
+go get github.com/aarondl/sqlboiler/v4
 ```
 
 ## Run migrations

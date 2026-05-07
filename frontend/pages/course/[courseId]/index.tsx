@@ -1,5 +1,5 @@
-import Link from "next/link";
 import React from "react";
+import { Link } from "react-router-dom";
 import { CourseStudentsList } from "../../../src/components/course/course_students_list";
 import { HomeworkList } from "../../../src/components/homework/homework_list";
 import { PageContainer } from "../../../src/components/page-container";
@@ -12,12 +12,12 @@ export default function CoursePage() {
 
 	return (
 		<PageContainer>
-			<Link href={`/courses`}>
+			<Link to={`/courses`}>
 				Go back
 			</Link>
 			<h1>Course</h1>
 			{meta.role === 2 && (
-			<Link href={`/course/${courseId}/homework/new`}>
+			<Link to={`/course/${courseId}/homework/new`}>
 				<button>
 					Create homework
 				</button>

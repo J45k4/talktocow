@@ -1,15 +1,16 @@
-FROM node:14.16 as builder
+FROM node:24-alpine AS builder
 
 WORKDIR /usr/src
 
-ADD ./package.json ./package.json
-ADD ./package-lock.json ./package-lock.json
+COPY ./package.json ./package.json
+COPY ./package-lock.json ./package-lock.json
 
 RUN npm ci
 
-ADD ./tsconfig.json ./tsconfig.json
-ADD ./next.config.js ./next.config.js
-ADD ./worker.js ./worker.js
+COPY ./index.html ./index.html
+COPY ./tsconfig.json ./tsconfig.json
+COPY ./vite.config.ts ./vite.config.ts
+COPY ./eslint.config.mjs ./eslint.config.mjs
 COPY ./pages ./pages
 COPY ./src ./src
 COPY ./public ./public

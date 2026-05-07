@@ -4,6 +4,7 @@ jwt_public_key.pem
 scripts/workdir
 access.log
 frontend/public/sw.js
+frontend/dist/
 __debug_bin
 __debug_bin.exe
 talktocow

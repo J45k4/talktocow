@@ -1,12 +1,10 @@
-import { useRouter } from "next/router"
 import React from "react"
+import { useParams } from "react-router-dom"
 import { Chatroom } from "../../src/components/chatroom"
 import { PageContainer } from "../../src/components/page-container"
 
 export default function ChatroomPage() {
-    const router = useRouter()
-
-    const chatroomId = router.query.chatroomId as string
+    const { chatroomId } = useParams()
     
     return (
         <PageContainer>

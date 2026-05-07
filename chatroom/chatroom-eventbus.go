@@ -3,8 +3,9 @@ package chatroom
 import (
 	"fmt"
 	"log"
+	"reflect"
+	"sync"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,33 +25,63 @@ type ChatroomMessage struct {
 type ChatroomMessageCallback = func(ChatroomMessage)
 
 type ChatroomEventbus struct {
-	eventbus EventBus.Bus
+	lock        sync.RWMutex
+	subscribers map[string][]ChatroomMessageCallback
 }
 
 func NewChatroomEventbus() *ChatroomEventbus {
-	bus := EventBus.New()
-
 	return &ChatroomEventbus{
-		eventbus: bus,
+		subscribers: make(map[string][]ChatroomMessageCallback),
 	}
 }
 
 func (this *ChatroomEventbus) SendChatroomMessage(chatroomID int, chatroomMessage ChatroomMessage) {
 	log.Println("Send chatroomMessage", chatroomID, chatroomMessage)
 
-	this.eventbus.Publish(fmt.Sprintf("chatroomMessage:%d", chatroomID), chatroomMessage)
+	topic := chatroomMessageTopic(chatroomID)
+
+	this.lock.RLock()
+	subscribers := append([]ChatroomMessageCallback(nil), this.subscribers[topic]...)
+	this.lock.RUnlock()
+
+	for _, cb := range subscribers {
+		cb(chatroomMessage)
+	}
 }
 
 func (this *ChatroomEventbus) SubscribeToChatroomMessages(chatroomID int, cb ChatroomMessageCallback) {
-	this.eventbus.Subscribe(fmt.Sprintf("chatroomMessage:%d", chatroomID), cb)
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	topic := chatroomMessageTopic(chatroomID)
+	this.subscribers[topic] = append(this.subscribers[topic], cb)
 }
 
 func (this *ChatroomEventbus) UnsubscribeToChatroomMessages(chatroomID int, cb ChatroomMessageCallback) {
-	err := this.eventbus.Unsubscribe(fmt.Sprintf("chatroomMessage:%d", chatroomID), cb)
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
-	if err != nil {
-		log.Println("Unsibscribe error", err)
+	topic := chatroomMessageTopic(chatroomID)
+	subscribers := this.subscribers[topic]
+	cbPointer := reflect.ValueOf(cb).Pointer()
+
+	for i, subscriber := range subscribers {
+		if reflect.ValueOf(subscriber).Pointer() != cbPointer {
+			continue
+		}
+
+		this.subscribers[topic] = append(subscribers[:i], subscribers[i+1:]...)
+		if len(this.subscribers[topic]) == 0 {
+			delete(this.subscribers, topic)
+		}
+		return
 	}
+
+	log.Println("Unsubscribe error: chatroom message subscriber not found")
+}
+
+func chatroomMessageTopic(chatroomID int) string {
+	return fmt.Sprintf("chatroomMessage:%d", chatroomID)
 }
 
 func GetChatroomEventbus(ctx *gin.Context) *ChatroomEventbus {

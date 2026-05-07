@@ -1,5 +1,5 @@
-import Link from "next/link"
 import React, { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { getJson } from "../../api-methods"
 
 export const ChatroomList = () => {
@@ -22,7 +22,7 @@ export const ChatroomList = () => {
     return (
         <div>
             {chatrooms.map(p => (
-                <Link href={`/chatroom/${p.id}`} key={p.id}>
+                <Link to={`/chatroom/${p.id}`} key={p.id}>
                     <div key={p.id} style={{ cursor: "pointer" }}>
                         {"chatroom " + p.id}
                     </div>

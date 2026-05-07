@@ -1,5 +1,5 @@
-import Link from "next/link";
 import React from "react";
+import { Link } from "react-router-dom";
 import { PageContainer } from "../../../../../src/components/page-container";
 import { useAsync, useGetData, useParam } from "../../../../../src/hokers";
 import { getJson } from "../../../../../src/api-methods";
@@ -21,11 +21,11 @@ export default function HomeworkPage() {
 
 	return (
 		<PageContainer>
-			<Link href={`/course/${courseId}`}>
+			<Link to={`/course/${courseId}`}>
 				back
 			</Link>
 			<h1>{data.title}</h1>
-			<Link href={`/course/${courseId}/homework/${homeworkId}/edit`}>
+			<Link to={`/course/${courseId}/homework/${homeworkId}/edit`}>
 				<button style={{
 					maxWidth: "70px",
 				}}>
@@ -37,7 +37,7 @@ export default function HomeworkPage() {
 			<pre>
 				{data.description}
 			</pre>
-			<Link href={`/course/${courseId}/homework/${homeworkId}/submit`}>
+			<Link to={`/course/${courseId}/homework/${homeworkId}/submit`}>
 				Make submission
 			</Link>
 		</PageContainer>

@@ -1,6 +1,5 @@
-import Link from "next/link"
-import { useRouter } from "next/router"
 import React from "react"
+import { Link, useLocation } from "react-router-dom"
 import { clearSession } from "../logic/session-manager"
 import { IsLoggedIn } from "./isloggedin"
 
@@ -8,16 +7,16 @@ const NavigationBarItem = (props: {
     href: string
     text: string
 }) => {
-    const router = useRouter()
+    const location = useLocation()
 
-    const pathname = router.pathname || ""
+    const pathname = location.pathname || ""
 
     return (
         <div style={{
             padding: "20px",
             border: pathname.includes(props.href) ? "solid 1px black" : ""
         }}>
-            <Link href={props.href}>
+            <Link to={props.href}>
                 {props.text}
             </Link>
         </div>

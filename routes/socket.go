@@ -13,8 +13,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/j45k4/talktocow/chatroom"
 	"github.com/j45k4/talktocow/models"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/boil"
 )
 
 type ChatroomEventType uint32
@@ -55,7 +55,7 @@ func processMessageRead(
 		}
 
 		if msg.MessageToChatroom != nil {
-			log.Println("Received new chatroom message %v", msg.MessageToChatroom)
+			log.Printf("Received new chatroom message %v", msg.MessageToChatroom)
 
 			chatroomID, _ := strconv.Atoi(msg.MessageToChatroom.ChatroomID)
 

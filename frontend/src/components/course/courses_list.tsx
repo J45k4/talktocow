@@ -1,5 +1,5 @@
-import Link from "next/link"
 import React from "react"
+import { Link } from "react-router-dom"
 import { useGetData, useParam } from "../../hokers"
 
 export const CoursesList = () => {
@@ -11,7 +11,7 @@ export const CoursesList = () => {
 		<div>
 			{courses.map(p => (
 				<div key={p.id}>
-					<Link href={`/course/${p.id}`}>
+					<Link to={`/course/${p.id}`}>
 						{p.name}
 					</Link>
 				</div>

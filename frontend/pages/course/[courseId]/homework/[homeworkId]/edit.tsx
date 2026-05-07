@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { useRouter } from "next/router";
 import React, { useState } from "react"
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../../../src/components/button";
 import { HomeworkDescriptionEdit } from "../../../../../src/components/homework/homework_description_edit";
 import { PageContainer } from "../../../../../src/components/page-container"
@@ -15,7 +14,7 @@ export default function EditHomewWorkPage() {
 	const courseId = useParam("courseId");
 	const homeworkId = useParam("homeworkId");
 
-	const router = useRouter()
+	const navigate = useNavigate()
 
 	useAsync(async () => {
 		if (!courseId || !homeworkId) {
@@ -30,7 +29,7 @@ export default function EditHomewWorkPage() {
 
 	return (
 		<PageContainer>
-			<Link href={`/course/${courseId}/homework/${homeworkId}`}>
+			<Link to={`/course/${courseId}/homework/${homeworkId}`}>
 				back
 			</Link>
 			<h1>{title}</h1>
@@ -43,7 +42,7 @@ export default function EditHomewWorkPage() {
 					description: description	
 				})
 
-				router.push(`/course/${courseId}/homework/${homeworkId}`)
+				navigate(`/course/${courseId}/homework/${homeworkId}`)
 			}}>
 				Save homework
 			</Button>

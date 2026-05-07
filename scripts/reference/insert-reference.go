@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/j45k4/talktocow/config"
 	"github.com/j45k4/talktocow/models"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/boil"
 )
 
 func main() {

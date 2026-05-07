@@ -1,6 +1,7 @@
 import { getWebsocketServerUrl } from "./config"
 import { eventbus } from "./eventbus";
 import { createLogger } from "./logger";
+import { getSession } from "./logic/session-manager";
 import { MessageFromServer, MessageToServer } from "./types"
 
 const logger = createLogger("ws")
@@ -41,11 +42,12 @@ const createConn = (token: string) => {
 	wsSocket.onopen = () => {
 		logger.info("Socket onopen")
 
-		send({
-			type: "authenticate",
-			token: token,
-			transmitedAt: new Date().toISOString()
-		})
+			send({
+				type: "authenticate",
+				token: token,
+				deivceId: getSession().deviceId,
+				transmitedAt: new Date().toISOString()
+			})
 
 		let buffItem = sendBuffer.shift()
 

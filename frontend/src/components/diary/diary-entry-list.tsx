@@ -7,9 +7,7 @@ import styles from "./diary-entry-list.module.css"
 
 import InfiniteScroll from "react-infinite-scroll-component"
 
-export const DiaryEntryList = (props: {
-
-}) => {
+export const DiaryEntryList = () => {
     const [offset, setOffset] = useState(0)
     const [count, setCount] = useState(0)
 

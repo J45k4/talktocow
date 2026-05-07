@@ -17,24 +17,26 @@ const customFetch = async <T>(
 	path: string, 
 	method: "POST" | "PUT" | "GET", 
 	payload?: any
-) => new Promise(async (resolve, reject) => {
+): Promise<ApiResponse<T>> => {
 	const headers = getHeaders()
 
-	await fetch(resolveServerUrl(path), {
-		method: method,
-		headers: headers,
-		body: JSON.stringify(payload)
-	}).then(res => {
-		resolve(handleFetchResult<T>(res))
-	}).catch(e => {
-		resolve({
+	try {
+		const res = await fetch(resolveServerUrl(path), {
+			method: method,
+			headers: headers,
+			body: JSON.stringify(payload)
+		})
+
+		return handleFetchResult<T>(res)
+	} catch (e) {
+		return {
 			error: {
 				code: 500,
-				message: e.message
+				message: e instanceof Error ? e.message : String(e)
 			}
-		})
-	})
-})
+		}
+	}
+}
 
 const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> => {
     const statusCode = r.status

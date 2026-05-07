@@ -5,7 +5,7 @@ const logger = createLogger("")
 
 export const VideoCallSource = () => {
 	const [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
-	const localStreamRef = useRef<MediaStream>();
+	const localStreamRef = useRef<MediaStream | null>(null);
 	const videoRef = useRef<HTMLVideoElement>(null);
 
 	useEffect(() => {
@@ -42,7 +42,7 @@ export const VideoCallSource = () => {
 		setupPeerConnection();
 
 		return () => {
-			peerConnection.close()
+			peerConnection?.close()
 		}
 	  }, []);
 

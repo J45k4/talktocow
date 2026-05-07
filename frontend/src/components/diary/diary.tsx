@@ -1,12 +1,12 @@
 import { FaPlus } from "react-icons/fa"
-import { useRouter } from 'next/router'
 import React from "react"
+import { useNavigate } from "react-router-dom"
 import { postJson } from "../../api-methods"
 import { DiaryEntryList } from "./diary-entry-list"
 import styles from "./diary.module.css"
 
 export const Diary = () => {
-    const router = useRouter()
+    const navigate = useNavigate()
 
     return (
         <div className={styles.container}>
@@ -20,7 +20,7 @@ export const Diary = () => {
                             body: ""
                         }).then(r => {
                             if (r.payload) {
-                                router.push("/diary/entry/" + r.payload.id)
+                                navigate("/diary/entry/" + r.payload.id)
                             }
                         })
                     }} />

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import React from "react"
+import { Link } from "react-router-dom";
 import { useGetData } from "../../hokers";
 
 export const HomeworkList = (props: {
@@ -11,7 +11,7 @@ export const HomeworkList = (props: {
 		<div>
 			{homeworks.map(p => (
 				<div key={p.id}>
-					<Link href={`/course/${props.courseId}/homework/${p.id}`}>
+					<Link to={`/course/${props.courseId}/homework/${p.id}`}>
 						{p.title}
 					</Link>
 				</div>

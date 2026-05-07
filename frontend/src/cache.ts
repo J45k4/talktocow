@@ -67,7 +67,7 @@ class Subscriptions {
 
 		s.add(args.next)
 
-		return () => {
+		const unsubscribe = () => {
 			if (args.cleanup) {
 				args.cleanup()
 			}
@@ -78,6 +78,8 @@ class Subscriptions {
 				this.map.delete(args.entityId)
 			}
 		}
+
+		return Object.assign(unsubscribe, { unsubscribe })
 	}
 
 	public pub(entityId: string, value: any) {
