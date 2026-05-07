@@ -4,6 +4,7 @@ import { clearSession, getSession, SessionChangeNotify, subscribeToSessionEvents
 import { IsLoggedIn } from "./isloggedin"
 import { useAddPasskey } from "../use-add-passkey"
 import { useEffect, useState } from "react"
+import styles from "./navigation-bar.module.css"
 
 const NavigationBarItem = (props: {
     href: string
@@ -12,85 +13,62 @@ const NavigationBarItem = (props: {
     const location = useLocation()
 
     const pathname = location.pathname || ""
+    const isActive = pathname === props.href || pathname.startsWith(`${props.href}/`)
 
     return (
-        <div style={{
-            padding: "20px",
-            border: pathname.includes(props.href) ? "solid 1px black" : ""
-        }}>
-            <Link to={props.href}>
-                {props.text}
-            </Link>
-        </div>
+        <Link className={`${styles.navItem} ${isActive ? styles.activeNavItem : ""}`} to={props.href}>
+            {props.text}
+        </Link>
     )
 }
 
 export const NavigationBar = () => {
-	const [authMethod, setAuthMethod] = useState(getSession().authMethod)
-	const {
-		addPasskey,
-		loading,
-		error
-	} = useAddPasskey()
+    const [authMethod, setAuthMethod] = useState(getSession().authMethod)
+    const {
+        addPasskey,
+        loading,
+        error
+    } = useAddPasskey()
 
-	useEffect(() => {
-		const handle = (session: SessionChangeNotify) => {
-			setAuthMethod(session.authMethod)
-		}
+    useEffect(() => {
+        const handle = (session: SessionChangeNotify) => {
+            setAuthMethod(session.authMethod)
+        }
 
-		subscribeToSessionEvents(handle)
+        subscribeToSessionEvents(handle)
 
-		return () => {
-			unsubscribeToSessionEvents(handle)
-		}
-	}, [])
+        return () => {
+            unsubscribeToSessionEvents(handle)
+        }
+    }, [])
 
     return (
-        <div style={{
-			height: "55px",
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between"
-        }}>
+        <nav className={styles.navigationBar}>
             <IsLoggedIn>
-                <div style={{
-                    display: "flex",
-                    flexDirection: "row"
-                }}>
+                <div className={styles.navItems}>
                     {/* <NavigationBarItem href="/chatrooms" text="Chatrooms" /> */}
-					<NavigationBarItem href="/chats" text="Chats" />
+                    <NavigationBarItem href="/chats" text="Chats" />
                     <NavigationBarItem href="/diary" text="Diary" />
-					<NavigationBarItem href="/courses" text="Courses" />
+                    <NavigationBarItem href="/courses" text="Courses" />
                 </div>
-                <div style={{
-                    display: "flex",
-					gap: "14px",
-                    alignSelf: "center",
-                    paddingRight: "20px",
-					alignItems: "center"
-                }}>
-					{authMethod !== "passkey" ? (
-						<button onClick={addPasskey} disabled={loading}>
-							{loading ? "Waiting for passkey..." : "Add passkey"}
-						</button>
-					) : null}
-					{error ? (
-						<div style={{
-							color: "red"
-						}}>
-							{error}
-						</div>
-					) : null}
-					<div style={{
-						cursor: "pointer"
-					}} onClick={() => {
-						clearSession()
-					}}>
-						Logout
-					</div>
+                <div className={styles.actions}>
+                    {authMethod !== "passkey" ? (
+                        <button className={styles.passkeyButton} onClick={addPasskey} disabled={loading}>
+                            {loading ? "Waiting..." : "Add passkey"}
+                        </button>
+                    ) : null}
+                    {error ? (
+                        <div className={styles.error}>
+                            {error}
+                        </div>
+                    ) : null}
+                    <button className={styles.logoutButton} onClick={() => {
+                        clearSession()
+                    }}>
+                        Logout
+                    </button>
                 </div>
             </IsLoggedIn>
-            
-        </div>
+        </nav>
     )
 }
