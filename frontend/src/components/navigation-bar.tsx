@@ -61,6 +61,7 @@ export const NavigationBar = () => {
 					<NavigationBarItem href="/chats" text="Chats" />
                     <NavigationBarItem href="/diary" text="Diary" />
 					<NavigationBarItem href="/courses" text="Courses" />
+					<NavigationBarItem href="/profile" text="Profile" />
                 </div>
                 <div style={{
                     display: "flex",

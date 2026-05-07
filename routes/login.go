@@ -14,6 +14,7 @@ import (
 const (
 	authMethodPassword = "password"
 	authMethodPasskey  = "passkey"
+	authMethodAPIKey   = "apiKey"
 )
 
 type LoginRequest struct {

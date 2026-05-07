@@ -7,7 +7,7 @@ export interface SessionChangeNotify {
     deviceId: string
     username: string
     userId: string
-    authMethod?: "password" | "passkey"
+    authMethod?: "password" | "passkey" | "apiKey"
 }
 
 let token
@@ -53,7 +53,7 @@ export const setSession = (args: {
     token: string
     username: string
     userId: string
-    authMethod?: "password" | "passkey"
+    authMethod?: "password" | "passkey" | "apiKey"
 }) => {
     token = args.token
     username = args.username
