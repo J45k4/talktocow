@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/j45k4/talktocow/models"
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
+	"github.com/gin-gonic/gin"
+	"github.com/j45k4/talktocow/models"
 )
 
 type DiaryEntry struct {
@@ -21,8 +21,9 @@ type DiaryEntry struct {
 }
 
 type CreateDiaryEntryRequest struct {
-	Title string `json:"title"`
-	Body  string `json:"body"`
+	Title     string `json:"title"`
+	Body      string `json:"body"`
+	CreatedAt string `json:"createdAt"`
 }
 
 func CreateDiaryEntry(ctx *gin.Context) {
@@ -38,6 +39,21 @@ func CreateDiaryEntry(ctx *gin.Context) {
 		Title:           null.StringFrom(createRequest.Title),
 		Body:            null.StringFrom(createRequest.Body),
 		WhoPostedUserID: int(userSession.UserID),
+	}
+
+	if createRequest.CreatedAt != "" {
+		createdAt, err := time.Parse(time.RFC3339, createRequest.CreatedAt)
+
+		if err != nil {
+			createdAt, err = time.Parse("2006-01-02", createRequest.CreatedAt)
+		}
+
+		if err != nil {
+			ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid diary entry date"))
+			return
+		}
+
+		entry.CreatedAt = createdAt
 	}
 
 	err := entry.Insert(ctx.Request.Context(), db, boil.Infer())
