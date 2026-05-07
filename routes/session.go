@@ -14,22 +14,20 @@ func SessionMiddleware(ctx *gin.Context) {
 
 	authHeader := ctx.GetHeader("authorization")
 
-	if strings.HasPrefix(authHeader, "Bearer") {
-		token = strings.ReplaceAll(authHeader, "Bearer ", "")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		token = strings.TrimPrefix(authHeader, "Bearer ")
 	} else {
 		query := ctx.Request.URL.Query()
 
 		token = query.Get("token")
 	}
 
-	log.Println("Token is", token)
-
 	if token == "" {
 		log.Println("User is not authorized")
 
 		ctx.Status(http.StatusUnauthorized)
-
 		ctx.Abort()
+		return
 	}
 
 	var userSession UserSession
@@ -37,11 +35,17 @@ func SessionMiddleware(ctx *gin.Context) {
 	err := auth.DecodeObjectFromToken(token, &userSession)
 
 	if err != nil {
-		log.Println("User token is invalid", err)
+		db := GetDBFromContext(ctx)
+		apiKeySession, ok := AuthenticateAPIKey(ctx, db, token)
+		if !ok {
+			log.Println("User token is invalid", err)
 
-		ctx.Status(http.StatusUnauthorized)
+			ctx.Status(http.StatusUnauthorized)
+			ctx.Abort()
+			return
+		}
 
-		ctx.Abort()
+		userSession = apiKeySession
 	}
 
 	ctx.Set("userSession", userSession)

@@ -22,6 +22,7 @@ import DiaryPage from "../pages/diary"
 import ExperimentsPage from "../pages/experiments"
 import Index from "../pages"
 import PushoverTokensPage from "../pages/pushovertokens"
+import ProfilePage from "../pages/profile"
 
 export default function App() {
 	return (
@@ -48,6 +49,7 @@ export default function App() {
 			<Route path="/diary/entry/:diaryEntryId" element={<DiaryEntryPage />} />
 			<Route path="/experiments" element={<ExperimentsPage />} />
 			<Route path="/pushovertokens" element={<PushoverTokensPage />} />
+			<Route path="/profile" element={<ProfilePage />} />
 		</Routes>
 	)
 }
