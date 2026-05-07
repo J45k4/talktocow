@@ -27,14 +27,48 @@
     gap: 12px;
 }
 
-.datePickerLabel {
+.newEntryButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    padding: 8px 12px;
+}
+
+.draftForm {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.draftField {
     display: flex;
     flex-direction: column;
     gap: 4px;
     font-size: 14px;
 }
 
+.draftField input,
+.draftField textarea {
+    font-size: 16px;
+    padding: 4px;
+}
+
+.draftField textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
 .datePicker {
     font-size: 16px;
     padding: 4px;
+}
+
+.draftActions {
+    display: flex;
+    gap: 8px;
 }
