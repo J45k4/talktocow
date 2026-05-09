@@ -45,6 +45,7 @@ export const DiaryEntry = (props: {
 
     const [comments, setComments] = React.useState<any[]>([])
     const [pictures, setPictures] = React.useState<DiaryEntryPicture[]>([])
+    const [previewPicture, setPreviewPicture] = React.useState<DiaryEntryPicture | null>(null)
 
     const [commentOffset, setCommentOffset] = React.useState(0)
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false)
@@ -128,7 +129,9 @@ export const DiaryEntry = (props: {
             {pictures.length > 0 && (
                 <div className={styles.pictureGrid}>
                     {pictures.map(picture => (
-                        <img src={pictureSource(picture.url)} alt={picture.fileName} key={picture.id} />
+                        <button className={styles.pictureButton} onClick={() => setPreviewPicture(picture)} key={picture.id} type="button">
+                            <img src={pictureSource(picture.url)} alt={picture.fileName} />
+                        </button>
                     ))}
                 </div>
             )}
@@ -177,6 +180,12 @@ export const DiaryEntry = (props: {
                     </div>
                 </div>
             </Modal>
+            {previewPicture && (
+                <div className={styles.fullscreenPreview} onClick={() => setPreviewPicture(null)}>
+                    <button className={styles.closePreviewButton} onClick={() => setPreviewPicture(null)} type="button">×</button>
+                    <img src={pictureSource(previewPicture.url)} alt={previewPicture.fileName} onClick={event => event.stopPropagation()} />
+                </div>
+            )}
         </div>
     )
 }

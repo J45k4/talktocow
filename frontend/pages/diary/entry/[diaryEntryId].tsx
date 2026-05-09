@@ -25,6 +25,7 @@ export default function DiaryEntryPage() {
 
     const [entry, setEntry] = useState<any>()
     const [pictures, setPictures] = useState<DiaryEntryPicture[]>([])
+    const [previewPicture, setPreviewPicture] = useState<DiaryEntryPicture | null>(null)
     const [isSaving, setIsSaving] = useState(false)
     const [isUploadingPicture, setIsUploadingPicture] = useState(false)
     const [saveError, setSaveError] = useState("")
@@ -166,7 +167,9 @@ export default function DiaryEntryPage() {
                                     <div className={styles.pictureGrid}>
                                         {pictures.map(picture => (
                                             <div className={styles.pictureTile} key={picture.id}>
-                                                <img src={pictureSource(picture.url)} alt={picture.fileName} />
+                                                <button className={styles.picturePreviewButton} onClick={() => setPreviewPicture(picture)} type="button">
+                                                    <img src={pictureSource(picture.url)} alt={picture.fileName} />
+                                                </button>
                                                 <button className={styles.removePictureButton} onClick={() => deletePicture(picture.id)} type="button">
                                                     Remove
                                                 </button>
@@ -195,6 +198,12 @@ export default function DiaryEntryPage() {
                     )}
                 </div>
             </div>
+            {previewPicture && (
+                <div className={styles.fullscreenPreview} onClick={() => setPreviewPicture(null)}>
+                    <button className={styles.closePreviewButton} onClick={() => setPreviewPicture(null)} type="button">×</button>
+                    <img src={pictureSource(previewPicture.url)} alt={previewPicture.fileName} onClick={event => event.stopPropagation()} />
+                </div>
+            )}
         </PageContainer>
     )
 }

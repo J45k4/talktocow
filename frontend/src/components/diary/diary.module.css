@@ -231,6 +231,19 @@
     object-fit: cover;
 }
 
+.picturePreviewButton {
+    display: block;
+    width: 100%;
+    border: none;
+    background: transparent;
+    cursor: zoom-in;
+    padding: 0;
+}
+
+.picturePreviewButton:hover img {
+    filter: brightness(0.94);
+}
+
 .removePictureButton {
     position: absolute;
     right: 8px;
@@ -247,6 +260,47 @@
 
 .removePictureButton:hover {
     background: white;
+}
+
+.fullscreenPreview {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(10, 13, 18, 0.92);
+    cursor: zoom-out;
+}
+
+.fullscreenPreview img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 14px;
+    object-fit: contain;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+    cursor: default;
+}
+
+.closePreviewButton {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 2001;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #111827;
+    cursor: pointer;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1;
 }
 
 .draftActions {
