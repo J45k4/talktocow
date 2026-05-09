@@ -1,15 +1,19 @@
 package routes
 
 import (
-	"bytes"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/j45k4/talktocow/config"
 )
 
 type DiaryEntry struct {
@@ -257,11 +261,49 @@ func DeleteDiaryEntry(ctx *gin.Context) {
 		return
 	}
 
+	fileRows, err := tx.QueryContext(ctx.Request.Context(), `
+		select files.id, files.disk_path
+		from files
+		join diary_entry_pictures on diary_entry_pictures.file_id = files.id
+		where diary_entry_pictures.diary_entry_id = $1
+	`, entryId)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to find diary entry pictures"))
+		return
+	}
+
+	fileIds := []int{}
+	filePaths := []string{}
+
+	for fileRows.Next() {
+		var fileId int
+		var filePath string
+
+		if err := fileRows.Scan(&fileId, &filePath); err != nil {
+			fileRows.Close()
+			ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to read diary entry pictures"))
+			return
+		}
+
+		fileIds = append(fileIds, fileId)
+		filePaths = append(filePaths, filePath)
+	}
+
+	fileRows.Close()
+
 	_, err = tx.ExecContext(ctx.Request.Context(), "delete from diary_entry_pictures where diary_entry_id = $1", entryId)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to delete diary entry pictures"))
 		return
+	}
+
+	for _, fileId := range fileIds {
+		if _, err := tx.ExecContext(ctx.Request.Context(), "delete from files where id = $1", fileId); err != nil {
+			ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to delete diary entry files"))
+			return
+		}
 	}
 
 	_, err = tx.ExecContext(ctx.Request.Context(), "delete from diary_entries where id = $1", entryId)
@@ -275,6 +317,8 @@ func DeleteDiaryEntry(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to finish diary entry delete"))
 		return
 	}
+
+	removeFiles(filePaths)
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }
@@ -295,6 +339,26 @@ func userCanEditDiaryEntry(ctx *gin.Context, entryId int) (bool, error) {
 
 func pictureURL(entryId int, pictureId int) string {
 	return "/api/diary/entry/" + strconv.Itoa(entryId) + "/picture/" + strconv.Itoa(pictureId)
+}
+
+func createStoredFileName(originalFileName string) (string, error) {
+	randomBytes := make([]byte, 16)
+
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", err
+	}
+
+	extension := strings.ToLower(filepath.Ext(originalFileName))
+
+	return hex.EncodeToString(randomBytes) + extension, nil
+}
+
+func removeFiles(paths []string) {
+	for _, path := range paths {
+		if path != "" {
+			_ = os.Remove(path)
+		}
+	}
 }
 
 func scanDiaryEntryPicture(scanner interface {
@@ -325,10 +389,11 @@ func GetDiaryEntryPictures(ctx *gin.Context) {
 	}
 
 	rows, err := db.QueryContext(ctx.Request.Context(), `
-		select id, diary_entry_id, file_name, content_type, created_at
+		select diary_entry_pictures.id, diary_entry_pictures.diary_entry_id, files.file_name, files.content_type, diary_entry_pictures.created_at
 		from diary_entry_pictures
-		where diary_entry_id = $1
-		order by created_at asc, id asc
+		join files on files.id = diary_entry_pictures.file_id
+		where diary_entry_pictures.diary_entry_id = $1
+		order by diary_entry_pictures.created_at asc, diary_entry_pictures.id asc
 	`, entryId)
 
 	if err != nil {
@@ -416,16 +481,65 @@ func UploadDiaryEntryPicture(ctx *gin.Context) {
 		return
 	}
 
-	row := db.QueryRowContext(ctx.Request.Context(), `
-		insert into diary_entry_pictures (diary_entry_id, uploaded_by_user_id, file_name, content_type, image_data)
+	if err := os.MkdirAll(config.FileStoragePath, 0755); err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to prepare file storage"))
+		return
+	}
+
+	storedFileName, err := createStoredFileName(fileHeader.Filename)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to create file name"))
+		return
+	}
+
+	diskPath := filepath.Join(config.FileStoragePath, storedFileName)
+
+	if err := os.WriteFile(diskPath, data, 0644); err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to write picture"))
+		return
+	}
+
+	tx, err := db.BeginTx(ctx.Request.Context(), nil)
+
+	if err != nil {
+		_ = os.Remove(diskPath)
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to save picture"))
+		return
+	}
+
+	defer tx.Rollback()
+
+	var fileId int
+	err = tx.QueryRowContext(ctx.Request.Context(), `
+		insert into files (uploaded_by_user_id, file_name, content_type, disk_path, size_bytes)
 		values ($1, $2, $3, $4, $5)
-		returning id, diary_entry_id, file_name, content_type, created_at
-	`, entryId, userSession.UserID, fileHeader.Filename, contentType, data)
+		returning id
+	`, userSession.UserID, fileHeader.Filename, contentType, diskPath, len(data)).Scan(&fileId)
+
+	if err != nil {
+		_ = os.Remove(diskPath)
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to save file metadata"))
+		return
+	}
+
+	row := tx.QueryRowContext(ctx.Request.Context(), `
+		insert into diary_entry_pictures (diary_entry_id, file_id)
+		values ($1, $2)
+		returning id, diary_entry_id, $3::text as file_name, $4::text as content_type, created_at
+	`, entryId, fileId, fileHeader.Filename, contentType)
 
 	picture, err := scanDiaryEntryPicture(row)
 
 	if err != nil {
+		_ = os.Remove(diskPath)
 		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to save diary entry picture"))
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		_ = os.Remove(diskPath)
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to finish picture upload"))
 		return
 	}
 
@@ -444,23 +558,33 @@ func GetDiaryEntryPicture(ctx *gin.Context) {
 
 	var fileName string
 	var contentType string
-	var data []byte
+	var diskPath string
 	var createdAt time.Time
 
 	err := db.QueryRowContext(ctx.Request.Context(), `
-		select file_name, content_type, image_data, created_at
+		select files.file_name, files.content_type, files.disk_path, diary_entry_pictures.created_at
 		from diary_entry_pictures
-		where id = $1 and diary_entry_id = $2
-	`, pictureId, entryId).Scan(&fileName, &contentType, &data, &createdAt)
+		join files on files.id = diary_entry_pictures.file_id
+		where diary_entry_pictures.id = $1 and diary_entry_pictures.diary_entry_id = $2
+	`, pictureId, entryId).Scan(&fileName, &contentType, &diskPath, &createdAt)
 
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "Picture not found"))
 		return
 	}
 
+	file, err := os.Open(diskPath)
+
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "Picture file not found"))
+		return
+	}
+
+	defer file.Close()
+
 	ctx.Header("Content-Type", contentType)
 	ctx.Header("Content-Disposition", "inline; filename=\""+strings.ReplaceAll(fileName, "\"", "")+"\"")
-	http.ServeContent(ctx.Writer, ctx.Request, fileName, createdAt, bytes.NewReader(data))
+	http.ServeContent(ctx.Writer, ctx.Request, fileName, createdAt, file)
 }
 
 func DeleteDiaryEntryPicture(ctx *gin.Context) {
@@ -485,22 +609,46 @@ func DeleteDiaryEntryPicture(ctx *gin.Context) {
 		return
 	}
 
-	result, err := db.ExecContext(ctx.Request.Context(), `
-		delete from diary_entry_pictures
-		where id = $1 and diary_entry_id = $2
-	`, pictureId, entryId)
+	var fileId int
+	var diskPath string
+
+	err = db.QueryRowContext(ctx.Request.Context(), `
+		select files.id, files.disk_path
+		from diary_entry_pictures
+		join files on files.id = diary_entry_pictures.file_id
+		where diary_entry_pictures.id = $1 and diary_entry_pictures.diary_entry_id = $2
+	`, pictureId, entryId).Scan(&fileId, &diskPath)
 
 	if err != nil {
+		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "Picture not found"))
+		return
+	}
+
+	tx, err := db.BeginTx(ctx.Request.Context(), nil)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to start picture delete"))
+		return
+	}
+
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx.Request.Context(), "delete from diary_entry_pictures where id = $1 and diary_entry_id = $2", pictureId, entryId); err != nil {
 		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to delete picture"))
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-
-	if err != nil || rowsAffected == 0 {
-		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "Picture not found"))
+	if _, err := tx.ExecContext(ctx.Request.Context(), "delete from files where id = $1", fileId); err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to delete file metadata"))
 		return
 	}
+
+	if err := tx.Commit(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to finish picture delete"))
+		return
+	}
+
+	removeFiles([]string{diskPath})
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }
