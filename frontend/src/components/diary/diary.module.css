@@ -1,7 +1,7 @@
 
 .container {
     padding: 1em;
-	overflow: auto;
+    overflow: auto;
 }
 
 .backArrow {
@@ -32,26 +32,98 @@
     align-items: center;
     gap: 8px;
     font-size: 16px;
-    padding: 8px 12px;
+    font-weight: 700;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 999px;
+    background: #5b2b82;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(91, 43, 130, 0.22);
+}
+
+.newEntryButton:hover {
+    background: #4a226d;
+}
+
+.entryPage {
+    min-height: 75vh;
+    padding: 24px;
+    background: linear-gradient(135deg, #f3f8ff 0%, #fbf7ff 100%);
+}
+
+.entryEditorCard {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 28px;
+    border: 1px solid #e5dff0;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 18px 45px rgba(55, 41, 77, 0.12);
+}
+
+.entryPageHeader {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.entryPageHeader h1 {
+    margin: 2px 0 0;
+    color: #4a226d;
+    font-size: 36px;
+    line-height: 1.1;
+}
+
+.entryPageEyebrow {
+    color: #2b6cb0;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 .draftForm {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 18px;
+    min-height: 65vh;
 }
 
 .draftField {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
+    color: #4b5563;
     font-size: 14px;
+    font-weight: 800;
 }
 
 .draftField input,
 .draftField textarea {
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid #d8d2e2;
+    border-radius: 14px;
+    background: #fff;
+    color: #28313a;
     font-size: 16px;
-    padding: 4px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.draftField input:focus,
+.draftField textarea:focus {
+    border-color: #8c63b3;
+    box-shadow: 0 0 0 4px rgba(140, 99, 179, 0.16);
+}
+
+.titleInput {
+    color: #5b2b82 !important;
+    font-size: 24px !important;
+    font-weight: 800;
 }
 
 .draftField textarea {
@@ -59,12 +131,78 @@
     resize: vertical;
 }
 
+.longContentInput {
+    min-height: 45vh;
+    line-height: 1.55;
+    resize: vertical;
+}
+
 .datePicker {
-    font-size: 16px;
-    padding: 4px;
+    max-width: 240px;
 }
 
 .draftActions {
     display: flex;
-    gap: 8px;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 6px;
+}
+
+.primaryButton,
+.secondaryButton {
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 11px 16px;
+}
+
+.primaryButton {
+    background: #5b2b82;
+    color: white;
+    box-shadow: 0 8px 18px rgba(91, 43, 130, 0.22);
+}
+
+.primaryButton:hover {
+    background: #4a226d;
+}
+
+.secondaryButton {
+    background: #eef2f7;
+    color: #364152;
+}
+
+.secondaryButton:hover {
+    background: #e3e8ef;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+@media (max-width: 640px) {
+    .entryPage {
+        padding: 12px;
+    }
+
+    .entryEditorCard {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .entryPageHeader {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .entryPageHeader h1 {
+        font-size: 30px;
+    }
+
+    .draftActions {
+        flex-direction: column;
+    }
 }

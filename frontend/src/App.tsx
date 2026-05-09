@@ -18,6 +18,7 @@ import UserHomeworkSubmission from "../pages/course/[courseId]/student/[userId]"
 import NewCoursePage from "../pages/course/new"
 import CoursesPage from "../pages/courses"
 import DiaryEntryPage from "../pages/diary/entry/[diaryEntryId]"
+import NewDiaryEntryPage from "../pages/diary/new"
 import DiaryPage from "../pages/diary"
 import ExperimentsPage from "../pages/experiments"
 import Index from "../pages"
@@ -45,6 +46,7 @@ export default function App() {
 			<Route path="/course/:courseId/student/:userId" element={<UserHomeworkSubmission />} />
 			<Route path="/courses" element={<CoursesPage />} />
 			<Route path="/diary" element={<DiaryPage />} />
+			<Route path="/diary/new" element={<NewDiaryEntryPage />} />
 			<Route path="/diary/entry/:diaryEntryId" element={<DiaryEntryPage />} />
 			<Route path="/experiments" element={<ExperimentsPage />} />
 			<Route path="/pushovertokens" element={<PushoverTokensPage />} />

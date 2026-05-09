@@ -14,6 +14,16 @@ export const DiaryEntry = (props: {
     onDelete: () => void
 }) => {
     const d = new Date(props.postedAt)
+    const day = d.toLocaleDateString("en-US", { day: "2-digit" })
+    const month = d.toLocaleDateString("en-US", { month: "short" })
+    const year = d.getFullYear()
+    const weekday = d.toLocaleDateString("en-US", { weekday: "long" })
+    const fullDate = d.toLocaleDateString("en-US", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    })
     const isAuthor = getSession().userId === props.postedByUserId
 
     const [newComment, setNewComment] = React.useState("")
@@ -62,26 +72,30 @@ export const DiaryEntry = (props: {
 
     return (
         <div className={styles.entry}>
-            <div className={styles.date}>
-                {d.toLocaleDateString("us", { weekday: "long" }) + " "}
-                {d.getDate() + " "}
-                {d.toLocaleDateString("us", { month: "long" }) + " "}
-                {d.getFullYear()}
-            </div>
-            <div className={styles.titleRow}>
-                <div className={styles.title}>
-                    {props.title}
-                </div>
-                {isAuthor && (
-                    <div className={styles.actions}>
-                        <Link className={styles.iconButton} to={"/diary/entry/" + props.id} aria-label="Edit diary entry">
-                            <FaEdit />
-                        </Link>
-                        <button className={styles.iconButton} onClick={deleteEntry} aria-label="Delete diary entry">
-                            <FaTrash />
-                        </button>
+            <div className={styles.header}>
+                <time className={styles.dateBadge} dateTime={props.postedAt} aria-label={fullDate}>
+                    <span className={styles.weekday}>{weekday}</span>
+                    <span className={styles.dateMain}>
+                        <span className={styles.day}>{day}</span>
+                        <span className={styles.month}>{month}</span>
+                    </span>
+                    <span className={styles.year}>{year}</span>
+                </time>
+                <div className={styles.titleRow}>
+                    <div className={styles.title}>
+                        {props.title}
                     </div>
-                )}
+                    {isAuthor && (
+                        <div className={styles.actions}>
+                            <Link className={styles.iconButton} to={"/diary/entry/" + props.id} aria-label="Edit diary entry">
+                                <FaEdit />
+                            </Link>
+                            <button className={styles.iconButton} onClick={deleteEntry} aria-label="Delete diary entry">
+                                <FaTrash />
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
             <div className={styles.body}>
                 {props.body}
