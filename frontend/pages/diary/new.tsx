@@ -35,7 +35,7 @@ export default function NewDiaryEntryPage() {
             }
 
             if (r.payload) {
-                navigate("/diary/entry/" + r.payload.id)
+                navigate("/diary")
             }
         }).finally(() => {
             setIsPostingEntry(false)
