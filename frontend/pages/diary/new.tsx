@@ -27,8 +27,7 @@ export default function NewDiaryEntryPage() {
             title,
             body,
             label: label || undefined,
-            createdAt,
-            allDay: true
+            createdAt
         }).then(r => {
             if (r.error) {
                 setSaveError(r.error.message)

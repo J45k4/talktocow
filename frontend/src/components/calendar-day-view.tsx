@@ -10,9 +10,6 @@ type DiaryCalendarEntry = {
     body: string
     createdAt: string
     label?: string
-    startsAt?: string
-    endsAt?: string
-    allDay: boolean
 }
 
 const sameDay = (a: Date, b: Date) => (
@@ -43,15 +40,7 @@ const getCalendarDays = (selectedDate: Date) => {
     })
 }
 
-const entryHappensOnDay = (entry: DiaryCalendarEntry, day: Date) => {
-    const start = new Date(entry.startsAt ?? entry.createdAt)
-    const end = entry.endsAt ? new Date(entry.endsAt) : start
-    const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate())
-    const dayEnd = new Date(dayStart)
-    dayEnd.setDate(dayEnd.getDate() + 1)
-
-    return start < dayEnd && end >= dayStart
-}
+const entryHappensOnDay = (entry: DiaryCalendarEntry, day: Date) => sameDay(new Date(entry.createdAt), day)
 
 const labelColorClasses = [
     styles.labelColorBlue,
@@ -94,21 +83,6 @@ const getPreview = (body: string) => {
     }
 
     return body.length > 120 ? `${body.slice(0, 120)}…` : body
-}
-
-const formatEntryTime = (entry: DiaryCalendarEntry) => {
-    if (entry.allDay || !entry.startsAt) {
-        return "All day"
-    }
-
-    const start = new Date(entry.startsAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-
-    if (!entry.endsAt) {
-        return start
-    }
-
-    const end = new Date(entry.endsAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-    return `${start}–${end}`
 }
 
 export const CalendarDayView = () => {
@@ -208,8 +182,7 @@ export const CalendarDayView = () => {
             title: cleanLabel,
             body: "",
             label: cleanLabel,
-            createdAt: `${toDateInputValue(selectedDate)}T12:00:00Z`,
-            allDay: true
+            createdAt: `${toDateInputValue(selectedDate)}T12:00:00Z`
         }).then(r => {
             if (r.payload) {
                 setQuickLabel("")
@@ -327,7 +300,7 @@ export const CalendarDayView = () => {
                         <div className={styles.eventItem} key={entry.id}>
                             <Link className={styles.eventItemLink} to={`/diary/entry/${entry.id}`}>
                                 <div className={styles.eventTime}>
-                                    {entry.label ? <span className={`${styles.entryLabel} ${getLabelColorClass(entry.label)}`}>{entry.label}</span> : formatEntryTime(entry)}
+                                    {entry.label ? <span className={`${styles.entryLabel} ${getLabelColorClass(entry.label)}`}>{entry.label}</span> : "Diary"}
                                 </div>
                                 <div>
                                     <div className={styles.eventTitle}>{entry.title}</div>

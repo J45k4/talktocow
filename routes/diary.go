@@ -16,9 +16,6 @@ type DiaryEntry struct {
 	PostedByUserID string  `json:"postedByUserId"`
 	CreateAt       string  `json:"createdAt"`
 	Label          *string `json:"label"`
-	StartsAt       *string `json:"startsAt"`
-	EndsAt         *string `json:"endsAt"`
-	AllDay         bool    `json:"allDay"`
 }
 
 type CreateDiaryEntryRequest struct {
@@ -26,9 +23,6 @@ type CreateDiaryEntryRequest struct {
 	Body      string  `json:"body"`
 	CreatedAt string  `json:"createdAt"`
 	Label     *string `json:"label"`
-	StartsAt  *string `json:"startsAt"`
-	EndsAt    *string `json:"endsAt"`
-	AllDay    bool    `json:"allDay"`
 }
 
 type UpdateDiaryEntryRequest struct {
@@ -37,9 +31,6 @@ type UpdateDiaryEntryRequest struct {
 	Offset   int      `json:"offset"`
 	Mask     []string `json:"mask"`
 	Label    *string  `json:"label"`
-	StartsAt *string  `json:"startsAt"`
-	EndsAt   *string  `json:"endsAt"`
-	AllDay   bool     `json:"allDay"`
 }
 
 func parseDiaryTime(value string) (time.Time, error) {
@@ -65,8 +56,6 @@ func scanDiaryEntry(scanner interface {
 	var title sql.NullString
 	var body sql.NullString
 	var label sql.NullString
-	var startsAt sql.NullTime
-	var endsAt sql.NullTime
 	var createdAt time.Time
 	var postedByUserID int
 
@@ -77,9 +66,6 @@ func scanDiaryEntry(scanner interface {
 		&postedByUserID,
 		&createdAt,
 		&label,
-		&startsAt,
-		&endsAt,
-		&entry.AllDay,
 	)
 
 	if err != nil {
@@ -93,16 +79,6 @@ func scanDiaryEntry(scanner interface {
 
 	if label.Valid {
 		entry.Label = &label.String
-	}
-
-	if startsAt.Valid {
-		formatted := formatDiaryTime(startsAt.Time)
-		entry.StartsAt = &formatted
-	}
-
-	if endsAt.Valid {
-		formatted := formatDiaryTime(endsAt.Time)
-		entry.EndsAt = &formatted
 	}
 
 	return entry, nil
@@ -132,47 +108,16 @@ func CreateDiaryEntry(ctx *gin.Context) {
 		createdAt = parsed
 	}
 
-	var startsAt *time.Time
-
-	if createRequest.StartsAt != nil && *createRequest.StartsAt != "" {
-		parsed, err := parseDiaryTime(*createRequest.StartsAt)
-
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry start time"))
-			return
-		}
-
-		startsAt = &parsed
-	}
-
-	var endsAt *time.Time
-
-	if createRequest.EndsAt != nil && *createRequest.EndsAt != "" {
-		parsed, err := parseDiaryTime(*createRequest.EndsAt)
-
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry end time"))
-			return
-		}
-
-		if startsAt != nil && parsed.Before(*startsAt) {
-			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "End time must be after start time"))
-			return
-		}
-
-		endsAt = &parsed
-	}
-
 	title := createRequest.Title
 	if title == "" && createRequest.Label != nil {
 		title = *createRequest.Label
 	}
 
 	row := db.QueryRowContext(ctx.Request.Context(), `
-		insert into diary_entries (title, body, who_posted_user_id, created_at, label, starts_at, ends_at, all_day)
-		values ($1, $2, $3, $4, $5, $6, $7, $8)
-		returning id, title, body, who_posted_user_id, created_at, label, starts_at, ends_at, all_day
-	`, title, createRequest.Body, userSession.UserID, createdAt, createRequest.Label, startsAt, endsAt, createRequest.AllDay)
+		insert into diary_entries (title, body, who_posted_user_id, created_at, label)
+		values ($1, $2, $3, $4, $5)
+		returning id, title, body, who_posted_user_id, created_at, label
+	`, title, createRequest.Body, userSession.UserID, createdAt, createRequest.Label)
 
 	entry, err := scanDiaryEntry(row)
 
@@ -195,7 +140,7 @@ func GetDiaryEntry(ctx *gin.Context) {
 	}
 
 	row := db.QueryRowContext(ctx.Request.Context(), `
-		select id, title, body, who_posted_user_id, created_at, label, starts_at, ends_at, all_day
+		select id, title, body, who_posted_user_id, created_at, label
 		from diary_entries
 		where id = $1
 	`, entryId)
@@ -231,15 +176,13 @@ func UpdateDiaryEntry(ctx *gin.Context) {
 		update diary_entries
 		set title = case when $2 then $3 else title end,
 		    body = case when $4 then $5 else body end,
-		    label = case when $6 then $7 else label end,
-		    all_day = case when $8 then $9 else all_day end
+		    label = case when $6 then $7 else label end
 		where id = $1
 	`,
 		entryId,
 		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "title"), updateDiaryEntryRequest.Title,
 		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "body"), updateDiaryEntryRequest.Body,
 		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "label"), updateDiaryEntryRequest.Label,
-		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "allDay"), updateDiaryEntryRequest.AllDay,
 	)
 
 	if err != nil {
@@ -318,7 +261,7 @@ func GetDiaryEntries(ctx *gin.Context) {
 	offset, limit := GetOffsetAndLimit(ctx, 0, 30)
 
 	rows, err := db.QueryContext(ctx.Request.Context(), `
-		select id, title, body, who_posted_user_id, created_at, label, starts_at, ends_at, all_day
+		select id, title, body, who_posted_user_id, created_at, label
 		from diary_entries
 		order by created_at desc
 		offset $1 limit $2
