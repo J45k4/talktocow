@@ -19,4 +19,7 @@ COPY bot bot
 
 RUN go build
 
+ENV FILE_STORAGE_PATH=/data/uploads
+VOLUME ["/data/uploads"]
+
 CMD ["go", "run", "main.go"]
