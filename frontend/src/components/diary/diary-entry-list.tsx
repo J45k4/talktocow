@@ -21,8 +21,9 @@ export const DiaryEntryList = () => {
         ])
 
         const newEntries = entriesResponse.payload ?? []
+        const entriesWithContent = newEntries.filter(entry => (entry.body ?? "").trim() !== "")
 
-        setEntries(newEntries)
+        setEntries(entriesWithContent)
         setOffset(newEntries.length)
         setCount(countResponse.payload?.count ?? 0)
     }, [])
@@ -41,7 +42,8 @@ export const DiaryEntryList = () => {
 
                         getJson<any>("/api/diary/entries?offset=" + offset).then(r => {
                             const newEntries = r.payload ?? []
-                            setEntries([...entries, ...newEntries])
+                            const entriesWithContent = newEntries.filter(entry => (entry.body ?? "").trim() !== "")
+                            setEntries([...entries, ...entriesWithContent])
                             setOffset(offset + newEntries.length)
                         })
                     }}
@@ -55,6 +57,7 @@ export const DiaryEntryList = () => {
                             body={p.body}
                             postedAt={p.createdAt}
                             postedByUserId={p.postedByUserId}
+                            label={p.label}
                             onDelete={() => {
                                 setEntries(entries.filter(entry => entry.id !== p.id))
                                 setOffset(Math.max(offset - 1, 0))

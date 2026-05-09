@@ -3,6 +3,7 @@ import React, { useCallback, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { deleteJson, getJson, postJson } from "../../api-methods";
 import { getSession } from "../../logic/session-manager";
+import { Modal } from "../modal";
 import styles from "./diary-entry.module.css";
 
 export const DiaryEntry = (props: {
@@ -11,6 +12,7 @@ export const DiaryEntry = (props: {
     body: string
     postedAt: string
     postedByUserId: string
+    label?: string
     onDelete: () => void
 }) => {
     const d = new Date(props.postedAt)
@@ -31,6 +33,8 @@ export const DiaryEntry = (props: {
     const [comments, setComments] = React.useState<any[]>([])
 
     const [commentOffset, setCommentOffset] = React.useState(0)
+    const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false)
+    const [deleteError, setDeleteError] = React.useState("")
 
     const fetchComments = useCallback(() => {
         getJson<any>(`/api/diary/entry/${props.id}/comments?limit=50&offset=${commentOffset}`).then(data => {
@@ -59,14 +63,14 @@ export const DiaryEntry = (props: {
     }, [newComment, props.id, fetchComments])
 
     const deleteEntry = useCallback(() => {
-        if (!window.confirm("Delete this diary entry?")) {
-            return
-        }
-
         deleteJson(`/api/diary/entry/${props.id}`).then(r => {
-            if (!r.error) {
-                props.onDelete()
+            if (r.error && r.error.code !== 404 && r.error.message.toLowerCase() !== "not found") {
+                setDeleteError(r.error.message)
+                return
             }
+
+            setIsConfirmingDelete(false)
+            props.onDelete()
         })
     }, [props])
 
@@ -82,15 +86,18 @@ export const DiaryEntry = (props: {
                     <span className={styles.year}>{year}</span>
                 </time>
                 <div className={styles.titleRow}>
-                    <div className={styles.title}>
-                        {props.title}
+                    <div>
+                        {props.label && <div className={styles.labelChip}>{props.label}</div>}
+                        <div className={styles.title}>
+                            {props.title}
+                        </div>
                     </div>
                     {isAuthor && (
                         <div className={styles.actions}>
                             <Link className={styles.iconButton} to={"/diary/entry/" + props.id} aria-label="Edit diary entry">
                                 <FaEdit />
                             </Link>
-                            <button className={styles.iconButton} onClick={deleteEntry} aria-label="Delete diary entry">
+                            <button className={styles.iconButton} onClick={() => setIsConfirmingDelete(true)} aria-label="Delete diary entry">
                                 <FaTrash />
                             </button>
                         </div>
@@ -128,6 +135,23 @@ export const DiaryEntry = (props: {
                     </button>
                 </div>
             </div>
+            <Modal isOpen={isConfirmingDelete} title="Delete diary entry?" onClose={() => setIsConfirmingDelete(false)}>
+                <div className={styles.modalContent}>
+                    <p>Delete “{props.title}”?</p>
+                    <div className={styles.modalActions}>
+                        <button className={styles.cancelButton} onClick={() => setIsConfirmingDelete(false)}>Cancel</button>
+                        <button className={styles.dangerButton} onClick={deleteEntry}>Delete</button>
+                    </div>
+                </div>
+            </Modal>
+            <Modal isOpen={deleteError !== ""} title="Could not delete entry" onClose={() => setDeleteError("")}>
+                <div className={styles.modalContent}>
+                    <p>{deleteError}</p>
+                    <div className={styles.modalActions}>
+                        <button className={styles.cancelButton} onClick={() => setDeleteError("")}>OK</button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     )
 }

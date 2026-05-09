@@ -84,6 +84,17 @@
     text-transform: uppercase;
 }
 
+.emptyEditorState {
+    display: flex;
+    min-height: 220px;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed #d8d2e2;
+    border-radius: 16px;
+    color: #667085;
+    font-weight: 800;
+}
+
 .draftForm {
     display: flex;
     flex-direction: column;
@@ -139,6 +150,46 @@
 
 .datePicker {
     max-width: 240px;
+}
+
+.modePill {
+    align-self: flex-start;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #eef6ff;
+    color: #2b6cb0;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.checkboxField {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #364152;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.checkboxField input {
+    width: 18px;
+    height: 18px;
+}
+
+.timeGrid {
+    display: grid;
+    grid-template-columns: minmax(160px, 220px) auto minmax(160px, 220px);
+    gap: 14px;
+    align-items: end;
+}
+
+.saveError {
+    padding: 10px 12px;
+    border: 1px solid #f3b4b4;
+    border-radius: 12px;
+    background: #fff5f5;
+    color: #b42318;
+    font-weight: 800;
 }
 
 .draftActions {
@@ -200,6 +251,11 @@
 
     .entryPageHeader h1 {
         font-size: 30px;
+    }
+
+    .timeGrid {
+        grid-template-columns: 1fr;
+        align-items: stretch;
     }
 
     .draftActions {

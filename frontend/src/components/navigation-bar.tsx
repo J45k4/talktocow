@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useRef } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { clearSession, getSession, SessionChangeNotify, subscribeToSessionEvents, unsubscribeToSessionEvents } from "../logic/session-manager"
 import { IsLoggedIn } from "./isloggedin"
@@ -24,6 +24,9 @@ const NavigationBarItem = (props: {
 
 export const NavigationBar = () => {
     const [authMethod, setAuthMethod] = useState(getSession().authMethod)
+    const [username, setUsername] = useState(getSession().username)
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const menuRef = useRef<HTMLDivElement>(null)
     const {
         addPasskey,
         loading,
@@ -33,6 +36,7 @@ export const NavigationBar = () => {
     useEffect(() => {
         const handle = (session: SessionChangeNotify) => {
             setAuthMethod(session.authMethod)
+            setUsername(session.username)
         }
 
         subscribeToSessionEvents(handle)
@@ -42,31 +46,58 @@ export const NavigationBar = () => {
         }
     }, [])
 
+    useEffect(() => {
+        if (!isMenuOpen) {
+            return
+        }
+
+        const closeOnOutsideClick = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false)
+            }
+        }
+
+        document.addEventListener("mousedown", closeOnOutsideClick)
+
+        return () => {
+            document.removeEventListener("mousedown", closeOnOutsideClick)
+        }
+    }, [isMenuOpen])
+
     return (
         <nav className={styles.navigationBar}>
             <IsLoggedIn>
                 <div className={styles.navItems}>
                     {/* <NavigationBarItem href="/chatrooms" text="Chatrooms" /> */}
+                    <NavigationBarItem href="/" text="Home" />
                     <NavigationBarItem href="/chats" text="Chats" />
                     <NavigationBarItem href="/diary" text="Diary" />
                     <NavigationBarItem href="/courses" text="Courses" />
                 </div>
-                <div className={styles.actions}>
-                    {authMethod !== "passkey" ? (
-                        <button className={styles.passkeyButton} onClick={addPasskey} disabled={loading}>
-                            {loading ? "Waiting..." : "Add passkey"}
-                        </button>
-                    ) : null}
-                    {error ? (
-                        <div className={styles.error}>
-                            {error}
+                <div className={styles.actions} ref={menuRef}>
+                    <button className={styles.menuButton} onClick={() => setIsMenuOpen(open => !open)} aria-expanded={isMenuOpen} aria-haspopup="menu">
+                        {username || "Menu"} ▾
+                    </button>
+                    {isMenuOpen ? (
+                        <div className={styles.dropdownMenu} role="menu">
+                            {authMethod !== "passkey" ? (
+                                <button className={styles.dropdownItem} onClick={addPasskey} disabled={loading} role="menuitem">
+                                    {loading ? "Waiting..." : "Add passkey"}
+                                </button>
+                            ) : null}
+                            <button className={styles.dropdownItem} onClick={() => {
+                                clearSession()
+                                setIsMenuOpen(false)
+                            }} role="menuitem">
+                                Logout
+                            </button>
+                            {error ? (
+                                <div className={styles.error}>
+                                    {error}
+                                </div>
+                            ) : null}
                         </div>
                     ) : null}
-                    <button className={styles.logoutButton} onClick={() => {
-                        clearSession()
-                    }}>
-                        Logout
-                    </button>
                 </div>
             </IsLoggedIn>
         </nav>
