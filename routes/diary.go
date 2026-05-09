@@ -19,6 +19,7 @@ type DiaryEntry struct {
 	PostedByUserID string  `json:"postedByUserId"`
 	CreateAt       string  `json:"createdAt"`
 	Label          *string `json:"label"`
+	PictureCount   int     `json:"pictureCount"`
 }
 
 type DiaryEntryPicture struct {
@@ -78,6 +79,7 @@ func scanDiaryEntry(scanner interface {
 		&postedByUserID,
 		&createdAt,
 		&label,
+		&entry.PictureCount,
 	)
 
 	if err != nil {
@@ -128,7 +130,7 @@ func CreateDiaryEntry(ctx *gin.Context) {
 	row := db.QueryRowContext(ctx.Request.Context(), `
 		insert into diary_entries (title, body, who_posted_user_id, created_at, label)
 		values ($1, $2, $3, $4, $5)
-		returning id, title, body, who_posted_user_id, created_at, label
+		returning id, title, body, who_posted_user_id, created_at, label, 0 as picture_count
 	`, title, createRequest.Body, userSession.UserID, createdAt, createRequest.Label)
 
 	entry, err := scanDiaryEntry(row)
@@ -152,9 +154,11 @@ func GetDiaryEntry(ctx *gin.Context) {
 	}
 
 	row := db.QueryRowContext(ctx.Request.Context(), `
-		select id, title, body, who_posted_user_id, created_at, label
+		select diary_entries.id, title, body, who_posted_user_id, diary_entries.created_at, label, count(diary_entry_pictures.id) as picture_count
 		from diary_entries
-		where id = $1
+		left join diary_entry_pictures on diary_entry_pictures.diary_entry_id = diary_entries.id
+		where diary_entries.id = $1
+		group by diary_entries.id
 	`, entryId)
 
 	diaryEntry, err := scanDiaryEntry(row)
@@ -506,9 +510,11 @@ func GetDiaryEntries(ctx *gin.Context) {
 	offset, limit := GetOffsetAndLimit(ctx, 0, 30)
 
 	rows, err := db.QueryContext(ctx.Request.Context(), `
-		select id, title, body, who_posted_user_id, created_at, label
+		select diary_entries.id, title, body, who_posted_user_id, diary_entries.created_at, label, count(diary_entry_pictures.id) as picture_count
 		from diary_entries
-		order by created_at desc
+		left join diary_entry_pictures on diary_entry_pictures.diary_entry_id = diary_entries.id
+		group by diary_entries.id
+		order by diary_entries.created_at desc
 		offset $1 limit $2
 	`, offset, limit)
 
