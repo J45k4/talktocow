@@ -3,8 +3,21 @@ import React, { useCallback, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { deleteJson, getJson, postJson } from "../../api-methods";
 import { getSession } from "../../logic/session-manager";
+import { resolveServerUrl } from "../../utility";
 import { Modal } from "../modal";
 import styles from "./diary-entry.module.css";
+
+type DiaryEntryPicture = {
+    id: number
+    fileName: string
+    url: string
+}
+
+const pictureSource = (url: string) => {
+    const token = getSession().token
+    const separator = url.includes("?") ? "&" : "?"
+    return resolveServerUrl(token ? `${url}${separator}token=${encodeURIComponent(token)}` : url)
+}
 
 export const DiaryEntry = (props: {
     id: number
@@ -31,6 +44,7 @@ export const DiaryEntry = (props: {
     const [newComment, setNewComment] = React.useState("")
 
     const [comments, setComments] = React.useState<any[]>([])
+    const [pictures, setPictures] = React.useState<DiaryEntryPicture[]>([])
 
     const [commentOffset, setCommentOffset] = React.useState(0)
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false)
@@ -46,6 +60,10 @@ export const DiaryEntry = (props: {
 
     useEffect(() => {
         fetchComments()
+
+        getJson<DiaryEntryPicture[]>(`/api/diary/entry/${props.id}/pictures`).then(data => {
+            setPictures(data.payload ?? [])
+        })
 
         getJson<any>(`/api/diary/entry/${props.id}/comments/count`).then(data => {
             setCommentOffset(data.payload.count)
@@ -107,6 +125,13 @@ export const DiaryEntry = (props: {
             <div className={styles.body}>
                 {props.body}
             </div>
+            {pictures.length > 0 && (
+                <div className={styles.pictureGrid}>
+                    {pictures.map(picture => (
+                        <img src={pictureSource(picture.url)} alt={picture.fileName} key={picture.id} />
+                    ))}
+                </div>
+            )}
             <div>
                 <div>
                     {comments.map(p => (

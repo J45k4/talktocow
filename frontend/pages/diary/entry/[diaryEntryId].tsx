@@ -1,23 +1,83 @@
 import React, { useEffect, useState } from "react"
-import { getJson, putJson } from "../../../src/api-methods"
+import { deleteJson, getJson, postFormData, putJson } from "../../../src/api-methods"
 
 import { useNavigate, useParams } from "react-router-dom"
 import { PageContainer } from "../../../src/components/page-container"
+import { getSession } from "../../../src/logic/session-manager"
+import { resolveServerUrl } from "../../../src/utility"
 import styles from "../../../src/components/diary/diary.module.css"
+
+type DiaryEntryPicture = {
+    id: number
+    fileName: string
+    url: string
+}
+
+const pictureSource = (url: string) => {
+    const token = getSession().token
+    const separator = url.includes("?") ? "&" : "?"
+    return resolveServerUrl(token ? `${url}${separator}token=${encodeURIComponent(token)}` : url)
+}
 
 export default function DiaryEntryPage() {
     const navigate = useNavigate()
     const { diaryEntryId } = useParams()
 
     const [entry, setEntry] = useState<any>()
+    const [pictures, setPictures] = useState<DiaryEntryPicture[]>([])
     const [isSaving, setIsSaving] = useState(false)
+    const [isUploadingPicture, setIsUploadingPicture] = useState(false)
     const [saveError, setSaveError] = useState("")
+
+    const fetchPictures = () => {
+        getJson<DiaryEntryPicture[]>(`/api/diary/entry/${diaryEntryId}/pictures`).then(r => {
+            setPictures(r.payload ?? [])
+        })
+    }
 
     useEffect(() => {
         getJson("/api/diary/entry/" + diaryEntryId).then(r => {
             setEntry(r.payload)
         })
+        fetchPictures()
     }, [diaryEntryId])
+
+    const uploadPictures = (files: FileList | null) => {
+        if (!files || files.length === 0) {
+            return
+        }
+
+        setIsUploadingPicture(true)
+        setSaveError("")
+
+        Promise.all(Array.from(files).map(file => {
+            const formData = new FormData()
+            formData.append("picture", file)
+            return postFormData(`/api/diary/entry/${diaryEntryId}/picture`, formData)
+        })).then(results => {
+            const error = results.find(result => result.error)?.error
+
+            if (error) {
+                setSaveError(error.message)
+                return
+            }
+
+            fetchPictures()
+        }).finally(() => {
+            setIsUploadingPicture(false)
+        })
+    }
+
+    const deletePicture = (pictureId: number) => {
+        deleteJson(`/api/diary/entry/${diaryEntryId}/picture/${pictureId}`).then(r => {
+            if (r.error) {
+                setSaveError(r.error.message)
+                return
+            }
+
+            setPictures(currentPictures => currentPictures.filter(picture => picture.id !== pictureId))
+        })
+    }
 
     const updateEntry = () => {
         if (!entry) {
@@ -100,6 +160,28 @@ export default function DiaryEntryPage() {
                                     })}
                                 />
                             </label>
+                            <div className={styles.draftField}>
+                                <span>Pictures</span>
+                                {pictures.length > 0 && (
+                                    <div className={styles.pictureGrid}>
+                                        {pictures.map(picture => (
+                                            <div className={styles.pictureTile} key={picture.id}>
+                                                <img src={pictureSource(picture.url)} alt={picture.fileName} />
+                                                <button className={styles.removePictureButton} onClick={() => deletePicture(picture.id)} type="button">
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    disabled={isUploadingPicture}
+                                    onChange={e => uploadPictures(e.target.files)}
+                                />
+                            </div>
                             {saveError && <div className={styles.saveError}>{saveError}</div>}
                             <div className={styles.draftActions}>
                                 <button className={styles.secondaryButton} onClick={() => navigate(-1)} disabled={isSaving}>

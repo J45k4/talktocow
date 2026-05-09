@@ -112,6 +112,10 @@ func main() {
 	r.GET("/api/diary/entry/:diaryEntryId", routes.GetDiaryEntry)
 	r.PUT("/api/diary/entry/:diaryEntryId", routes.UpdateDiaryEntry)
 	r.DELETE("/api/diary/entry/:diaryEntryId", routes.DeleteDiaryEntry)
+	r.GET("/api/diary/entry/:diaryEntryId/pictures", routes.GetDiaryEntryPictures)
+	r.POST("/api/diary/entry/:diaryEntryId/picture", routes.UploadDiaryEntryPicture)
+	r.GET("/api/diary/entry/:diaryEntryId/picture/:pictureId", routes.GetDiaryEntryPicture)
+	r.DELETE("/api/diary/entry/:diaryEntryId/picture/:pictureId", routes.DeleteDiaryEntryPicture)
 
 	r.POST("/api/diary/entry/:diaryEntryId/comment", routes.CreateDiaryEntryComment)
 	r.POST("/api/diary/entry/:diaryEntryId/comment/:commentId", routes.UpdateDiaryEntryComment)

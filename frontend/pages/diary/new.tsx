@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { postJson } from "../../src/api-methods"
+import { postFormData, postJson } from "../../src/api-methods"
 import { PageContainer } from "../../src/components/page-container"
 import styles from "../../src/components/diary/diary.module.css"
 
@@ -14,8 +14,22 @@ export default function NewDiaryEntryPage() {
     const [title, setTitle] = useState("New diary entry")
     const [label, setLabel] = useState("")
     const [body, setBody] = useState("")
+    const [pictures, setPictures] = useState<File[]>([])
     const [isPostingEntry, setIsPostingEntry] = useState(false)
     const [saveError, setSaveError] = useState("")
+
+    const uploadPictures = async (entryId: number) => {
+        for (const picture of pictures) {
+            const formData = new FormData()
+            formData.append("picture", picture)
+
+            const response = await postFormData(`/api/diary/entry/${entryId}/picture`, formData)
+
+            if (response.error) {
+                throw new Error(response.error.message)
+            }
+        }
+    }
 
     const postEntry = () => {
         const createdAt = entryDate ? `${entryDate}T12:00:00Z` : undefined
@@ -28,15 +42,18 @@ export default function NewDiaryEntryPage() {
             body,
             label: label || undefined,
             createdAt
-        }).then(r => {
+        }).then(async r => {
             if (r.error) {
                 setSaveError(r.error.message)
                 return
             }
 
             if (r.payload) {
+                await uploadPictures(r.payload.id)
                 navigate("/diary")
             }
+        }).catch(error => {
+            setSaveError(error instanceof Error ? error.message : String(error))
         }).finally(() => {
             setIsPostingEntry(false)
         })
@@ -90,6 +107,24 @@ export default function NewDiaryEntryPage() {
                                 onChange={e => setBody(e.target.value)}
                             />
                         </label>
+                        <label className={styles.draftField}>
+                            <span>Pictures</span>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={e => setPictures(Array.from(e.target.files ?? []))}
+                            />
+                        </label>
+                        {pictures.length > 0 && (
+                            <div className={styles.pictureSelectionList}>
+                                {pictures.map(picture => (
+                                    <div className={styles.pictureSelectionItem} key={`${picture.name}-${picture.size}`}>
+                                        {picture.name}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         {saveError && <div className={styles.saveError}>{saveError}</div>}
                         <div className={styles.draftActions}>
                             <button className={styles.secondaryButton} onClick={() => navigate("/diary")} disabled={isPostingEntry}>
