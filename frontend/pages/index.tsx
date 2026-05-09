@@ -1,12 +1,11 @@
-import { FrontPage } from "../src/components/front-page";
 import React from "react";
+import { CalendarDayView } from "../src/components/calendar-day-view";
 import { PageContainer } from "../src/components/page-container";
-import { Diary } from "../src/components/diary/diary";
 
 const Index = () => {
 	return (
 		<PageContainer>
-			<Diary />
+			<CalendarDayView />
 		</PageContainer>
 	)
 }

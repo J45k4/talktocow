@@ -1,6 +1,4 @@
-import { useState } from "react"
-import { Chatroom } from "./chatroom"
-import { Diary } from "./diary/diary"
+import { CalendarDayView } from "./calendar-day-view"
 import { IsLoggedIn, IsNotLoggedIn, useIsLoggedIn } from "./isloggedin"
 import { LoginForm } from "./login-form"
 import { NavigationBar } from "./navigation-bar"
@@ -17,8 +15,7 @@ export const FrontPage = () => {
         }}>
             <IsLoggedIn>
                 <NavigationBar />
-                <Diary /> 
-                {/* <Chatroom chatroomId="1"/> */}
+                <CalendarDayView />
             </IsLoggedIn>
             <IsNotLoggedIn>
                 <LoginForm />

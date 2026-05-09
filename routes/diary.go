@@ -1,69 +1,187 @@
 package routes
 
 import (
-	"fmt"
+	"database/sql"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/aarondl/null/v8"
-	"github.com/aarondl/sqlboiler/v4/boil"
-	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
-	"github.com/j45k4/talktocow/models"
 )
 
 type DiaryEntry struct {
-	ID             int       `json:"id"`
-	Title          string    `json:"title"`
-	Body           string    `json:"body"`
-	PostedByUserID string    `json:"postedByUserId"`
-	CreateAt       time.Time `json:"createdAt"`
+	ID             int     `json:"id"`
+	Title          string  `json:"title"`
+	Body           string  `json:"body"`
+	PostedByUserID string  `json:"postedByUserId"`
+	CreateAt       string  `json:"createdAt"`
+	Label          *string `json:"label"`
+	StartsAt       *string `json:"startsAt"`
+	EndsAt         *string `json:"endsAt"`
+	AllDay         bool    `json:"allDay"`
 }
 
 type CreateDiaryEntryRequest struct {
-	Title     string `json:"title"`
-	Body      string `json:"body"`
-	CreatedAt string `json:"createdAt"`
+	Title     string  `json:"title"`
+	Body      string  `json:"body"`
+	CreatedAt string  `json:"createdAt"`
+	Label     *string `json:"label"`
+	StartsAt  *string `json:"startsAt"`
+	EndsAt    *string `json:"endsAt"`
+	AllDay    bool    `json:"allDay"`
+}
+
+type UpdateDiaryEntryRequest struct {
+	Title    string   `json:"title"`
+	Body     string   `json:"body"`
+	Offset   int      `json:"offset"`
+	Mask     []string `json:"mask"`
+	Label    *string  `json:"label"`
+	StartsAt *string  `json:"startsAt"`
+	EndsAt   *string  `json:"endsAt"`
+	AllDay   bool     `json:"allDay"`
+}
+
+func parseDiaryTime(value string) (time.Time, error) {
+	if parsed, err := time.Parse(time.RFC3339, value); err == nil {
+		return parsed, nil
+	}
+
+	if parsed, err := time.Parse("2006-01-02T15:04", value); err == nil {
+		return parsed, nil
+	}
+
+	return time.Parse("2006-01-02", value)
+}
+
+func formatDiaryTime(value time.Time) string {
+	return value.Format(time.RFC3339)
+}
+
+func scanDiaryEntry(scanner interface {
+	Scan(dest ...any) error
+}) (DiaryEntry, error) {
+	var entry DiaryEntry
+	var title sql.NullString
+	var body sql.NullString
+	var label sql.NullString
+	var startsAt sql.NullTime
+	var endsAt sql.NullTime
+	var createdAt time.Time
+	var postedByUserID int
+
+	err := scanner.Scan(
+		&entry.ID,
+		&title,
+		&body,
+		&postedByUserID,
+		&createdAt,
+		&label,
+		&startsAt,
+		&endsAt,
+		&entry.AllDay,
+	)
+
+	if err != nil {
+		return entry, err
+	}
+
+	entry.Title = title.String
+	entry.Body = body.String
+	entry.PostedByUserID = strconv.Itoa(postedByUserID)
+	entry.CreateAt = formatDiaryTime(createdAt)
+
+	if label.Valid {
+		entry.Label = &label.String
+	}
+
+	if startsAt.Valid {
+		formatted := formatDiaryTime(startsAt.Time)
+		entry.StartsAt = &formatted
+	}
+
+	if endsAt.Valid {
+		formatted := formatDiaryTime(endsAt.Time)
+		entry.EndsAt = &formatted
+	}
+
+	return entry, nil
 }
 
 func CreateDiaryEntry(ctx *gin.Context) {
 	userSession := GetUserSessionFromContext(ctx)
-
 	db := GetDBFromContext(ctx)
 
 	var createRequest CreateDiaryEntryRequest
 
-	ctx.BindJSON(&createRequest)
-
-	entry := models.DiaryEntry{
-		Title:           null.StringFrom(createRequest.Title),
-		Body:            null.StringFrom(createRequest.Body),
-		WhoPostedUserID: int(userSession.UserID),
+	if err := ctx.BindJSON(&createRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry payload"))
+		return
 	}
 
+	createdAt := time.Now()
+
 	if createRequest.CreatedAt != "" {
-		createdAt, err := time.Parse(time.RFC3339, createRequest.CreatedAt)
+		parsed, err := parseDiaryTime(createRequest.CreatedAt)
 
 		if err != nil {
-			createdAt, err = time.Parse("2006-01-02", createRequest.CreatedAt)
-		}
-
-		if err != nil {
-			ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid diary entry date"))
+			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry date"))
 			return
 		}
 
-		entry.CreatedAt = createdAt
+		createdAt = parsed
 	}
 
-	err := entry.Insert(ctx.Request.Context(), db, boil.Infer())
+	var startsAt *time.Time
+
+	if createRequest.StartsAt != nil && *createRequest.StartsAt != "" {
+		parsed, err := parseDiaryTime(*createRequest.StartsAt)
+
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry start time"))
+			return
+		}
+
+		startsAt = &parsed
+	}
+
+	var endsAt *time.Time
+
+	if createRequest.EndsAt != nil && *createRequest.EndsAt != "" {
+		parsed, err := parseDiaryTime(*createRequest.EndsAt)
+
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry end time"))
+			return
+		}
+
+		if startsAt != nil && parsed.Before(*startsAt) {
+			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "End time must be after start time"))
+			return
+		}
+
+		endsAt = &parsed
+	}
+
+	title := createRequest.Title
+	if title == "" && createRequest.Label != nil {
+		title = *createRequest.Label
+	}
+
+	row := db.QueryRowContext(ctx.Request.Context(), `
+		insert into diary_entries (title, body, who_posted_user_id, created_at, label, starts_at, ends_at, all_day)
+		values ($1, $2, $3, $4, $5, $6, $7, $8)
+		returning id, title, body, who_posted_user_id, created_at, label, starts_at, ends_at, all_day
+	`, title, createRequest.Body, userSession.UserID, createdAt, createRequest.Label, startsAt, endsAt, createRequest.AllDay)
+
+	entry, err := scanDiaryEntry(row)
 
 	if err != nil {
-		panic(err)
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to create diary entry"))
+		return
 	}
 
-	ctx.JSON(200, entry)
+	ctx.JSON(http.StatusOK, entry)
 }
 
 func GetDiaryEntry(ctx *gin.Context) {
@@ -71,36 +189,25 @@ func GetDiaryEntry(ctx *gin.Context) {
 
 	entryId, err := strconv.Atoi(ctx.Params.ByName("diaryEntryId"))
 
-	if err != nil {
-
-	}
-
-	if entryId == 0 {
-		fmt.Errorf("no entry id provided")
-
-		ctx.JSON(400, CreateErrorResponse(InvalidInput, "No entry id provided"))
+	if err != nil || entryId == 0 {
+		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "No entry id provided"))
 		return
 	}
 
-	fmt.Printf("entryId %v", entryId)
+	row := db.QueryRowContext(ctx.Request.Context(), `
+		select id, title, body, who_posted_user_id, created_at, label, starts_at, ends_at, all_day
+		from diary_entries
+		where id = $1
+	`, entryId)
 
-	diaryEntry, err := models.FindDiaryEntry(ctx.Request.Context(), db, entryId)
+	diaryEntry, err := scanDiaryEntry(row)
 
 	if err != nil {
-		fmt.Errorf("Finding diary entry failed %v", err)
-
-		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, ""))
 		return
 	}
 
-	ctx.JSON(200, diaryEntry)
-}
-
-type UpdateDiaryEntryRequest struct {
-	Title  string `json:"title"`
-	Body   string `json:"body"`
-	Offset int    `json:"offset"`
-	Mask   []string
+	ctx.JSON(http.StatusOK, diaryEntry)
 }
 
 func UpdateDiaryEntry(ctx *gin.Context) {
@@ -108,40 +215,39 @@ func UpdateDiaryEntry(ctx *gin.Context) {
 
 	entryId, err := strconv.Atoi(ctx.Params.ByName("diaryEntryId"))
 
-	if entryId == 0 {
-		fmt.Errorf("no entry id provided")
-
-		ctx.JSON(400, CreateErrorResponse(InvalidInput, "No entry id provided"))
+	if err != nil || entryId == 0 {
+		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "No entry id provided"))
 		return
 	}
 
 	var updateDiaryEntryRequest UpdateDiaryEntryRequest
 
-	err = ctx.BindJSON(&updateDiaryEntryRequest)
-
-	if err != nil {
-		fmt.Errorf("parsing update payload failed %v", err)
-
-		ctx.JSON(400, CreateErrorResponse(InvalidInput, "Invalid payload"))
+	if err := ctx.BindJSON(&updateDiaryEntryRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid payload"))
 		return
 	}
 
-	diaryEntry, _ := models.FindDiaryEntry(ctx.Request.Context(), db, entryId)
+	_, err = db.ExecContext(ctx.Request.Context(), `
+		update diary_entries
+		set title = case when $2 then $3 else title end,
+		    body = case when $4 then $5 else body end,
+		    label = case when $6 then $7 else label end,
+		    all_day = case when $8 then $9 else all_day end
+		where id = $1
+	`,
+		entryId,
+		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "title"), updateDiaryEntryRequest.Title,
+		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "body"), updateDiaryEntryRequest.Body,
+		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "label"), updateDiaryEntryRequest.Label,
+		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "allDay"), updateDiaryEntryRequest.AllDay,
+	)
 
-	if DoesMaskHaveField(updateDiaryEntryRequest.Mask, "title") {
-		diaryEntry.Title = null.StringFrom(updateDiaryEntryRequest.Title)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to update diary entry"))
+		return
 	}
 
-	if DoesMaskHaveField(updateDiaryEntryRequest.Mask, "body") {
-		newBody := updateDiaryEntryRequest.Body[:updateDiaryEntryRequest.Offset]
-		newBody += updateDiaryEntryRequest.Body
-
-		diaryEntry.Body = null.StringFrom(newBody)
-
-		diaryEntry.Update(ctx.Request.Context(), db, boil.Infer())
-	}
-
-	ctx.JSON(200, diaryEntry)
+	GetDiaryEntry(ctx)
 }
 
 func DeleteDiaryEntry(ctx *gin.Context) {
@@ -151,101 +257,140 @@ func DeleteDiaryEntry(ctx *gin.Context) {
 	entryId, _ := strconv.Atoi(ctx.Params.ByName("diaryEntryId"))
 
 	if entryId == 0 {
-		fmt.Errorf("no entry id provided")
-
-		ctx.JSON(400, CreateErrorResponse(InvalidInput, "No entry id provided"))
+		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "No entry id provided"))
 		return
 	}
 
-	diaryEntry, err := models.FindDiaryEntry(ctx.Request.Context(), db, entryId)
+	var postedByUserID int
+
+	err := db.QueryRowContext(ctx.Request.Context(), "select who_posted_user_id from diary_entries where id = $1", entryId).Scan(&postedByUserID)
 
 	if err != nil {
-		fmt.Errorf("fetching diary entry failed %v", err)
-
-		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, ""))
 		return
 	}
 
-	if diaryEntry.WhoPostedUserID != int(userSession.UserID) {
+	if postedByUserID != int(userSession.UserID) {
 		ctx.JSON(http.StatusForbidden, CreateErrorResponse(AuthorizationError, "Only the author can delete this diary entry"))
 		return
 	}
 
-	_, err = diaryEntry.Delete(ctx.Request.Context(), db)
+	tx, err := db.BeginTx(ctx.Request.Context(), nil)
 
 	if err != nil {
-		fmt.Errorf("deleting diaryentry failed %v", err)
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to start diary entry delete"))
 		return
 	}
 
-	ctx.JSON(200, struct{}{})
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx.Request.Context(), "delete from diary_entry_comments where diary_entry_id = $1", entryId)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to delete diary entry comments"))
+		return
+	}
+
+	_, err = tx.ExecContext(ctx.Request.Context(), "delete from shared_diary_entries where diary_entry_id = $1", entryId)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to delete shared diary entries"))
+		return
+	}
+
+	_, err = tx.ExecContext(ctx.Request.Context(), "delete from diary_entries where id = $1", entryId)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to delete diary entry"))
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to finish diary entry delete"))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, struct{}{})
 }
 
 func GetDiaryEntries(ctx *gin.Context) {
-	// userSession := GetUserSessionFromContext(ctx)
-
 	db := GetDBFromContext(ctx)
+	offset, limit := GetOffsetAndLimit(ctx, 0, 30)
 
-	offsetStr := ctx.Query("offset")
-	limitStr := ctx.Query("limit")
-
-	limit := 30
-	offset := 0
-
-	if offsetStr != "" {
-		offset, _ = strconv.Atoi(offsetStr)
-	}
-
-	if limitStr != "" {
-		limit, _ = strconv.Atoi(limitStr)
-	}
-
-	dbEntries, err := models.DiaryEntries(
-		// qm.Where("who_posted_user_id = ?", userSession.UserID),
-		qm.Offset(offset),
-		qm.Limit(limit),
-		qm.OrderBy("created_at desc"),
-	).All(ctx.Request.Context(), db)
-
-	entries := []DiaryEntry{}
-
-	for _, dbEntry := range dbEntries {
-		entries = append(entries, DiaryEntry{
-			ID:             dbEntry.ID,
-			Title:          dbEntry.Title.String,
-			Body:           dbEntry.Body.String,
-			CreateAt:       dbEntry.CreatedAt,
-			PostedByUserID: strconv.Itoa(dbEntry.WhoPostedUserID),
-		})
-	}
+	rows, err := db.QueryContext(ctx.Request.Context(), `
+		select id, title, body, who_posted_user_id, created_at, label, starts_at, ends_at, all_day
+		from diary_entries
+		order by created_at desc
+		offset $1 limit $2
+	`, offset, limit)
 
 	if err != nil {
-		fmt.Errorf("Entries fetch failed %v", err)
-
-		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
-	}
-
-	if entries == nil {
-		ctx.JSON(200, []struct{}{})
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, ""))
 		return
 	}
 
-	ctx.JSON(200, entries)
+	defer rows.Close()
+
+	entries := []DiaryEntry{}
+
+	for rows.Next() {
+		entry, err := scanDiaryEntry(rows)
+
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, ""))
+			return
+		}
+
+		entries = append(entries, entry)
+	}
+
+	ctx.JSON(http.StatusOK, entries)
+}
+
+func GetDiaryLabels(ctx *gin.Context) {
+	db := GetDBFromContext(ctx)
+
+	rows, err := db.QueryContext(ctx.Request.Context(), `
+		select distinct label
+		from diary_entries
+		where label is not null and label <> ''
+		order by label asc
+	`)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to fetch labels"))
+		return
+	}
+
+	defer rows.Close()
+
+	labels := []string{}
+
+	for rows.Next() {
+		var label string
+		if err := rows.Scan(&label); err != nil {
+			ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to read labels"))
+			return
+		}
+
+		labels = append(labels, label)
+	}
+
+	ctx.JSON(http.StatusOK, labels)
 }
 
 func GetDiaryEntriesCount(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 
-	count, err := models.DiaryEntries(qm.Select("count(*)")).Count(ctx.Request.Context(), db)
+	var count int
+	err := db.QueryRowContext(ctx.Request.Context(), "select count(*) from diary_entries").Scan(&count)
 
 	if err != nil {
-		fmt.Errorf("Failed to count diary entries %v", err)
-
-		ctx.JSON(500, CreateErrorResponse(InternalServerError, ""))
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, ""))
 		return
 	}
 
-	ctx.JSON(200, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
 		"count": count,
 	})
 }

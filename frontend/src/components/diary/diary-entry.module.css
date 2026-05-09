@@ -69,6 +69,17 @@
     min-width: 0;
 }
 
+.labelChip {
+    display: inline-flex;
+    margin-bottom: 5px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #eef6ff;
+    color: #2b6cb0;
+    font-size: 13px;
+    font-weight: 900;
+}
+
 .title {
     font-size: 35px;
     font-weight: 700;
@@ -135,6 +146,45 @@
     margin-bottom: 5px;
     color: #3f4a54;
     white-space: pre-wrap;
+}
+
+.modalContent p {
+    margin: 0 0 16px;
+    color: #344054;
+    font-weight: 700;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.dangerButton,
+.cancelButton {
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 900;
+    padding: 10px 14px;
+}
+
+.dangerButton {
+    background: #fff0f0;
+    color: #b42318;
+}
+
+.dangerButton:hover {
+    background: #ffe1e1;
+}
+
+.cancelButton {
+    background: #eef2f7;
+    color: #364152;
+}
+
+.cancelButton:hover {
+    background: #e3e8ef;
 }
 
 .comment {
