@@ -11,9 +11,7 @@ import { $setBlocksType } from "@lexical/selection"
 import {
     $applyNodeReplacement,
     $createParagraphNode,
-    $createTextNode,
     $getSelection,
-    $getRoot,
     $insertNodes,
     $isRangeSelection,
     DecoratorNode,
@@ -27,6 +25,15 @@ import {
 import { postFormData } from "../../api-methods"
 import { getSession } from "../../logic/session-manager"
 import { resolveServerUrl } from "../../utility"
+import {
+    DIARY_RICH_TEXT_DOCUMENT_VERSION,
+    DiaryRichTextBlock,
+    DiaryRichTextDocument,
+    DiaryRichTextHeadingLevel,
+    DiaryRichTextInlineNode,
+    DiaryRichTextMark,
+    DiaryRichTextTextNode
+} from "./rich-text-document"
 import styles from "./lexical-diary.module.css"
 
 type UploadedFile = {
@@ -114,83 +121,285 @@ function $createDiaryImageNode(payload: {
     return $applyNodeReplacement(new DiaryImageNode(payload.fileId, payload.src, payload.alt))
 }
 
-function isSerializedEditorState(value: string) {
+const fileUrl = (fileId: number) => `/api/files/${fileId}`
+
+const parseJsonObject = (value?: string | null) => {
     try {
+        if (!value) {
+            return null
+        }
+
         const parsed = JSON.parse(value)
-        return parsed && typeof parsed === "object" && parsed.root && Array.isArray(parsed.root.children)
+        return parsed && typeof parsed === "object" ? parsed : null
     } catch (_error) {
-        return false
+        return null
     }
+}
+
+function isSerializedEditorStateValue(value: any) {
+    return value && typeof value === "object" && value.root && Array.isArray(value.root.children)
+}
+
+function isSerializedEditorState(value: string) {
+    return isSerializedEditorStateValue(parseJsonObject(value))
+}
+
+const isDiaryRichTextDocumentValue = (value: any): value is DiaryRichTextDocument => {
+    return value
+        && typeof value === "object"
+        && value.version === DIARY_RICH_TEXT_DOCUMENT_VERSION
+        && Array.isArray(value.content)
+}
+
+export const isDiaryRichTextBody = (value?: string | null) => {
+    return isDiaryRichTextDocumentValue(parseJsonObject(value))
 }
 
 export const isLexicalDiaryBody = (value?: string | null) => {
     return typeof value === "string" && isSerializedEditorState(value)
 }
 
-export const createDiaryBodyFromPlainTextAndImages = (text: string, images: DiaryInlineImage[]) => {
-    return JSON.stringify({
+export const isStructuredDiaryBody = (value?: string | null) => {
+    return isDiaryRichTextBody(value) || isLexicalDiaryBody(value)
+}
+
+const marksFromLexicalFormat = (format: number): DiaryRichTextMark[] | undefined => {
+    const marks: DiaryRichTextMark[] = []
+
+    if (format & 1) {
+        marks.push("bold")
+    }
+
+    if (format & 2) {
+        marks.push("italic")
+    }
+
+    if (format & 8) {
+        marks.push("underline")
+    }
+
+    return marks.length > 0 ? marks : undefined
+}
+
+const lexicalFormatFromMarks = (marks?: DiaryRichTextMark[]) => {
+    let format = 0
+
+    if (marks?.includes("bold")) {
+        format |= 1
+    }
+
+    if (marks?.includes("italic")) {
+        format |= 2
+    }
+
+    if (marks?.includes("underline")) {
+        format |= 8
+    }
+
+    return format
+}
+
+const createTextNode = (node: DiaryRichTextTextNode) => ({
+    detail: 0,
+    format: lexicalFormatFromMarks(node.marks),
+    mode: "normal",
+    style: "",
+    text: node.text,
+    type: "text",
+    version: 1
+})
+
+const createParagraphNode = (children: any[]) => ({
+    children,
+    direction: null,
+    format: "",
+    indent: 0,
+    textFormat: 0,
+    textStyle: "",
+    type: "paragraph",
+    version: 1
+})
+
+const createHeadingNode = (level: DiaryRichTextHeadingLevel, children: any[]) => ({
+    children,
+    direction: null,
+    format: "",
+    indent: 0,
+    tag: level === 3 ? "h3" : "h2",
+    type: "heading",
+    version: 1
+})
+
+const inlineNodesToLexicalChildren = (nodes: DiaryRichTextInlineNode[]) => {
+    return nodes.map(node => {
+        if ("text" in node) {
+            return createTextNode(node)
+        }
+
+        return {
+            type: "linebreak",
+            version: 1
+        }
+    })
+}
+
+const lexicalStateFromDiaryDocument = (document: DiaryRichTextDocument) => {
+    const children = document.content.map(block => {
+        if (block.type === "heading") {
+            return createHeadingNode(block.level, inlineNodesToLexicalChildren(block.children))
+        }
+
+        if (block.type === "image") {
+            return {
+                alt: block.alt ?? "",
+                fileId: block.fileId,
+                src: fileUrl(block.fileId),
+                type: "diary-image",
+                version: 1
+            }
+        }
+
+        return createParagraphNode(inlineNodesToLexicalChildren(block.children))
+    })
+
+    return {
         root: {
-            children: [
-                {
-                    children: text
-                        ? [{
-                            detail: 0,
-                            format: 0,
-                            mode: "normal",
-                            style: "",
-                            text,
-                            type: "text",
-                            version: 1
-                        }]
-                        : [],
-                    direction: null,
-                    format: "",
-                    indent: 0,
-                    textFormat: 0,
-                    textStyle: "",
-                    type: "paragraph",
-                    version: 1
-                },
-                ...images.map(image => ({
-                    alt: image.fileName,
-                    fileId: image.fileId,
-                    src: image.url,
-                    type: "diary-image",
-                    version: 1
-                }))
-            ],
+            children,
             direction: null,
             format: "",
             indent: 0,
             type: "root",
             version: 1
         }
+    }
+}
+
+const inlineNodesFromLexicalChildren = (children: any[]): DiaryRichTextInlineNode[] => {
+    return children.flatMap(child => {
+        if (child?.type === "text") {
+            const node: DiaryRichTextTextNode = {
+                text: child.text ?? ""
+            }
+            const marks = marksFromLexicalFormat(Number(child.format ?? 0))
+
+            if (marks) {
+                node.marks = marks
+            }
+
+            return node.text === "" ? [] : [node]
+        }
+
+        if (child?.type === "linebreak") {
+            return [{ type: "lineBreak" }]
+        }
+
+        if (Array.isArray(child?.children)) {
+            return inlineNodesFromLexicalChildren(child.children)
+        }
+
+        return []
     })
 }
 
+const diaryDocumentFromLexicalState = (state: any): DiaryRichTextDocument => {
+    const content: DiaryRichTextBlock[] = (state?.root?.children ?? []).flatMap((node: any) => {
+        if (node?.type === "diary-image" && typeof node.fileId === "number") {
+            return [{
+                type: "image",
+                fileId: node.fileId,
+                alt: node.alt || undefined
+            }]
+        }
+
+        if (node?.type === "heading") {
+            return [{
+                type: "heading",
+                level: node.tag === "h3" ? 3 : 2,
+                children: inlineNodesFromLexicalChildren(node.children ?? [])
+            }]
+        }
+
+        if (node?.type === "paragraph") {
+            return [{
+                type: "paragraph",
+                children: inlineNodesFromLexicalChildren(node.children ?? [])
+            }]
+        }
+
+        if (Array.isArray(node?.children)) {
+            return [{
+                type: "paragraph",
+                children: inlineNodesFromLexicalChildren(node.children)
+            }]
+        }
+
+        return []
+    })
+
+    return {
+        version: DIARY_RICH_TEXT_DOCUMENT_VERSION,
+        content: content.length > 0 ? content : [{
+            type: "paragraph",
+            children: []
+        }]
+    }
+}
+
+const inlineNodesFromPlainText = (text: string): DiaryRichTextInlineNode[] => {
+    if (!text) {
+        return []
+    }
+
+    return text.split("\n").flatMap((part, index) => {
+        const nodes: DiaryRichTextInlineNode[] = []
+
+        if (index > 0) {
+            nodes.push({ type: "lineBreak" })
+        }
+
+        if (part) {
+            nodes.push({ text: part })
+        }
+
+        return nodes
+    })
+}
+
+const createDiaryDocumentFromPlainTextAndImages = (text: string, images: DiaryInlineImage[]): DiaryRichTextDocument => ({
+    version: DIARY_RICH_TEXT_DOCUMENT_VERSION,
+    content: [
+        {
+            type: "paragraph",
+            children: inlineNodesFromPlainText(text)
+        },
+        ...images.map(image => ({
+            type: "image" as const,
+            fileId: image.fileId,
+            alt: image.fileName
+        }))
+    ]
+})
+
+const diaryDocumentFromBody = (body?: string | null, images: DiaryInlineImage[] = []): DiaryRichTextDocument => {
+    const parsed = parseJsonObject(body)
+
+    if (isDiaryRichTextDocumentValue(parsed)) {
+        return parsed
+    }
+
+    if (isSerializedEditorStateValue(parsed)) {
+        return diaryDocumentFromLexicalState(parsed)
+    }
+
+    return createDiaryDocumentFromPlainTextAndImages(body ?? "", images)
+}
+
+export const createDiaryBodyFromPlainTextAndImages = (text: string, images: DiaryInlineImage[]) => {
+    return JSON.stringify(createDiaryDocumentFromPlainTextAndImages(text, images))
+}
+
 const createInitialEditorState = (value: string, images: DiaryInlineImage[]) => {
-    if (isSerializedEditorState(value)) {
-        return value
-    }
-
-    return (_editor: LexicalEditor) => {
-        const root = $getRoot()
-        root.clear()
-
-        const paragraph = $createParagraphNode()
-        if (value) {
-            paragraph.append($createTextNode(value))
-        }
-        root.append(paragraph)
-
-        for (const image of images) {
-            root.append($createDiaryImageNode({
-                alt: image.fileName,
-                fileId: image.fileId,
-                src: image.url
-            }))
-        }
-    }
+    return JSON.stringify(lexicalStateFromDiaryDocument(diaryDocumentFromBody(value, images)))
 }
 
 function DiaryToolbarPlugin(props: {
@@ -377,48 +586,17 @@ export function DiaryLexicalEditor(props: {
                 />
                 <HistoryPlugin />
                 <OnChangePlugin onChange={editorState => {
-                    props.onChange(JSON.stringify(editorState.toJSON()))
+                    props.onChange(JSON.stringify(diaryDocumentFromLexicalState(editorState.toJSON())))
                 }} />
             </div>
         </LexicalComposer>
     )
 }
 
-const collectFileIdsFromNode = (node: any, result: Set<number>) => {
-    if (node?.type === "diary-image" && typeof node.fileId === "number") {
-        result.add(node.fileId)
-    }
-
-    if (Array.isArray(node?.children)) {
-        node.children.forEach((child: any) => collectFileIdsFromNode(child, result))
-    }
-}
-
 export const getDiaryBodyFileIds = (body: string) => {
-    const result = new Set<number>()
-
-    if (!isLexicalDiaryBody(body)) {
-        return []
-    }
-
-    collectFileIdsFromNode(JSON.parse(body).root, result)
-    return Array.from(result)
-}
-
-const getPlainTextFromNode = (node: any): string => {
-    if (node?.type === "text") {
-        return node.text ?? ""
-    }
-
-    if (node?.type === "linebreak") {
-        return "\n"
-    }
-
-    if (Array.isArray(node?.children)) {
-        return node.children.map(getPlainTextFromNode).join("")
-    }
-
-    return ""
+    return Array.from(new Set(diaryDocumentFromBody(body).content
+        .filter((block): block is Extract<DiaryRichTextBlock, { type: "image" }> => block.type === "image")
+        .map(block => block.fileId)))
 }
 
 export const hasDiaryBodyContent = (body?: string | null) => {
@@ -426,87 +604,79 @@ export const hasDiaryBodyContent = (body?: string | null) => {
         return false
     }
 
-    if (!isLexicalDiaryBody(body)) {
+    if (!isStructuredDiaryBody(body)) {
         return body.trim() !== ""
     }
 
-    const parsed = JSON.parse(body)
-    return getDiaryBodyFileIds(body).length > 0 || getPlainTextFromNode(parsed.root).trim() !== ""
+    return diaryDocumentFromBody(body).content.some(block => {
+        if (block.type === "image") {
+            return true
+        }
+
+        return block.children.some(child => "text" in child && child.text.trim() !== "")
+    })
 }
 
-const renderTextNode = (node: any, key: string) => {
-    let content: React.ReactNode = node.text ?? ""
-    const format = Number(node.format ?? 0)
+const renderInlineNode = (node: DiaryRichTextInlineNode, key: string) => {
+    if (!("text" in node)) {
+        return <br key={key} />
+    }
 
-    if (format & 1) {
+    let content: React.ReactNode = node.text
+
+    if (node.marks?.includes("bold")) {
         content = <strong>{content}</strong>
     }
 
-    if (format & 2) {
+    if (node.marks?.includes("italic")) {
         content = <em>{content}</em>
     }
 
-    if (format & 8) {
+    if (node.marks?.includes("underline")) {
         content = <u>{content}</u>
     }
 
     return <React.Fragment key={key}>{content}</React.Fragment>
 }
 
-const renderSerializedNode = (node: any, key: string): React.ReactNode => {
-    if (node?.type === "text") {
-        return renderTextNode(node, key)
-    }
-
-    if (node?.type === "linebreak") {
-        return <br key={key} />
-    }
-
-    if (node?.type === "diary-image") {
+const renderBlock = (block: DiaryRichTextBlock, key: string): React.ReactNode => {
+    if (block.type === "image") {
         return (
             <figure className={styles.readonlyImageFrame} key={key}>
-                <img className={styles.inlineImage} src={pictureSource(node.src)} alt={node.alt ?? ""} />
+                <img className={styles.inlineImage} src={pictureSource(fileUrl(block.fileId))} alt={block.alt ?? ""} />
             </figure>
         )
     }
 
-    if (node?.type === "paragraph") {
+    const children = block.children.map((child, index) => renderInlineNode(child, `${key}-${index}`))
+
+    if (block.type === "paragraph") {
         return (
             <p className={styles.readonlyParagraph} key={key}>
-                {(node.children ?? []).map((child: any, index: number) => renderSerializedNode(child, `${key}-${index}`))}
+                {children}
             </p>
         )
     }
 
-    if (node?.type === "heading") {
-        const children = (node.children ?? []).map((child: any, index: number) => renderSerializedNode(child, `${key}-${index}`))
-
-        if (node.tag === "h3") {
-            return <h3 className={styles.readonlySubheading} key={key}>{children}</h3>
-        }
-
-        return <h2 className={styles.readonlyHeading} key={key}>{children}</h2>
+    if (block.level === 3) {
+        return <h3 className={styles.readonlySubheading} key={key}>{children}</h3>
     }
 
-    if (Array.isArray(node?.children)) {
-        return node.children.map((child: any, index: number) => renderSerializedNode(child, `${key}-${index}`))
-    }
-
-    return null
+    return <h2 className={styles.readonlyHeading} key={key}>{children}</h2>
 }
 
 export function DiaryBodyRenderer(props: {
     body: string
 }) {
-    if (!isLexicalDiaryBody(props.body)) {
+    if (!isStructuredDiaryBody(props.body)) {
         return <div className={styles.plainBody}>{props.body}</div>
     }
 
-    const parsed = JSON.parse(props.body)
+    const document = diaryDocumentFromBody(props.body)
 
     return (
         <div className={styles.readonlyBody}>
-            {parsed.root.children.map((child: any, index: number) => renderSerializedNode(child, String(index)))}
+            {document.content.map((block, index) => renderBlock(block, String(index)))}
         </div>
     )
 }

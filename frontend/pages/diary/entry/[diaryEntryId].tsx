@@ -3,7 +3,7 @@ import { getJson, putJson } from "../../../src/api-methods"
 
 import { useNavigate, useParams } from "react-router-dom"
 import { PageContainer } from "../../../src/components/page-container"
-import { createDiaryBodyFromPlainTextAndImages, DiaryLexicalEditor, getDiaryBodyFileIds, isLexicalDiaryBody } from "../../../src/components/diary/lexical-diary"
+import { createDiaryBodyFromPlainTextAndImages, DiaryLexicalEditor, getDiaryBodyFileIds, isStructuredDiaryBody } from "../../../src/components/diary/lexical-diary"
 import styles from "../../../src/components/diary/diary.module.css"
 
 type DiaryEntryPicture = {
@@ -36,7 +36,7 @@ export default function DiaryEntryPage() {
 
             setEntry({
                 ...loadedEntry,
-                body: isLexicalDiaryBody(loadedEntry.body)
+                body: isStructuredDiaryBody(loadedEntry.body)
                     ? loadedEntry.body
                     : createDiaryBodyFromPlainTextAndImages(loadedEntry.body ?? "", pictures.map(picture => ({
                         fileId: picture.fileId,
