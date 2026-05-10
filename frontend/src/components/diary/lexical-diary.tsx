@@ -122,6 +122,62 @@ function $createDiaryImageNode(payload: {
 }
 
 const fileUrl = (fileId: number) => `/api/files/${fileId}`
+const maxImageDimension = 1600
+const imageUploadQuality = 0.82
+
+const resizeImageForUpload = (file: File) => {
+    if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
+        return Promise.resolve(file)
+    }
+
+    return new Promise<File>(resolve => {
+        const image = new Image()
+        const objectUrl = URL.createObjectURL(file)
+
+        image.onload = () => {
+            URL.revokeObjectURL(objectUrl)
+
+            const scale = Math.min(1, maxImageDimension / Math.max(image.width, image.height))
+
+            if (scale >= 1) {
+                resolve(file)
+                return
+            }
+
+            const canvas = document.createElement("canvas")
+            canvas.width = Math.round(image.width * scale)
+            canvas.height = Math.round(image.height * scale)
+            const context = canvas.getContext("2d")
+
+            if (!context) {
+                resolve(file)
+                return
+            }
+
+            context.drawImage(image, 0, 0, canvas.width, canvas.height)
+            canvas.toBlob(blob => {
+                if (!blob) {
+                    resolve(file)
+                    return
+                }
+
+                const resizedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+                    lastModified: file.lastModified,
+                    type: "image/jpeg"
+                })
+
+                resolve(resizedFile.size < file.size ? resizedFile : file)
+            }, "image/jpeg", imageUploadQuality)
+        }
+
+        image.onerror = () => {
+            URL.revokeObjectURL(objectUrl)
+            resolve(file)
+        }
+
+        image.src = objectUrl
+    })
+}
 
 const parseJsonObject = (value?: string | null) => {
     try {
@@ -471,8 +527,9 @@ function DiaryToolbarPlugin(props: {
 
         try {
             for (const file of Array.from(files)) {
+                const uploadFile = await resizeImageForUpload(file)
                 const formData = new FormData()
-                formData.append("file", file)
+                formData.append("file", uploadFile)
 
                 const response = await postFormData<UploadedFile>("/api/files", formData)
 
