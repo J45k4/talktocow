@@ -1,10 +1,14 @@
 import React, { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { postFormData, postJson } from "../../src/api-methods"
+import { deleteJson, postFormData, postJson } from "../../src/api-methods"
 import { PageContainer } from "../../src/components/page-container"
 import styles from "../../src/components/diary/diary.module.css"
 
 const todayAsDateInputValue = () => new Date().toISOString().slice(0, 10)
+
+type UploadedFile = {
+    id: number
+}
 
 export default function NewDiaryEntryPage() {
     const navigate = useNavigate()
@@ -18,45 +22,61 @@ export default function NewDiaryEntryPage() {
     const [isPostingEntry, setIsPostingEntry] = useState(false)
     const [saveError, setSaveError] = useState("")
 
-    const uploadPictures = async (entryId: number) => {
+    const uploadPictures = async () => {
+        const pictureFileIds: number[] = []
+
         for (const picture of pictures) {
             const formData = new FormData()
-            formData.append("picture", picture)
+            formData.append("file", picture)
 
-            const response = await postFormData(`/api/diary/entry/${entryId}/picture`, formData)
+            const response = await postFormData<UploadedFile>("/api/files", formData)
 
             if (response.error) {
                 throw new Error(response.error.message)
             }
+
+            if (response.payload) {
+                pictureFileIds.push(response.payload.id)
+            }
         }
+
+        return pictureFileIds
     }
 
-    const postEntry = () => {
+    const postEntry = async () => {
         const createdAt = entryDate ? `${entryDate}T12:00:00Z` : undefined
 
         setIsPostingEntry(true)
         setSaveError("")
 
-        postJson<any>("/api/diary/entry", {
-            title,
-            body,
-            label: label || undefined,
-            createdAt
-        }).then(async r => {
+        const pictureFileIds: number[] = []
+
+        try {
+            pictureFileIds.push(...await uploadPictures())
+
+            const r = await postJson<any>("/api/diary/entry", {
+                title,
+                body,
+                label: label || undefined,
+                createdAt,
+                pictureFileIds
+            })
+
             if (r.error) {
+                await Promise.all(pictureFileIds.map(fileId => deleteJson(`/api/files/${fileId}`)))
                 setSaveError(r.error.message)
                 return
             }
 
             if (r.payload) {
-                await uploadPictures(r.payload.id)
                 navigate("/diary")
             }
-        }).catch(error => {
+        } catch (error) {
+            await Promise.all(pictureFileIds.map(fileId => deleteJson(`/api/files/${fileId}`)))
             setSaveError(error instanceof Error ? error.message : String(error))
-        }).finally(() => {
+        } finally {
             setIsPostingEntry(false)
-        })
+        }
     }
 
     return (
