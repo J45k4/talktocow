@@ -21,6 +21,11 @@ const pictureSource = (url: string) => {
     return resolveServerUrl(token ? `${url}${separator}token=${encodeURIComponent(token)}` : url)
 }
 
+const pictureVariantUrl = (url: string, size: "thumb" | "large") => {
+    const separator = url.includes("?") ? "&" : "?"
+    return `${url}${separator}size=${size}`
+}
+
 export const DiaryEntry = (props: {
     id: number
     title: string
@@ -131,7 +136,7 @@ export const DiaryEntry = (props: {
                 <div className={styles.pictureGrid}>
                     {pictures.map(picture => (
                         <button className={styles.pictureButton} onClick={() => setPreviewPicture(picture)} key={picture.id} type="button">
-                            <img src={pictureSource(picture.url)} alt={picture.fileName} />
+                            <img src={pictureSource(pictureVariantUrl(picture.url, "thumb"))} alt={picture.fileName} />
                         </button>
                     ))}
                 </div>
@@ -184,7 +189,7 @@ export const DiaryEntry = (props: {
             {previewPicture && (
                 <div className={styles.fullscreenPreview} onClick={() => setPreviewPicture(null)}>
                     <button className={styles.closePreviewButton} onClick={() => setPreviewPicture(null)} type="button">×</button>
-                    <img src={pictureSource(previewPicture.url)} alt={previewPicture.fileName} onClick={event => event.stopPropagation()} />
+                    <img src={pictureSource(pictureVariantUrl(previewPicture.url, "large"))} alt={previewPicture.fileName} onClick={event => event.stopPropagation()} />
                 </div>
             )}
         </div>

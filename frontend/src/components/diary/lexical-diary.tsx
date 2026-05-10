@@ -109,7 +109,7 @@ export class DiaryImageNode extends DecoratorNode<React.ReactNode> {
     }
 
     decorate(_editor: LexicalEditor, _config: EditorConfig): React.ReactNode {
-        return <img className={styles.inlineImage} src={pictureSource(this.__src)} alt={this.__alt} />
+        return <img className={styles.inlineImage} src={pictureSource(fileUrl(this.__fileId))} alt={this.__alt} />
     }
 }
 
@@ -121,7 +121,7 @@ function $createDiaryImageNode(payload: {
     return $applyNodeReplacement(new DiaryImageNode(payload.fileId, payload.src, payload.alt))
 }
 
-const fileUrl = (fileId: number) => `/api/files/${fileId}`
+const fileUrl = (fileId: number, size: "thumb" | "medium" | "large" | "original" = "medium") => `/api/files/${fileId}?size=${size}`
 const maxImageDimension = 1600
 const imageUploadQuality = 0.82
 
@@ -543,7 +543,7 @@ function DiaryToolbarPlugin(props: {
                             $createDiaryImageNode({
                                 alt: response.payload?.fileName ?? file.name,
                                 fileId: response.payload.id,
-                                src: response.payload.url
+                                src: fileUrl(response.payload.id)
                             }),
                             $createParagraphNode()
                         ])

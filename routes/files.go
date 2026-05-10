@@ -5,7 +5,12 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"image"
+	"image/color"
+	"image/jpeg"
+	_ "image/png"
 	"io"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -19,6 +24,13 @@ import (
 )
 
 const maxUploadedFileSize = 8 * 1024 * 1024
+const imageVariantJPEGQuality = 86
+
+var imageVariantMaxDimension = map[string]int{
+	"thumb":  360,
+	"medium": 1280,
+	"large":  2048,
+}
 
 type StoredFile struct {
 	ID               int
@@ -61,6 +73,227 @@ func hashFileContent(data []byte) string {
 
 func storedFilePath(contentHash string) string {
 	return filepath.Join(config.FileStoragePath, contentHash)
+}
+
+func storedFileVariantPath(contentHash string, size string) string {
+	return filepath.Join(config.FileStoragePath, "variants", contentHash+"_"+size+".jpg")
+}
+
+func fileVariantFromRequest(ctx *gin.Context) (string, *fileRouteError) {
+	size := ctx.Query("size")
+
+	if size == "" {
+		size = ctx.Query("variant")
+	}
+
+	if size == "" || size == "original" {
+		return "original", nil
+	}
+
+	if _, ok := imageVariantMaxDimension[size]; ok {
+		return size, nil
+	}
+
+	return "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Unsupported file size"}
+}
+
+func isResizableRasterImage(contentType string) bool {
+	return contentType == "image/jpeg" || contentType == "image/png"
+}
+
+func sanitizeContentDispositionFileName(fileName string) string {
+	replacer := strings.NewReplacer(
+		"\"", "",
+		"\r", "",
+		"\n", "",
+		"\\", "",
+		"/", "",
+	)
+
+	return replacer.Replace(fileName)
+}
+
+func variantFileName(fileName string) string {
+	extension := filepath.Ext(fileName)
+
+	if extension == "" {
+		return fileName + ".jpg"
+	}
+
+	return strings.TrimSuffix(fileName, extension) + ".jpg"
+}
+
+func imageFitsMaxDimension(bounds image.Rectangle, maxDimension int) bool {
+	return bounds.Dx() <= maxDimension && bounds.Dy() <= maxDimension
+}
+
+func scaledImageSize(bounds image.Rectangle, maxDimension int) (int, int) {
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	if width <= 0 || height <= 0 {
+		return 0, 0
+	}
+
+	scale := math.Min(1, float64(maxDimension)/float64(max(width, height)))
+
+	return max(1, int(math.Round(float64(width)*scale))), max(1, int(math.Round(float64(height)*scale)))
+}
+
+func rgbaOverWhite(img image.Image, x int, y int) color.RGBA {
+	source := color.RGBAModel.Convert(img.At(x, y)).(color.RGBA)
+	alpha := uint32(source.A)
+	inverseAlpha := uint32(255 - source.A)
+
+	return color.RGBA{
+		R: uint8((uint32(source.R)*alpha + 255*inverseAlpha) / 255),
+		G: uint8((uint32(source.G)*alpha + 255*inverseAlpha) / 255),
+		B: uint8((uint32(source.B)*alpha + 255*inverseAlpha) / 255),
+		A: 255,
+	}
+}
+
+func resizeImageToJPEG(img image.Image, maxDimension int, output io.Writer) error {
+	bounds := img.Bounds()
+	targetWidth, targetHeight := scaledImageSize(bounds, maxDimension)
+	if targetWidth == 0 || targetHeight == 0 {
+		return image.ErrFormat
+	}
+
+	resized := image.NewRGBA(image.Rect(0, 0, targetWidth, targetHeight))
+	sourceWidth := bounds.Dx()
+	sourceHeight := bounds.Dy()
+
+	for y := 0; y < targetHeight; y++ {
+		sourceY := bounds.Min.Y + int(float64(y)*float64(sourceHeight)/float64(targetHeight))
+		if sourceY >= bounds.Max.Y {
+			sourceY = bounds.Max.Y - 1
+		}
+
+		for x := 0; x < targetWidth; x++ {
+			sourceX := bounds.Min.X + int(float64(x)*float64(sourceWidth)/float64(targetWidth))
+			if sourceX >= bounds.Max.X {
+				sourceX = bounds.Max.X - 1
+			}
+
+			resized.SetRGBA(x, y, rgbaOverWhite(img, sourceX, sourceY))
+		}
+	}
+
+	return jpeg.Encode(output, resized, &jpeg.Options{Quality: imageVariantJPEGQuality})
+}
+
+func ensureImageVariant(storedFile StoredFile, size string) (string, bool, error) {
+	maxDimension, ok := imageVariantMaxDimension[size]
+	if !ok || !isResizableRasterImage(storedFile.ContentType) {
+		return storedFilePath(storedFile.ContentHash), false, nil
+	}
+
+	variantPath := storedFileVariantPath(storedFile.ContentHash, size)
+	if _, err := os.Stat(variantPath); err == nil {
+		return variantPath, true, nil
+	} else if !os.IsNotExist(err) {
+		return "", false, err
+	}
+
+	source, err := os.Open(storedFilePath(storedFile.ContentHash))
+	if err != nil {
+		return "", false, err
+	}
+	defer source.Close()
+
+	img, _, err := image.Decode(source)
+	if err != nil {
+		return storedFilePath(storedFile.ContentHash), false, nil
+	}
+
+	if imageFitsMaxDimension(img.Bounds(), maxDimension) {
+		return storedFilePath(storedFile.ContentHash), false, nil
+	}
+
+	variantDir := filepath.Dir(variantPath)
+	if err := os.MkdirAll(variantDir, 0755); err != nil {
+		return "", false, err
+	}
+
+	tempFile, err := os.CreateTemp(variantDir, storedFile.ContentHash+"_"+size+"_*.jpg")
+	if err != nil {
+		return "", false, err
+	}
+
+	tempPath := tempFile.Name()
+	cleanupTemp := true
+	defer func() {
+		if cleanupTemp {
+			_ = os.Remove(tempPath)
+		}
+	}()
+
+	if err := resizeImageToJPEG(img, maxDimension, tempFile); err != nil {
+		_ = tempFile.Close()
+		return "", false, err
+	}
+
+	if err := tempFile.Close(); err != nil {
+		return "", false, err
+	}
+
+	if err := os.Rename(tempPath, variantPath); err != nil {
+		return "", false, err
+	}
+
+	cleanupTemp = false
+	return variantPath, true, nil
+}
+
+func removeStoredFileVariants(contentHash string) {
+	matches, err := filepath.Glob(storedFileVariantPath(contentHash, "*"))
+	if err != nil {
+		return
+	}
+
+	for _, match := range matches {
+		_ = os.Remove(match)
+	}
+}
+
+func serveStoredFile(ctx *gin.Context, storedFile StoredFile) {
+	size, routeErr := fileVariantFromRequest(ctx)
+	if routeErr != nil {
+		ctx.JSON(routeErr.status, CreateErrorResponse(routeErr.code, routeErr.message))
+		return
+	}
+
+	filePath := storedFilePath(storedFile.ContentHash)
+	contentType := storedFile.ContentType
+	fileName := storedFile.FileName
+
+	if size != "original" {
+		variantPath, isVariant, err := ensureImageVariant(storedFile, size)
+		if err != nil {
+			ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "File not found"))
+			return
+		}
+
+		filePath = variantPath
+
+		if isVariant {
+			contentType = "image/jpeg"
+			fileName = variantFileName(fileName)
+		}
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "File not found"))
+		return
+	}
+	defer file.Close()
+
+	ctx.Header("Content-Type", contentType)
+	ctx.Header("Content-Disposition", "inline; filename=\""+sanitizeContentDispositionFileName(fileName)+"\"")
+	ctx.Header("X-Content-Type-Options", "nosniff")
+	http.ServeContent(ctx.Writer, ctx.Request, fileName, storedFile.CreatedAt, file)
 }
 
 func fileResponse(file StoredFile) FileResponse {
@@ -204,6 +437,7 @@ func removeUnreferencedFiles(ctx context.Context, db *sql.DB, contentHashes []st
 
 		if referenceCount == 0 {
 			_ = os.Remove(storedFilePath(contentHash))
+			removeStoredFileVariants(contentHash)
 		}
 	}
 }
@@ -251,16 +485,7 @@ func GetFile(ctx *gin.Context) {
 		return
 	}
 
-	file, err := os.Open(storedFilePath(storedFile.ContentHash))
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "File not found"))
-		return
-	}
-	defer file.Close()
-
-	ctx.Header("Content-Type", storedFile.ContentType)
-	ctx.Header("Content-Disposition", "inline; filename=\""+strings.ReplaceAll(storedFile.FileName, "\"", "")+"\"")
-	http.ServeContent(ctx.Writer, ctx.Request, storedFile.FileName, storedFile.CreatedAt, file)
+	serveStoredFile(ctx, storedFile)
 }
 
 func DeleteFile(ctx *gin.Context) {
