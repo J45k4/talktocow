@@ -1,0 +1,152 @@
+.editorShell {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #d8d2e2;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    border-bottom: 1px solid #eee8f5;
+    background: #fbf7ff;
+}
+
+.toolbarButton {
+    border: 1px solid #d8d2e2;
+    border-radius: 8px;
+    background: #fff;
+    color: #4a226d;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 8px 10px;
+}
+
+.toolbarButton:hover:not(:disabled) {
+    background: #f5ecff;
+}
+
+.toolbarButtonActive {
+    border-color: #6f39a4;
+    background: #eadbff;
+    color: #321553;
+}
+
+.toolbarButton:disabled {
+    cursor: default;
+    opacity: 0.65;
+}
+
+.toolbarDivider {
+    align-self: stretch;
+    width: 1px;
+    min-height: 30px;
+    background: #e4dced;
+}
+
+.hiddenFileInput {
+    display: none;
+}
+
+.editorInput {
+    box-sizing: border-box;
+    min-height: 45vh;
+    padding: 14px;
+    color: #28313a;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.55;
+    outline: none;
+}
+
+.editorParagraph {
+    margin: 0 0 12px;
+}
+
+.editorInput strong,
+.readonlyBody strong {
+    font-weight: 900;
+}
+
+.editorInput em,
+.readonlyBody em {
+    font-style: italic;
+}
+
+.editorHeading {
+    margin: 0 0 12px;
+    color: #202733;
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.editorSubheading {
+    margin: 0 0 10px;
+    color: #293241;
+    font-size: 20px;
+    font-weight: 850;
+    line-height: 1.25;
+}
+
+.placeholder {
+    position: absolute;
+    top: 60px;
+    left: 14px;
+    color: #98a2b3;
+    font-size: 16px;
+    pointer-events: none;
+}
+
+.imageFrame,
+.readonlyImageFrame {
+    margin: 14px 0;
+}
+
+.inlineImage {
+    display: block;
+    max-width: min(100%, 680px);
+    max-height: 520px;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+.readonlyBody {
+    margin-bottom: 10px;
+    color: #3f4a54;
+    font-size: 20px;
+    line-height: 1.5;
+}
+
+.readonlyParagraph {
+    margin: 0 0 10px;
+    white-space: pre-wrap;
+}
+
+.readonlyHeading {
+    margin: 0 0 10px;
+    color: #202733;
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.readonlySubheading {
+    margin: 0 0 8px;
+    color: #293241;
+    font-size: 23px;
+    font-weight: 850;
+    line-height: 1.25;
+}
+
+.plainBody {
+    margin-bottom: 5px;
+    color: #3f4a54;
+    font-size: 20px;
+    white-space: pre-wrap;
+}

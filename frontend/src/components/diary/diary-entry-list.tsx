@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from "react"
 import { DiaryEntry } from "./diary-entry"
 import { getJson } from "../../api-methods"
 import { PullToRefresh } from "../pull-to-refresh"
+import { hasDiaryBodyContent } from "./lexical-diary"
 
 import styles from "./diary-entry-list.module.css"
 
@@ -21,7 +22,7 @@ export const DiaryEntryList = () => {
         ])
 
         const newEntries = entriesResponse.payload ?? []
-        const entriesWithContent = newEntries.filter(entry => (entry.body ?? "").trim() !== "" || (entry.pictureCount ?? 0) > 0)
+        const entriesWithContent = newEntries.filter(entry => hasDiaryBodyContent(entry.body) || (entry.pictureCount ?? 0) > 0)
 
         setEntries(entriesWithContent)
         setOffset(newEntries.length)
@@ -42,7 +43,7 @@ export const DiaryEntryList = () => {
 
                         getJson<any>("/api/diary/entries?offset=" + offset).then(r => {
                             const newEntries = r.payload ?? []
-                            const entriesWithContent = newEntries.filter(entry => (entry.body ?? "").trim() !== "" || (entry.pictureCount ?? 0) > 0)
+                            const entriesWithContent = newEntries.filter(entry => hasDiaryBodyContent(entry.body) || (entry.pictureCount ?? 0) > 0)
                             setEntries([...entries, ...entriesWithContent])
                             setOffset(offset + newEntries.length)
                         })

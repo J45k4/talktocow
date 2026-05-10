@@ -4,11 +4,13 @@ import { Link } from "react-router-dom"
 import { deleteJson, getJson, postJson } from "../../api-methods";
 import { getSession } from "../../logic/session-manager";
 import { resolveServerUrl } from "../../utility";
+import { DiaryBodyRenderer, isLexicalDiaryBody } from "./lexical-diary";
 import { Modal } from "../modal";
 import styles from "./diary-entry.module.css";
 
 type DiaryEntryPicture = {
     id: number
+    fileId: number
     fileName: string
     url: string
 }
@@ -40,6 +42,7 @@ export const DiaryEntry = (props: {
         year: "numeric"
     })
     const isAuthor = getSession().userId === props.postedByUserId
+    const bodyIsLexical = isLexicalDiaryBody(props.body)
 
     const [newComment, setNewComment] = React.useState("")
 
@@ -123,10 +126,8 @@ export const DiaryEntry = (props: {
                     )}
                 </div>
             </div>
-            <div className={styles.body}>
-                {props.body}
-            </div>
-            {pictures.length > 0 && (
+            <DiaryBodyRenderer body={props.body} />
+            {!bodyIsLexical && pictures.length > 0 && (
                 <div className={styles.pictureGrid}>
                     {pictures.map(picture => (
                         <button className={styles.pictureButton} onClick={() => setPreviewPicture(picture)} key={picture.id} type="button">

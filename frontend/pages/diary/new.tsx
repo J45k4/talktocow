@@ -1,14 +1,11 @@
 import React, { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { deleteJson, postFormData, postJson } from "../../src/api-methods"
+import { deleteJson, postJson } from "../../src/api-methods"
 import { PageContainer } from "../../src/components/page-container"
+import { createDiaryBodyFromPlainTextAndImages, DiaryLexicalEditor, getDiaryBodyFileIds } from "../../src/components/diary/lexical-diary"
 import styles from "../../src/components/diary/diary.module.css"
 
 const todayAsDateInputValue = () => new Date().toISOString().slice(0, 10)
-
-type UploadedFile = {
-    id: number
-}
 
 export default function NewDiaryEntryPage() {
     const navigate = useNavigate()
@@ -17,31 +14,9 @@ export default function NewDiaryEntryPage() {
     const [entryDate, setEntryDate] = useState(initialDate)
     const [title, setTitle] = useState("New diary entry")
     const [label, setLabel] = useState("")
-    const [body, setBody] = useState("")
-    const [pictures, setPictures] = useState<File[]>([])
+    const [body, setBody] = useState(createDiaryBodyFromPlainTextAndImages("", []))
     const [isPostingEntry, setIsPostingEntry] = useState(false)
     const [saveError, setSaveError] = useState("")
-
-    const uploadPictures = async () => {
-        const pictureFileIds: number[] = []
-
-        for (const picture of pictures) {
-            const formData = new FormData()
-            formData.append("file", picture)
-
-            const response = await postFormData<UploadedFile>("/api/files", formData)
-
-            if (response.error) {
-                throw new Error(response.error.message)
-            }
-
-            if (response.payload) {
-                pictureFileIds.push(response.payload.id)
-            }
-        }
-
-        return pictureFileIds
-    }
 
     const postEntry = async () => {
         const createdAt = entryDate ? `${entryDate}T12:00:00Z` : undefined
@@ -52,7 +27,7 @@ export default function NewDiaryEntryPage() {
         const pictureFileIds: number[] = []
 
         try {
-            pictureFileIds.push(...await uploadPictures())
+            pictureFileIds.push(...getDiaryBodyFileIds(body))
 
             const r = await postJson<any>("/api/diary/entry", {
                 title,
@@ -118,33 +93,10 @@ export default function NewDiaryEntryPage() {
                                 onChange={e => setLabel(e.target.value)}
                             />
                         </label>
-                        <label className={styles.draftField}>
+                        <div className={styles.draftField}>
                             <span>Content</span>
-                            <textarea
-                                className={styles.longContentInput}
-                                value={body}
-                                placeholder="Write as much as you want..."
-                                onChange={e => setBody(e.target.value)}
-                            />
-                        </label>
-                        <label className={styles.draftField}>
-                            <span>Pictures</span>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={e => setPictures(Array.from(e.target.files ?? []))}
-                            />
-                        </label>
-                        {pictures.length > 0 && (
-                            <div className={styles.pictureSelectionList}>
-                                {pictures.map(picture => (
-                                    <div className={styles.pictureSelectionItem} key={`${picture.name}-${picture.size}`}>
-                                        {picture.name}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                            <DiaryLexicalEditor value={body} onChange={setBody} />
+                        </div>
                         {saveError && <div className={styles.saveError}>{saveError}</div>}
                         <div className={styles.draftActions}>
                             <button className={styles.secondaryButton} onClick={() => navigate("/diary")} disabled={isPostingEntry}>
