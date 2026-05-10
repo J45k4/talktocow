@@ -104,6 +104,19 @@ export const postJson = async <T>(path: string, payload: any): Promise<ApiRespon
     return handleFetchResult(res)
 }
 
+export const postFormData = async <T>(path: string, payload: FormData): Promise<ApiResponse<T>> => {
+    const headers = getHeaders()
+    delete headers["Content-Type"]
+
+    let res = await fetch(resolveServerUrl(path), {
+        method: "POST",
+        headers: headers,
+        body: payload
+    })
+
+    return handleFetchResult(res)
+}
+
 export const putJson = async <T>(path: string, payload: any): Promise<ApiResponse<T>> => {
     const headers = getHeaders()
 
