@@ -25,6 +25,7 @@
     font-size: 14px;
     font-weight: 800;
     padding: 8px 10px;
+    white-space: nowrap;
 }
 
 .toolbarButton:hover:not(:disabled) {
@@ -101,6 +102,27 @@
     color: #98a2b3;
     font-size: 16px;
     pointer-events: none;
+}
+
+@media (max-width: 520px) {
+    .toolbar {
+        gap: 6px;
+        padding: 8px 10px;
+    }
+
+    .toolbarButton {
+        flex: 1 0 auto;
+        min-width: 54px;
+        padding: 8px 9px;
+    }
+
+    .toolbarDivider {
+        display: none;
+    }
+
+    .placeholder {
+        top: 110px;
+    }
 }
 
 .imageFrame,

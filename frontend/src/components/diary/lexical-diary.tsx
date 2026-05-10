@@ -301,40 +301,46 @@ const inlineNodesFromLexicalChildren = (children: any[]): DiaryRichTextInlineNod
     })
 }
 
+const blocksFromLexicalNode = (node: any): DiaryRichTextBlock[] => {
+    if (node?.type === "diary-image" && typeof node.fileId === "number") {
+        return [{
+            type: "image",
+            fileId: node.fileId,
+            alt: node.alt || undefined
+        }]
+    }
+
+    if (node?.type === "heading") {
+        const nestedImages = (node.children ?? []).flatMap(blocksFromLexicalNode)
+        const textChildren = inlineNodesFromLexicalChildren(node.children ?? [])
+        const heading: DiaryRichTextBlock[] = textChildren.length > 0 ? [{
+            type: "heading",
+            level: node.tag === "h3" ? 3 : 2,
+            children: textChildren
+        }] : []
+
+        return [...heading, ...nestedImages]
+    }
+
+    if (node?.type === "paragraph") {
+        const nestedImages = (node.children ?? []).flatMap(blocksFromLexicalNode)
+        const paragraph: DiaryRichTextBlock = {
+            type: "paragraph",
+            children: inlineNodesFromLexicalChildren(node.children ?? [])
+        }
+
+        return [paragraph, ...nestedImages]
+    }
+
+    if (Array.isArray(node?.children)) {
+        return node.children.flatMap(blocksFromLexicalNode)
+    }
+
+    return []
+}
+
 const diaryDocumentFromLexicalState = (state: any): DiaryRichTextDocument => {
-    const content: DiaryRichTextBlock[] = (state?.root?.children ?? []).flatMap((node: any) => {
-        if (node?.type === "diary-image" && typeof node.fileId === "number") {
-            return [{
-                type: "image",
-                fileId: node.fileId,
-                alt: node.alt || undefined
-            }]
-        }
-
-        if (node?.type === "heading") {
-            return [{
-                type: "heading",
-                level: node.tag === "h3" ? 3 : 2,
-                children: inlineNodesFromLexicalChildren(node.children ?? [])
-            }]
-        }
-
-        if (node?.type === "paragraph") {
-            return [{
-                type: "paragraph",
-                children: inlineNodesFromLexicalChildren(node.children ?? [])
-            }]
-        }
-
-        if (Array.isArray(node?.children)) {
-            return [{
-                type: "paragraph",
-                children: inlineNodesFromLexicalChildren(node.children)
-            }]
-        }
-
-        return []
-    })
+    const content: DiaryRichTextBlock[] = (state?.root?.children ?? []).flatMap(blocksFromLexicalNode)
 
     return {
         version: DIARY_RICH_TEXT_DOCUMENT_VERSION,
