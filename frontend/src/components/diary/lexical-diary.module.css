@@ -65,6 +65,29 @@
     outline: none;
 }
 
+.dropTarget {
+    position: relative;
+}
+
+.dropTargetActive .editorInput {
+    background: #fbf7ff;
+}
+
+.dropOverlay {
+    position: absolute;
+    inset: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #8b56c4;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.82);
+    color: #4a226d;
+    font-size: 18px;
+    font-weight: 900;
+    pointer-events: none;
+}
+
 .editorParagraph {
     margin: 0 0 12px;
 }
@@ -128,6 +151,49 @@
 .imageFrame,
 .readonlyImageFrame {
     margin: 14px 0;
+}
+
+.editableImageFrame {
+    position: relative;
+    display: inline-block;
+    max-width: min(100%, 680px);
+    margin: 14px 0;
+}
+
+.removeImageButton {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(32, 39, 51, 0.82);
+    color: #fff;
+    cursor: pointer;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.removeImageButton:hover {
+    background: rgba(146, 28, 28, 0.92);
+}
+
+.imagePreviewButton {
+    display: block;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+}
+
+.imagePreviewButton:hover .inlineImage {
+    filter: brightness(0.96);
 }
 
 .inlineImage {

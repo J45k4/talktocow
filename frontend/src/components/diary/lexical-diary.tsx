@@ -11,6 +11,7 @@ import { $setBlocksType } from "@lexical/selection"
 import {
     $applyNodeReplacement,
     $createParagraphNode,
+    $getNodeByKey,
     $getSelection,
     $insertNodes,
     $isRangeSelection,
@@ -108,9 +109,36 @@ export class DiaryImageNode extends DecoratorNode<React.ReactNode> {
         return false
     }
 
-    decorate(_editor: LexicalEditor, _config: EditorConfig): React.ReactNode {
-        return <img className={styles.inlineImage} src={pictureSource(fileUrl(this.__fileId))} alt={this.__alt} />
+    decorate(editor: LexicalEditor, _config: EditorConfig): React.ReactNode {
+        return <EditableDiaryImage editor={editor} nodeKey={this.__key} fileId={this.__fileId} alt={this.__alt} />
     }
+}
+
+function EditableDiaryImage(props: {
+    alt: string
+    editor: LexicalEditor
+    fileId: number
+    nodeKey: NodeKey
+}) {
+    const removeImage = () => {
+        props.editor.update(() => {
+            $getNodeByKey(props.nodeKey)?.remove()
+        })
+    }
+
+    return (
+        <div className={styles.editableImageFrame}>
+            <img className={styles.inlineImage} src={pictureSource(fileUrl(props.fileId))} alt={props.alt} />
+            <button
+                aria-label="Remove picture"
+                className={styles.removeImageButton}
+                onClick={removeImage}
+                title="Remove picture"
+                type="button">
+                ×
+            </button>
+        </div>
+    )
 }
 
 function $createDiaryImageNode(payload: {
@@ -125,9 +153,26 @@ const fileUrl = (fileId: number, size: "thumb" | "medium" | "large" | "original"
 const maxImageDimension = 1600
 const imageUploadQuality = 0.82
 
-const resizeImageForUpload = (file: File) => {
+const isHeicImageFile = (file: File) => {
+    const name = file.name.toLowerCase()
+
+    return file.type === "image/heic"
+        || file.type === "image/heif"
+        || name.endsWith(".heic")
+        || name.endsWith(".heif")
+}
+
+const isSupportedImageUploadFile = (file: File) => {
+    return file.type.startsWith("image/") || isHeicImageFile(file)
+}
+
+const resizeImageForUpload = async (file: File): Promise<File> => {
+    if (isHeicImageFile(file)) {
+        return file
+    }
+
     if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
-        return Promise.resolve(file)
+        return file
     }
 
     return new Promise<File>(resolve => {
@@ -518,15 +563,17 @@ function DiaryToolbarPlugin(props: {
         })
     }
 
-    const uploadFiles = async (files: FileList | null) => {
-        if (!files || files.length === 0) {
+    const uploadFiles = async (files: FileList | File[] | null) => {
+        const selectedFiles = Array.from(files ?? []).filter(isSupportedImageUploadFile)
+
+        if (selectedFiles.length === 0) {
             return
         }
 
         setIsUploading(true)
 
         try {
-            for (const file of Array.from(files)) {
+            for (const file of selectedFiles) {
                 const uploadFile = await resizeImageForUpload(file)
                 const formData = new FormData()
                 formData.append("file", uploadFile)
@@ -608,10 +655,119 @@ function DiaryToolbarPlugin(props: {
                 ref={inputRef}
                 className={styles.hiddenFileInput}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 multiple
                 onChange={event => uploadFiles(event.target.files)}
             />
+        </div>
+    )
+}
+
+function DiaryImageDropPlugin() {
+    const [editor] = useLexicalComposerContext()
+    const [isDraggingImage, setIsDraggingImage] = useState(false)
+    const [isUploading, setIsUploading] = useState(false)
+    const dragDepth = useRef(0)
+
+    const imageFilesFromDataTransfer = (dataTransfer: DataTransfer) => {
+        return Array.from(dataTransfer.files).filter(isSupportedImageUploadFile)
+    }
+
+    const hasFileDragItems = (dataTransfer: DataTransfer) => {
+        return Array.from(dataTransfer.items ?? []).some(item => item.kind === "file")
+    }
+
+    const uploadFiles = async (files: File[]) => {
+        if (files.length === 0) {
+            return
+        }
+
+        setIsUploading(true)
+
+        try {
+            for (const file of files) {
+                const uploadFile = await resizeImageForUpload(file)
+                const formData = new FormData()
+                formData.append("file", uploadFile)
+
+                const response = await postFormData<UploadedFile>("/api/files", formData)
+
+                if (response.error) {
+                    throw new Error(response.error.message)
+                }
+
+                if (response.payload) {
+                    editor.update(() => {
+                        $insertNodes([
+                            $createDiaryImageNode({
+                                alt: response.payload?.fileName ?? file.name,
+                                fileId: response.payload.id,
+                                src: fileUrl(response.payload.id)
+                            }),
+                            $createParagraphNode()
+                        ])
+                    })
+                }
+            }
+        } finally {
+            setIsUploading(false)
+        }
+    }
+
+    return (
+        <div
+            className={isDraggingImage ? `${styles.dropTarget} ${styles.dropTargetActive}` : styles.dropTarget}
+            onDragEnter={event => {
+                if (!hasFileDragItems(event.dataTransfer)) {
+                    return
+                }
+
+                event.preventDefault()
+                dragDepth.current += 1
+                setIsDraggingImage(true)
+            }}
+            onDragOver={event => {
+                if (!hasFileDragItems(event.dataTransfer)) {
+                    return
+                }
+
+                event.preventDefault()
+                event.dataTransfer.dropEffect = "copy"
+            }}
+            onDragLeave={event => {
+                if (!hasFileDragItems(event.dataTransfer)) {
+                    return
+                }
+
+                event.preventDefault()
+                dragDepth.current = Math.max(0, dragDepth.current - 1)
+
+                if (dragDepth.current === 0) {
+                    setIsDraggingImage(false)
+                }
+            }}
+            onDrop={event => {
+                const files = imageFilesFromDataTransfer(event.dataTransfer)
+
+                if (files.length === 0) {
+                    return
+                }
+
+                event.preventDefault()
+                dragDepth.current = 0
+                setIsDraggingImage(false)
+                void uploadFiles(files)
+            }}>
+            <RichTextPlugin
+                contentEditable={<ContentEditable className={styles.editorInput} />}
+                placeholder={<div className={styles.placeholder}>Write as much as you want...</div>}
+                ErrorBoundary={LexicalErrorBoundary}
+            />
+            {(isDraggingImage || isUploading) && (
+                <div className={styles.dropOverlay}>
+                    {isUploading ? "Adding pictures..." : "Drop pictures to add them"}
+                </div>
+            )}
         </div>
     )
 }
@@ -642,11 +798,7 @@ export function DiaryLexicalEditor(props: {
         <LexicalComposer initialConfig={initialConfig}>
             <div className={styles.editorShell}>
                 <DiaryToolbarPlugin />
-                <RichTextPlugin
-                    contentEditable={<ContentEditable className={styles.editorInput} />}
-                    placeholder={<div className={styles.placeholder}>Write as much as you want...</div>}
-                    ErrorBoundary={LexicalErrorBoundary}
-                />
+                <DiaryImageDropPlugin />
                 <HistoryPlugin />
                 <OnChangePlugin onChange={editorState => {
                     props.onChange(JSON.stringify(diaryDocumentFromLexicalState(editorState.toJSON())))
@@ -702,11 +854,17 @@ const renderInlineNode = (node: DiaryRichTextInlineNode, key: string) => {
     return <React.Fragment key={key}>{content}</React.Fragment>
 }
 
-const renderBlock = (block: DiaryRichTextBlock, key: string): React.ReactNode => {
+const renderBlock = (block: DiaryRichTextBlock, key: string, onImageClick?: (image: { alt?: string, fileId: number }) => void): React.ReactNode => {
     if (block.type === "image") {
+        const image = <img className={styles.inlineImage} src={pictureSource(fileUrl(block.fileId))} alt={block.alt ?? ""} />
+
         return (
             <figure className={styles.readonlyImageFrame} key={key}>
-                <img className={styles.inlineImage} src={pictureSource(fileUrl(block.fileId))} alt={block.alt ?? ""} />
+                {onImageClick ? (
+                    <button className={styles.imagePreviewButton} onClick={() => onImageClick({ alt: block.alt, fileId: block.fileId })} type="button">
+                        {image}
+                    </button>
+                ) : image}
             </figure>
         )
     }
@@ -730,6 +888,7 @@ const renderBlock = (block: DiaryRichTextBlock, key: string): React.ReactNode =>
 
 export function DiaryBodyRenderer(props: {
     body: string
+    onImageClick?: (image: { alt?: string, fileId: number }) => void
 }) {
     if (!isStructuredDiaryBody(props.body)) {
         return <div className={styles.plainBody}>{props.body}</div>
@@ -739,7 +898,7 @@ export function DiaryBodyRenderer(props: {
 
     return (
         <div className={styles.readonlyBody}>
-            {document.content.map((block, index) => renderBlock(block, String(index)))}
+            {document.content.map((block, index) => renderBlock(block, String(index), props.onImageClick))}
         </div>
     )
 }
