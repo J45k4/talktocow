@@ -7,6 +7,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
+	"net/url"
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -20,6 +23,31 @@ import (
 	"github.com/openai/openai-go/v3/option"
 	migrate "github.com/rubenv/sql-migrate"
 )
+
+func corsOriginAllowed(origin string) bool {
+	for _, allowedOrigin := range config.CORSAllowOrigins {
+		if origin == allowedOrigin {
+			return true
+		}
+	}
+
+	parsedOrigin, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+
+	hostname := parsedOrigin.Hostname()
+	if hostname == "localhost" || hostname == "puppe" || strings.HasSuffix(hostname, ".local") {
+		return true
+	}
+
+	ip := net.ParseIP(hostname)
+	if ip == nil {
+		return false
+	}
+
+	return ip.IsLoopback() || ip.IsPrivate()
+}
 
 func main() {
 	log.Printf("Private key path %v", config.PrivateKeyPath)
@@ -70,8 +98,8 @@ func main() {
 	corsConfig := cors.DefaultConfig()
 
 	corsConfig.AllowCredentials = true
-	// corsConfig.AllowOrigins = []string{"http://localhost:3080", "https://talktocow.dy.fi/"}
-	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowOrigins = []string{}
+	corsConfig.AllowOriginFunc = corsOriginAllowed
 	corsConfig.AddAllowMethods("OPTIONS")
 	corsConfig.AddAllowHeaders("authorization")
 	corsConfig.AddAllowHeaders("x-device-id")
@@ -84,8 +112,10 @@ func main() {
 	})
 
 	r.POST("/api/login", routes.HandleLogin)
+	r.POST("/api/token", routes.HandleTokenLogin)
 	r.POST("/api/passkeys/login/begin", routes.HandlePasskeyLoginBegin)
 	r.POST("/api/passkeys/login/finish", routes.HandlePasskeyLoginFinish)
+	r.POST("/api/logout", routes.HandleLogout)
 	r.GET("/api/ws", routes.HandleWs)
 
 	r.Use(routes.SessionMiddleware)

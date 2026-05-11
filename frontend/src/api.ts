@@ -7,7 +7,9 @@ import { resolveServerUrl } from "./utility"
 const logger = createLogger("api")
 
 export const fetchChatrooms = async () => {
-	return fetch(resolveServerUrl("/api/chatrooms"))
+	return fetch(resolveServerUrl("/api/chatrooms"), {
+		credentials: "include"
+	})
 }
 
 export const api = {

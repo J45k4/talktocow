@@ -3,8 +3,6 @@ import { getSession } from "./logic/session-manager";
 export const getHeaders = () => {
     const session = getSession();
 
-    console.log("session", session)
-
     const headers = {
         ["Content-Type"]: "application/json"
     }

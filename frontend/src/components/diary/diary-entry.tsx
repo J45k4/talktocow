@@ -16,9 +16,7 @@ type DiaryEntryPicture = {
 }
 
 const pictureSource = (url: string) => {
-    const token = getSession().token
-    const separator = url.includes("?") ? "&" : "?"
-    return resolveServerUrl(token ? `${url}${separator}token=${encodeURIComponent(token)}` : url)
+    return resolveServerUrl(url)
 }
 
 const pictureVariantUrl = (url: string, size: "thumb" | "large") => {

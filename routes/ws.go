@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/j45k4/talktocow/auth"
 	"github.com/j45k4/talktocow/eventbus"
 	"github.com/j45k4/talktocow/models"
-	"github.com/aarondl/null/v8"
-	"github.com/aarondl/sqlboiler/v4/boil"
 )
 
 type WsMessageFromClientType string
@@ -105,6 +105,14 @@ func (h *WsHandler) sendMessage(msg interface{}) {
 }
 
 func (h *WsHandler) handleAuthenticate(msg WsMsgFromClient) bool {
+	if msg.Token == nil || *msg.Token == "" {
+		h.sendMessage(WsMsgToClient{
+			Type: WsUnauthenticated,
+		})
+
+		return true
+	}
+
 	var userSession UserSession
 
 	err := auth.DecodeObjectFromToken(*msg.Token, &userSession)
@@ -362,7 +370,7 @@ func (h *WsHandler) Run() {
 				return
 			}
 
-			fmt.Println("received wsMsg: ", msg)
+			fmt.Println("received wsMsg type: ", msg.Type)
 
 			if h.handleWsMsg(msg) {
 				log.Printf("ws handler exiting")
@@ -397,6 +405,11 @@ func HandleWs(ctx *gin.Context) {
 		db:       db,
 		eventbus: eventbus,
 		ctx:      ctx.Request.Context(),
+	}
+
+	if userSession, ok := GetUserSessionFromRequest(ctx); ok {
+		wsHandler.userID = userSession.UserID
+		wsHandler.userName = userSession.UserName
 	}
 
 	wsHandler.Run()

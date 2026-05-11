@@ -11,7 +11,7 @@ let wsSocket: WebSocket
 const sendBuffer = []
 
 const send = (msg: MessageToServer) => {
-	logger.info("sendMessage", msg)
+	logger.info("sendMessage", { type: msg.type })
 
 	if (wsSocket.readyState === WebSocket.OPEN) {
 		wsSocket.send(JSON.stringify(msg))
@@ -22,7 +22,7 @@ const send = (msg: MessageToServer) => {
 	sendBuffer.push(msg)
 }
 
-const createConn = (token: string) => {	
+const createConn = (token?: string) => {
 	logger.info("creating websocket")
 
 	try {
@@ -42,12 +42,14 @@ const createConn = (token: string) => {
 	wsSocket.onopen = () => {
 		logger.info("Socket onopen")
 
+		if (token) {
 			send({
 				type: "authenticate",
 				token: token,
 				deivceId: getSession().deviceId,
 				transmitedAt: new Date().toISOString()
 			})
+		}
 
 		let buffItem = sendBuffer.shift()
 
@@ -81,19 +83,20 @@ const createConn = (token: string) => {
 	}
 }
 
-const openConn = (token: string) => {
-	if (!wsSocket) {
+const openConn = () => {
+	if (wsSocket && (wsSocket.readyState === WebSocket.OPEN || wsSocket.readyState === WebSocket.CONNECTING)) {
 		return
 	}
 
-	createConn(token)
+	createConn(getSession().token)
 }
 
 if (typeof window !== "undefined") {
 	const token = window.localStorage.getItem("token")
+	const userId = window.localStorage.getItem("userId")
 
-	if (token) {
-		createConn(token)
+	if (token || userId) {
+		createConn(token ?? undefined)
 	}
 }
 
