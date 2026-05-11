@@ -65,6 +65,29 @@
     outline: none;
 }
 
+.dropTarget {
+    position: relative;
+}
+
+.dropTargetActive .editorInput {
+    background: #fbf7ff;
+}
+
+.dropOverlay {
+    position: absolute;
+    inset: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #8b56c4;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.82);
+    color: #4a226d;
+    font-size: 18px;
+    font-weight: 900;
+    pointer-events: none;
+}
+
 .editorParagraph {
     margin: 0 0 12px;
 }

@@ -518,15 +518,17 @@ function DiaryToolbarPlugin(props: {
         })
     }
 
-    const uploadFiles = async (files: FileList | null) => {
-        if (!files || files.length === 0) {
+    const uploadFiles = async (files: FileList | File[] | null) => {
+        const selectedFiles = Array.from(files ?? []).filter(file => file.type.startsWith("image/"))
+
+        if (selectedFiles.length === 0) {
             return
         }
 
         setIsUploading(true)
 
         try {
-            for (const file of Array.from(files)) {
+            for (const file of selectedFiles) {
                 const uploadFile = await resizeImageForUpload(file)
                 const formData = new FormData()
                 formData.append("file", uploadFile)
@@ -616,6 +618,115 @@ function DiaryToolbarPlugin(props: {
     )
 }
 
+function DiaryImageDropPlugin() {
+    const [editor] = useLexicalComposerContext()
+    const [isDraggingImage, setIsDraggingImage] = useState(false)
+    const [isUploading, setIsUploading] = useState(false)
+    const dragDepth = useRef(0)
+
+    const imageFilesFromDataTransfer = (dataTransfer: DataTransfer) => {
+        return Array.from(dataTransfer.files).filter(file => file.type.startsWith("image/"))
+    }
+
+    const hasImageDragItems = (dataTransfer: DataTransfer) => {
+        return Array.from(dataTransfer.items ?? []).some(item => item.kind === "file" && item.type.startsWith("image/"))
+    }
+
+    const uploadFiles = async (files: File[]) => {
+        if (files.length === 0) {
+            return
+        }
+
+        setIsUploading(true)
+
+        try {
+            for (const file of files) {
+                const uploadFile = await resizeImageForUpload(file)
+                const formData = new FormData()
+                formData.append("file", uploadFile)
+
+                const response = await postFormData<UploadedFile>("/api/files", formData)
+
+                if (response.error) {
+                    throw new Error(response.error.message)
+                }
+
+                if (response.payload) {
+                    editor.update(() => {
+                        $insertNodes([
+                            $createDiaryImageNode({
+                                alt: response.payload?.fileName ?? file.name,
+                                fileId: response.payload.id,
+                                src: fileUrl(response.payload.id)
+                            }),
+                            $createParagraphNode()
+                        ])
+                    })
+                }
+            }
+        } finally {
+            setIsUploading(false)
+        }
+    }
+
+    return (
+        <div
+            className={isDraggingImage ? `${styles.dropTarget} ${styles.dropTargetActive}` : styles.dropTarget}
+            onDragEnter={event => {
+                if (!hasImageDragItems(event.dataTransfer)) {
+                    return
+                }
+
+                event.preventDefault()
+                dragDepth.current += 1
+                setIsDraggingImage(true)
+            }}
+            onDragOver={event => {
+                if (!hasImageDragItems(event.dataTransfer)) {
+                    return
+                }
+
+                event.preventDefault()
+                event.dataTransfer.dropEffect = "copy"
+            }}
+            onDragLeave={event => {
+                if (!hasImageDragItems(event.dataTransfer)) {
+                    return
+                }
+
+                event.preventDefault()
+                dragDepth.current = Math.max(0, dragDepth.current - 1)
+
+                if (dragDepth.current === 0) {
+                    setIsDraggingImage(false)
+                }
+            }}
+            onDrop={event => {
+                const files = imageFilesFromDataTransfer(event.dataTransfer)
+
+                if (files.length === 0) {
+                    return
+                }
+
+                event.preventDefault()
+                dragDepth.current = 0
+                setIsDraggingImage(false)
+                void uploadFiles(files)
+            }}>
+            <RichTextPlugin
+                contentEditable={<ContentEditable className={styles.editorInput} />}
+                placeholder={<div className={styles.placeholder}>Write as much as you want...</div>}
+                ErrorBoundary={LexicalErrorBoundary}
+            />
+            {(isDraggingImage || isUploading) && (
+                <div className={styles.dropOverlay}>
+                    {isUploading ? "Adding pictures..." : "Drop pictures to add them"}
+                </div>
+            )}
+        </div>
+    )
+}
+
 export function DiaryLexicalEditor(props: {
     initialImages?: DiaryInlineImage[]
     onChange: (value: string) => void
@@ -642,11 +753,7 @@ export function DiaryLexicalEditor(props: {
         <LexicalComposer initialConfig={initialConfig}>
             <div className={styles.editorShell}>
                 <DiaryToolbarPlugin />
-                <RichTextPlugin
-                    contentEditable={<ContentEditable className={styles.editorInput} />}
-                    placeholder={<div className={styles.placeholder}>Write as much as you want...</div>}
-                    ErrorBoundary={LexicalErrorBoundary}
-                />
+                <DiaryImageDropPlugin />
                 <HistoryPlugin />
                 <OnChangePlugin onChange={editorState => {
                     props.onChange(JSON.stringify(diaryDocumentFromLexicalState(editorState.toJSON())))
