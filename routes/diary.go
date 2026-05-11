@@ -4,9 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
-	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -601,18 +599,12 @@ func GetDiaryEntryPicture(ctx *gin.Context) {
 		return
 	}
 
-	file, err := os.Open(storedFilePath(contentHash))
-
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "Picture file not found"))
-		return
-	}
-
-	defer file.Close()
-
-	ctx.Header("Content-Type", contentType)
-	ctx.Header("Content-Disposition", "inline; filename=\""+strings.ReplaceAll(fileName, "\"", "")+"\"")
-	http.ServeContent(ctx.Writer, ctx.Request, fileName, createdAt, file)
+	serveStoredFile(ctx, StoredFile{
+		FileName:    fileName,
+		ContentType: contentType,
+		ContentHash: contentHash,
+		CreatedAt:   createdAt,
+	})
 }
 
 func DeleteDiaryEntryPicture(ctx *gin.Context) {

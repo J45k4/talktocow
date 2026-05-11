@@ -4,17 +4,24 @@ import { Link } from "react-router-dom"
 import { deleteJson, getJson, postJson } from "../../api-methods";
 import { getSession } from "../../logic/session-manager";
 import { resolveServerUrl } from "../../utility";
+import { DiaryBodyRenderer, isStructuredDiaryBody } from "./lexical-diary";
 import { Modal } from "../modal";
 import styles from "./diary-entry.module.css";
 
 type DiaryEntryPicture = {
     id: number
+    fileId: number
     fileName: string
     url: string
 }
 
 const pictureSource = (url: string) => {
     return resolveServerUrl(url)
+}
+
+const pictureVariantUrl = (url: string, size: "thumb" | "large") => {
+    const separator = url.includes("?") ? "&" : "?"
+    return `${url}${separator}size=${size}`
 }
 
 export const DiaryEntry = (props: {
@@ -38,6 +45,7 @@ export const DiaryEntry = (props: {
         year: "numeric"
     })
     const isAuthor = getSession().userId === props.postedByUserId
+    const bodyIsStructured = isStructuredDiaryBody(props.body)
 
     const [newComment, setNewComment] = React.useState("")
 
@@ -121,14 +129,12 @@ export const DiaryEntry = (props: {
                     )}
                 </div>
             </div>
-            <div className={styles.body}>
-                {props.body}
-            </div>
-            {pictures.length > 0 && (
+            <DiaryBodyRenderer body={props.body} />
+            {!bodyIsStructured && pictures.length > 0 && (
                 <div className={styles.pictureGrid}>
                     {pictures.map(picture => (
                         <button className={styles.pictureButton} onClick={() => setPreviewPicture(picture)} key={picture.id} type="button">
-                            <img src={pictureSource(picture.url)} alt={picture.fileName} />
+                            <img src={pictureSource(pictureVariantUrl(picture.url, "thumb"))} alt={picture.fileName} />
                         </button>
                     ))}
                 </div>
@@ -181,7 +187,7 @@ export const DiaryEntry = (props: {
             {previewPicture && (
                 <div className={styles.fullscreenPreview} onClick={() => setPreviewPicture(null)}>
                     <button className={styles.closePreviewButton} onClick={() => setPreviewPicture(null)} type="button">×</button>
-                    <img src={pictureSource(previewPicture.url)} alt={previewPicture.fileName} onClick={event => event.stopPropagation()} />
+                    <img src={pictureSource(pictureVariantUrl(previewPicture.url, "large"))} alt={previewPicture.fileName} onClick={event => event.stopPropagation()} />
                 </div>
             )}
         </div>

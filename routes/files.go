@@ -1,11 +1,18 @@
 package routes
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/binary"
 	"encoding/hex"
+	"image"
+	stddraw "image/draw"
+	"image/jpeg"
+	_ "image/png"
 	"io"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -16,9 +23,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/config"
+	"golang.org/x/image/draw"
 )
 
 const maxUploadedFileSize = 8 * 1024 * 1024
+const imageVariantJPEGQuality = 86
+const imageVariantCacheVersion = "v2"
+
+var imageVariantMaxDimension = map[string]int{
+	"thumb":  360,
+	"medium": 1280,
+	"large":  2048,
+}
 
 type StoredFile struct {
 	ID               int
@@ -61,6 +77,334 @@ func hashFileContent(data []byte) string {
 
 func storedFilePath(contentHash string) string {
 	return filepath.Join(config.FileStoragePath, contentHash)
+}
+
+func storedFileVariantPath(contentHash string, size string) string {
+	return filepath.Join(config.FileStoragePath, "variants", contentHash+"_"+size+"_"+imageVariantCacheVersion+".jpg")
+}
+
+func fileVariantFromRequest(ctx *gin.Context) (string, *fileRouteError) {
+	size := ctx.Query("size")
+
+	if size == "" {
+		size = ctx.Query("variant")
+	}
+
+	if size == "" || size == "original" {
+		return "original", nil
+	}
+
+	if _, ok := imageVariantMaxDimension[size]; ok {
+		return size, nil
+	}
+
+	return "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Unsupported file size"}
+}
+
+func isResizableRasterImage(contentType string) bool {
+	return contentType == "image/jpeg" || contentType == "image/png"
+}
+
+func sanitizeContentDispositionFileName(fileName string) string {
+	replacer := strings.NewReplacer(
+		"\"", "",
+		"\r", "",
+		"\n", "",
+		"\\", "",
+		"/", "",
+	)
+
+	return replacer.Replace(fileName)
+}
+
+func variantFileName(fileName string) string {
+	extension := filepath.Ext(fileName)
+
+	if extension == "" {
+		return fileName + ".jpg"
+	}
+
+	return strings.TrimSuffix(fileName, extension) + ".jpg"
+}
+
+func imageFitsMaxDimension(bounds image.Rectangle, maxDimension int) bool {
+	return bounds.Dx() <= maxDimension && bounds.Dy() <= maxDimension
+}
+
+func scaledImageSize(bounds image.Rectangle, maxDimension int) (int, int) {
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	if width <= 0 || height <= 0 {
+		return 0, 0
+	}
+
+	scale := math.Min(1, float64(maxDimension)/float64(max(width, height)))
+
+	return max(1, int(math.Round(float64(width)*scale))), max(1, int(math.Round(float64(height)*scale)))
+}
+
+func jpegEXIFOrientation(data []byte) int {
+	if len(data) < 4 || data[0] != 0xff || data[1] != 0xd8 {
+		return 1
+	}
+
+	for offset := 2; offset+4 <= len(data); {
+		if data[offset] != 0xff {
+			return 1
+		}
+
+		for offset < len(data) && data[offset] == 0xff {
+			offset++
+		}
+
+		if offset >= len(data) {
+			return 1
+		}
+
+		marker := data[offset]
+		offset++
+
+		if marker == 0xd9 || marker == 0xda {
+			return 1
+		}
+
+		if offset+2 > len(data) {
+			return 1
+		}
+
+		segmentLength := int(binary.BigEndian.Uint16(data[offset : offset+2]))
+		if segmentLength < 2 || offset+segmentLength > len(data) {
+			return 1
+		}
+
+		segment := data[offset+2 : offset+segmentLength]
+		if marker == 0xe1 && bytes.HasPrefix(segment, []byte("Exif\x00\x00")) {
+			return tiffOrientation(segment[6:])
+		}
+
+		offset += segmentLength
+	}
+
+	return 1
+}
+
+func tiffOrientation(data []byte) int {
+	if len(data) < 8 {
+		return 1
+	}
+
+	var order binary.ByteOrder
+	switch string(data[0:2]) {
+	case "II":
+		order = binary.LittleEndian
+	case "MM":
+		order = binary.BigEndian
+	default:
+		return 1
+	}
+
+	if order.Uint16(data[2:4]) != 42 {
+		return 1
+	}
+
+	ifdOffset := int(order.Uint32(data[4:8]))
+	if ifdOffset < 0 || ifdOffset+2 > len(data) {
+		return 1
+	}
+
+	entryCount := int(order.Uint16(data[ifdOffset : ifdOffset+2]))
+	entriesOffset := ifdOffset + 2
+
+	for i := 0; i < entryCount; i++ {
+		entryOffset := entriesOffset + i*12
+		if entryOffset+12 > len(data) {
+			return 1
+		}
+
+		tag := order.Uint16(data[entryOffset : entryOffset+2])
+		fieldType := order.Uint16(data[entryOffset+2 : entryOffset+4])
+		count := order.Uint32(data[entryOffset+4 : entryOffset+8])
+
+		if tag == 0x0112 && fieldType == 3 && count == 1 {
+			orientation := int(order.Uint16(data[entryOffset+8 : entryOffset+10]))
+			if orientation >= 1 && orientation <= 8 {
+				return orientation
+			}
+			return 1
+		}
+	}
+
+	return 1
+}
+
+func orientImage(img image.Image, orientation int) image.Image {
+	if orientation <= 1 || orientation > 8 {
+		return img
+	}
+
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	var oriented *image.RGBA
+	if orientation >= 5 && orientation <= 8 {
+		oriented = image.NewRGBA(image.Rect(0, 0, height, width))
+	} else {
+		oriented = image.NewRGBA(image.Rect(0, 0, width, height))
+	}
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			source := img.At(bounds.Min.X+x, bounds.Min.Y+y)
+			switch orientation {
+			case 2:
+				oriented.Set(width-1-x, y, source)
+			case 3:
+				oriented.Set(width-1-x, height-1-y, source)
+			case 4:
+				oriented.Set(x, height-1-y, source)
+			case 5:
+				oriented.Set(y, x, source)
+			case 6:
+				oriented.Set(height-1-y, x, source)
+			case 7:
+				oriented.Set(height-1-y, width-1-x, source)
+			case 8:
+				oriented.Set(y, width-1-x, source)
+			}
+		}
+	}
+
+	return oriented
+}
+
+func resizeImageToJPEG(img image.Image, maxDimension int, output io.Writer) error {
+	bounds := img.Bounds()
+	targetWidth, targetHeight := scaledImageSize(bounds, maxDimension)
+	if targetWidth == 0 || targetHeight == 0 {
+		return image.ErrFormat
+	}
+
+	resized := image.NewRGBA(image.Rect(0, 0, targetWidth, targetHeight))
+	stddraw.Draw(resized, resized.Bounds(), image.White, image.Point{}, stddraw.Src)
+	draw.CatmullRom.Scale(resized, resized.Bounds(), img, bounds, stddraw.Over, nil)
+
+	return jpeg.Encode(output, resized, &jpeg.Options{Quality: imageVariantJPEGQuality})
+}
+
+func ensureImageVariant(storedFile StoredFile, size string) (string, bool, error) {
+	maxDimension, ok := imageVariantMaxDimension[size]
+	if !ok || !isResizableRasterImage(storedFile.ContentType) {
+		return storedFilePath(storedFile.ContentHash), false, nil
+	}
+
+	variantPath := storedFileVariantPath(storedFile.ContentHash, size)
+	if _, err := os.Stat(variantPath); err == nil {
+		return variantPath, true, nil
+	} else if !os.IsNotExist(err) {
+		return "", false, err
+	}
+
+	fileData, err := os.ReadFile(storedFilePath(storedFile.ContentHash))
+	if err != nil {
+		return "", false, err
+	}
+
+	img, _, err := image.Decode(bytes.NewReader(fileData))
+	if err != nil {
+		return storedFilePath(storedFile.ContentHash), false, nil
+	}
+
+	img = orientImage(img, jpegEXIFOrientation(fileData))
+
+	if imageFitsMaxDimension(img.Bounds(), maxDimension) {
+		return storedFilePath(storedFile.ContentHash), false, nil
+	}
+
+	variantDir := filepath.Dir(variantPath)
+	if err := os.MkdirAll(variantDir, 0755); err != nil {
+		return "", false, err
+	}
+
+	tempFile, err := os.CreateTemp(variantDir, storedFile.ContentHash+"_"+size+"_*.jpg")
+	if err != nil {
+		return "", false, err
+	}
+
+	tempPath := tempFile.Name()
+	cleanupTemp := true
+	defer func() {
+		if cleanupTemp {
+			_ = os.Remove(tempPath)
+		}
+	}()
+
+	if err := resizeImageToJPEG(img, maxDimension, tempFile); err != nil {
+		_ = tempFile.Close()
+		return "", false, err
+	}
+
+	if err := tempFile.Close(); err != nil {
+		return "", false, err
+	}
+
+	if err := os.Rename(tempPath, variantPath); err != nil {
+		return "", false, err
+	}
+
+	cleanupTemp = false
+	return variantPath, true, nil
+}
+
+func removeStoredFileVariants(contentHash string) {
+	matches, err := filepath.Glob(storedFileVariantPath(contentHash, "*"))
+	if err != nil {
+		return
+	}
+
+	for _, match := range matches {
+		_ = os.Remove(match)
+	}
+}
+
+func serveStoredFile(ctx *gin.Context, storedFile StoredFile) {
+	size, routeErr := fileVariantFromRequest(ctx)
+	if routeErr != nil {
+		ctx.JSON(routeErr.status, CreateErrorResponse(routeErr.code, routeErr.message))
+		return
+	}
+
+	filePath := storedFilePath(storedFile.ContentHash)
+	contentType := storedFile.ContentType
+	fileName := storedFile.FileName
+
+	if size != "original" {
+		variantPath, isVariant, err := ensureImageVariant(storedFile, size)
+		if err != nil {
+			ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "File not found"))
+			return
+		}
+
+		filePath = variantPath
+
+		if isVariant {
+			contentType = "image/jpeg"
+			fileName = variantFileName(fileName)
+		}
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "File not found"))
+		return
+	}
+	defer file.Close()
+
+	ctx.Header("Content-Type", contentType)
+	ctx.Header("Content-Disposition", "inline; filename=\""+sanitizeContentDispositionFileName(fileName)+"\"")
+	ctx.Header("X-Content-Type-Options", "nosniff")
+	http.ServeContent(ctx.Writer, ctx.Request, fileName, storedFile.CreatedAt, file)
 }
 
 func fileResponse(file StoredFile) FileResponse {
@@ -204,6 +548,7 @@ func removeUnreferencedFiles(ctx context.Context, db *sql.DB, contentHashes []st
 
 		if referenceCount == 0 {
 			_ = os.Remove(storedFilePath(contentHash))
+			removeStoredFileVariants(contentHash)
 		}
 	}
 }
@@ -251,16 +596,7 @@ func GetFile(ctx *gin.Context) {
 		return
 	}
 
-	file, err := os.Open(storedFilePath(storedFile.ContentHash))
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "File not found"))
-		return
-	}
-	defer file.Close()
-
-	ctx.Header("Content-Type", storedFile.ContentType)
-	ctx.Header("Content-Disposition", "inline; filename=\""+strings.ReplaceAll(storedFile.FileName, "\"", "")+"\"")
-	http.ServeContent(ctx.Writer, ctx.Request, storedFile.FileName, storedFile.CreatedAt, file)
+	serveStoredFile(ctx, storedFile)
 }
 
 func DeleteFile(ctx *gin.Context) {
