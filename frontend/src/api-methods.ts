@@ -1,5 +1,3 @@
-import { getSession } from "./logic/session-manager"
-import { serverUrl } from "./config";
 import { resolveServerUrl } from "./utility";
 import { getHeaders } from "./headers";
 
@@ -24,7 +22,8 @@ const customFetch = async <T>(
 		const res = await fetch(resolveServerUrl(path), {
 			method: method,
 			headers: headers,
-			body: JSON.stringify(payload)
+			body: JSON.stringify(payload),
+			credentials: "include"
 		})
 
 		return handleFetchResult<T>(res)
@@ -98,7 +97,8 @@ export const postJson = async <T>(path: string, payload: any): Promise<ApiRespon
     let res = await fetch(resolveServerUrl(path), {
         method: "POST",
         headers: headers,
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        credentials: "include"
     })
 
     return handleFetchResult(res)
@@ -111,7 +111,8 @@ export const postFormData = async <T>(path: string, payload: FormData): Promise<
     let res = await fetch(resolveServerUrl(path), {
         method: "POST",
         headers: headers,
-        body: payload
+        body: payload,
+        credentials: "include"
     })
 
     return handleFetchResult(res)
@@ -123,7 +124,8 @@ export const putJson = async <T>(path: string, payload: any): Promise<ApiRespons
     let res = await fetch(resolveServerUrl(path), {
         method: "PUT",
         headers: headers,
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        credentials: "include"
     })
 
     return handleFetchResult(res)
@@ -135,7 +137,8 @@ export const patchJson = async <T>(path: string, payload: any): Promise<ApiRespo
 	let res = await fetch(resolveServerUrl(path), {
 		method: "PATCH",
 		headers: headers,
-		body: JSON.stringify(payload)
+		body: JSON.stringify(payload),
+		credentials: "include"
 	})
 
 	return handleFetchResult(res)
@@ -146,7 +149,8 @@ export const deleteJson = async <T>(path: string): Promise<ApiResponse<T>> => {
 
 	let res = await fetch(resolveServerUrl(path), {
 		method: "DELETE",
-		headers: headers
+		headers: headers,
+		credentials: "include"
 	})
 
 	return handleFetchResult(res)

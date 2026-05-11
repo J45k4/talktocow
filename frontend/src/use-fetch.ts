@@ -39,7 +39,8 @@ export const useFetch = <Data = any, RequestBody = any>(
     fetch(url.toString(), {
       method: options.body ? 'POST' : 'GET',
       headers: getHeaders(),
-      body: options.body ? JSON.stringify(options.body) : undefined
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      credentials: "include"
     })
       .then(response => response.json())
       .then(jsonData => setData(jsonData))

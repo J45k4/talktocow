@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -33,6 +34,22 @@ func getCommaSeparatedEnvWithDefault(name string, defaultValue string) []string 
 	return result
 }
 
+func getBoolEnvWithDefault(name string, defaultValue bool) bool {
+	value := os.Getenv(name)
+
+	if value == "" {
+		return defaultValue
+	}
+
+	parsed, err := strconv.ParseBool(value)
+
+	if err != nil {
+		return defaultValue
+	}
+
+	return parsed
+}
+
 var PublicKeyPath = os.Getenv("PUBLIC_KEY_PATH")
 var PrivateKeyPath = os.Getenv("PRIVATE_KEY_PATH")
 var DBName = os.Getenv("DB_NAME")
@@ -45,3 +62,5 @@ var WebAuthnRPID = getEnvWithDefault("WEBAUTHN_RP_ID", "localhost")
 var WebAuthnRPOrigins = getCommaSeparatedEnvWithDefault("WEBAUTHN_RP_ORIGINS", "http://localhost:3080,http://localhost:12001")
 var WebAuthnRPDisplayName = getEnvWithDefault("WEBAUTHN_RP_DISPLAY_NAME", "Talktocow")
 var FileStoragePath = getEnvWithDefault("FILE_STORAGE_PATH", "./files")
+var CORSAllowOrigins = getCommaSeparatedEnvWithDefault("CORS_ALLOW_ORIGINS", "http://localhost:3080,http://localhost:12001,http://127.0.0.1:3080,http://127.0.0.1:12001,https://talktocow.dy.fi")
+var AuthCookieSecure = getBoolEnvWithDefault("AUTH_COOKIE_SECURE", false)

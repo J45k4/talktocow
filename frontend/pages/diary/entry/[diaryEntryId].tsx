@@ -3,7 +3,6 @@ import { deleteJson, getJson, postFormData, putJson } from "../../../src/api-met
 
 import { useNavigate, useParams } from "react-router-dom"
 import { PageContainer } from "../../../src/components/page-container"
-import { getSession } from "../../../src/logic/session-manager"
 import { resolveServerUrl } from "../../../src/utility"
 import styles from "../../../src/components/diary/diary.module.css"
 
@@ -14,9 +13,7 @@ type DiaryEntryPicture = {
 }
 
 const pictureSource = (url: string) => {
-    const token = getSession().token
-    const separator = url.includes("?") ? "&" : "?"
-    return resolveServerUrl(token ? `${url}${separator}token=${encodeURIComponent(token)}` : url)
+    return resolveServerUrl(url)
 }
 
 export default function DiaryEntryPage() {

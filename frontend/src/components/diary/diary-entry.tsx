@@ -14,9 +14,7 @@ type DiaryEntryPicture = {
 }
 
 const pictureSource = (url: string) => {
-    const token = getSession().token
-    const separator = url.includes("?") ? "&" : "?"
-    return resolveServerUrl(token ? `${url}${separator}token=${encodeURIComponent(token)}` : url)
+    return resolveServerUrl(url)
 }
 
 export const DiaryEntry = (props: {
