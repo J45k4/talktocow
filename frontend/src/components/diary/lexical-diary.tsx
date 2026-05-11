@@ -670,7 +670,7 @@ function DiaryToolbarPlugin(props: {
                 ref={inputRef}
                 className={styles.hiddenFileInput}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 multiple
                 onChange={event => uploadFiles(event.target.files)}
             />
@@ -688,8 +688,8 @@ function DiaryImageDropPlugin() {
         return Array.from(dataTransfer.files).filter(isSupportedImageUploadFile)
     }
 
-    const hasImageDragItems = (dataTransfer: DataTransfer) => {
-        return Array.from(dataTransfer.items ?? []).some(item => item.kind === "file" && (item.type.startsWith("image/") || item.type === ""))
+    const hasFileDragItems = (dataTransfer: DataTransfer) => {
+        return Array.from(dataTransfer.items ?? []).some(item => item.kind === "file")
     }
 
     const uploadFiles = async (files: File[]) => {
@@ -733,7 +733,7 @@ function DiaryImageDropPlugin() {
         <div
             className={isDraggingImage ? `${styles.dropTarget} ${styles.dropTargetActive}` : styles.dropTarget}
             onDragEnter={event => {
-                if (!hasImageDragItems(event.dataTransfer)) {
+                if (!hasFileDragItems(event.dataTransfer)) {
                     return
                 }
 
@@ -742,7 +742,7 @@ function DiaryImageDropPlugin() {
                 setIsDraggingImage(true)
             }}
             onDragOver={event => {
-                if (!hasImageDragItems(event.dataTransfer)) {
+                if (!hasFileDragItems(event.dataTransfer)) {
                     return
                 }
 
@@ -750,7 +750,7 @@ function DiaryImageDropPlugin() {
                 event.dataTransfer.dropEffect = "copy"
             }}
             onDragLeave={event => {
-                if (!hasImageDragItems(event.dataTransfer)) {
+                if (!hasFileDragItems(event.dataTransfer)) {
                     return
                 }
 
