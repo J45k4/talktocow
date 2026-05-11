@@ -24,6 +24,7 @@ ADD go.sum go.sum
 RUN go mod download
 
 ADD main.go main.go
+ADD app.go app.go
 COPY auth auth
 COPY config config
 COPY models models
