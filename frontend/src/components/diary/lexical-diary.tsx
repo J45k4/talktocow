@@ -166,24 +166,9 @@ const isSupportedImageUploadFile = (file: File) => {
     return file.type.startsWith("image/") || isHeicImageFile(file)
 }
 
-const convertHeicToJpeg = async (file: File) => {
-    const heic2any = (await import("heic2any")).default
-    const result = await heic2any({
-        blob: file,
-        quality: imageUploadQuality,
-        toType: "image/jpeg"
-    })
-    const blob = Array.isArray(result) ? result[0] : result
-
-    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
-        lastModified: file.lastModified,
-        type: "image/jpeg"
-    })
-}
-
 const resizeImageForUpload = async (file: File): Promise<File> => {
     if (isHeicImageFile(file)) {
-        return resizeImageForUpload(await convertHeicToJpeg(file))
+        return file
     }
 
     if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {

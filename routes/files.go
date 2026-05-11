@@ -16,6 +16,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -66,6 +67,12 @@ type storeUploadedFileOptions struct {
 	AllowedContentTypePrefixes []string
 }
 
+type uploadedFileData struct {
+	ContentType string
+	Data        []byte
+	FileName    string
+}
+
 func fileURL(fileID int) string {
 	return "/api/files/" + strconv.Itoa(fileID)
 }
@@ -103,6 +110,76 @@ func fileVariantFromRequest(ctx *gin.Context) (string, *fileRouteError) {
 
 func isResizableRasterImage(contentType string) bool {
 	return contentType == "image/jpeg" || contentType == "image/png"
+}
+
+func isHEIFFileName(fileName string) bool {
+	extension := strings.ToLower(filepath.Ext(fileName))
+	return extension == ".heic" || extension == ".heif"
+}
+
+func isHEIFData(data []byte) bool {
+	if len(data) < 12 {
+		return false
+	}
+
+	boxType := string(data[4:8])
+	if boxType != "ftyp" {
+		return false
+	}
+
+	brandData := string(data[8:min(len(data), 64)])
+	return strings.Contains(brandData, "heic") ||
+		strings.Contains(brandData, "heix") ||
+		strings.Contains(brandData, "hevc") ||
+		strings.Contains(brandData, "hevx") ||
+		strings.Contains(brandData, "heim") ||
+		strings.Contains(brandData, "heis") ||
+		strings.Contains(brandData, "mif1") ||
+		strings.Contains(brandData, "msf1")
+}
+
+func jpegFileName(fileName string) string {
+	extension := filepath.Ext(fileName)
+	if extension == "" {
+		return fileName + ".jpg"
+	}
+
+	return strings.TrimSuffix(fileName, extension) + ".jpg"
+}
+
+func convertHEIFToJPEG(data []byte, fileName string) ([]byte, string, string, *fileRouteError) {
+	tempDir, err := os.MkdirTemp("", "talktocow-heif-*")
+	if err != nil {
+		return nil, "", "", &fileRouteError{status: http.StatusInternalServerError, code: InternalServerError, message: "Failed to prepare image conversion"}
+	}
+	defer os.RemoveAll(tempDir)
+
+	inputPath := filepath.Join(tempDir, "input"+filepath.Ext(fileName))
+	if filepath.Ext(inputPath) == "" {
+		inputPath = filepath.Join(tempDir, "input.heic")
+	}
+
+	outputPath := filepath.Join(tempDir, "output.jpg")
+	if err := os.WriteFile(inputPath, data, 0600); err != nil {
+		return nil, "", "", &fileRouteError{status: http.StatusInternalServerError, code: InternalServerError, message: "Failed to prepare image conversion"}
+	}
+
+	command := exec.Command("magick", inputPath+"[0]", "-auto-orient", "-strip", "-quality", strconv.Itoa(imageVariantJPEGQuality), outputPath)
+	if output, err := command.CombinedOutput(); err != nil {
+		_ = output
+		return nil, "", "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Unsupported HEIC image"}
+	}
+
+	converted, err := os.ReadFile(outputPath)
+	if err != nil {
+		return nil, "", "", &fileRouteError{status: http.StatusInternalServerError, code: InternalServerError, message: "Failed to read converted image"}
+	}
+
+	if len(converted) > maxUploadedFileSize {
+		return nil, "", "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Converted image must be 8 MB or smaller"}
+	}
+
+	return converted, "image/jpeg", jpegFileName(fileName), nil
 }
 
 func sanitizeContentDispositionFileName(fileName string) string {
@@ -447,27 +524,39 @@ func getStoredFileByID(ctx context.Context, db *sql.DB, fileID int) (StoredFile,
 	return scanStoredFile(row)
 }
 
-func readUploadedFile(fileHeader *multipart.FileHeader, options storeUploadedFileOptions) ([]byte, string, *fileRouteError) {
+func readUploadedFile(fileHeader *multipart.FileHeader, options storeUploadedFileOptions) (uploadedFileData, *fileRouteError) {
 	if fileHeader.Size > maxUploadedFileSize {
-		return nil, "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "File must be 8 MB or smaller"}
+		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "File must be 8 MB or smaller"}
 	}
 
 	file, err := fileHeader.Open()
 	if err != nil {
-		return nil, "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Could not read file"}
+		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Could not read file"}
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(io.LimitReader(file, maxUploadedFileSize+1))
 	if err != nil {
-		return nil, "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Could not read file"}
+		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Could not read file"}
 	}
 
 	if len(data) > maxUploadedFileSize {
-		return nil, "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "File must be 8 MB or smaller"}
+		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "File must be 8 MB or smaller"}
 	}
 
 	contentType := http.DetectContentType(data)
+	fileName := fileHeader.Filename
+
+	if isHEIFFileName(fileName) || isHEIFData(data) {
+		convertedData, convertedContentType, convertedFileName, routeErr := convertHEIFToJPEG(data, fileName)
+		if routeErr != nil {
+			return uploadedFileData{}, routeErr
+		}
+
+		data = convertedData
+		contentType = convertedContentType
+		fileName = convertedFileName
+	}
 
 	if len(options.AllowedContentTypePrefixes) > 0 {
 		allowed := false
@@ -480,18 +569,22 @@ func readUploadedFile(fileHeader *multipart.FileHeader, options storeUploadedFil
 		}
 
 		if !allowed {
-			return nil, "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Unsupported file type"}
+			return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Unsupported file type"}
 		}
 	}
 
-	return data, contentType, nil
+	return uploadedFileData{ContentType: contentType, Data: data, FileName: fileName}, nil
 }
 
 func storeUploadedFile(ctx context.Context, db *sql.DB, uploadedByUserID int32, fileHeader *multipart.FileHeader, options storeUploadedFileOptions) (StoredFile, *fileRouteError) {
-	data, contentType, routeErr := readUploadedFile(fileHeader, options)
+	uploadedFile, routeErr := readUploadedFile(fileHeader, options)
 	if routeErr != nil {
 		return StoredFile{}, routeErr
 	}
+
+	data := uploadedFile.Data
+	contentType := uploadedFile.ContentType
+	fileName := uploadedFile.FileName
 
 	if err := os.MkdirAll(config.FileStoragePath, 0755); err != nil {
 		return StoredFile{}, &fileRouteError{status: http.StatusInternalServerError, code: InternalServerError, message: "Failed to prepare file storage"}
@@ -517,7 +610,7 @@ func storeUploadedFile(ctx context.Context, db *sql.DB, uploadedByUserID int32, 
 		insert into files (uploaded_by_user_id, file_name, content_type, size_bytes, content_hash)
 		values ($1, $2, $3, $4, $5)
 		returning id, uploaded_by_user_id, file_name, content_type, content_hash, size_bytes, created_at
-	`, uploadedByUserID, fileHeader.Filename, contentType, len(data), contentHash)
+	`, uploadedByUserID, fileName, contentType, len(data), contentHash)
 
 	storedFile, err := scanStoredFile(row)
 	if err != nil {
