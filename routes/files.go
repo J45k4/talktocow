@@ -1,12 +1,14 @@
 package routes
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/binary"
 	"encoding/hex"
 	"image"
-	"image/color"
+	stddraw "image/draw"
 	"image/jpeg"
 	_ "image/png"
 	"io"
@@ -21,10 +23,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/j45k4/talktocow/config"
+	"golang.org/x/image/draw"
 )
 
 const maxUploadedFileSize = 8 * 1024 * 1024
 const imageVariantJPEGQuality = 86
+const imageVariantCacheVersion = "v2"
 
 var imageVariantMaxDimension = map[string]int{
 	"thumb":  360,
@@ -76,7 +80,7 @@ func storedFilePath(contentHash string) string {
 }
 
 func storedFileVariantPath(contentHash string, size string) string {
-	return filepath.Join(config.FileStoragePath, "variants", contentHash+"_"+size+".jpg")
+	return filepath.Join(config.FileStoragePath, "variants", contentHash+"_"+size+"_"+imageVariantCacheVersion+".jpg")
 }
 
 func fileVariantFromRequest(ctx *gin.Context) (string, *fileRouteError) {
@@ -140,17 +144,139 @@ func scaledImageSize(bounds image.Rectangle, maxDimension int) (int, int) {
 	return max(1, int(math.Round(float64(width)*scale))), max(1, int(math.Round(float64(height)*scale)))
 }
 
-func rgbaOverWhite(img image.Image, x int, y int) color.RGBA {
-	source := color.RGBAModel.Convert(img.At(x, y)).(color.RGBA)
-	alpha := uint32(source.A)
-	inverseAlpha := uint32(255 - source.A)
-
-	return color.RGBA{
-		R: uint8((uint32(source.R)*alpha + 255*inverseAlpha) / 255),
-		G: uint8((uint32(source.G)*alpha + 255*inverseAlpha) / 255),
-		B: uint8((uint32(source.B)*alpha + 255*inverseAlpha) / 255),
-		A: 255,
+func jpegEXIFOrientation(data []byte) int {
+	if len(data) < 4 || data[0] != 0xff || data[1] != 0xd8 {
+		return 1
 	}
+
+	for offset := 2; offset+4 <= len(data); {
+		if data[offset] != 0xff {
+			return 1
+		}
+
+		for offset < len(data) && data[offset] == 0xff {
+			offset++
+		}
+
+		if offset >= len(data) {
+			return 1
+		}
+
+		marker := data[offset]
+		offset++
+
+		if marker == 0xd9 || marker == 0xda {
+			return 1
+		}
+
+		if offset+2 > len(data) {
+			return 1
+		}
+
+		segmentLength := int(binary.BigEndian.Uint16(data[offset : offset+2]))
+		if segmentLength < 2 || offset+segmentLength > len(data) {
+			return 1
+		}
+
+		segment := data[offset+2 : offset+segmentLength]
+		if marker == 0xe1 && bytes.HasPrefix(segment, []byte("Exif\x00\x00")) {
+			return tiffOrientation(segment[6:])
+		}
+
+		offset += segmentLength
+	}
+
+	return 1
+}
+
+func tiffOrientation(data []byte) int {
+	if len(data) < 8 {
+		return 1
+	}
+
+	var order binary.ByteOrder
+	switch string(data[0:2]) {
+	case "II":
+		order = binary.LittleEndian
+	case "MM":
+		order = binary.BigEndian
+	default:
+		return 1
+	}
+
+	if order.Uint16(data[2:4]) != 42 {
+		return 1
+	}
+
+	ifdOffset := int(order.Uint32(data[4:8]))
+	if ifdOffset < 0 || ifdOffset+2 > len(data) {
+		return 1
+	}
+
+	entryCount := int(order.Uint16(data[ifdOffset : ifdOffset+2]))
+	entriesOffset := ifdOffset + 2
+
+	for i := 0; i < entryCount; i++ {
+		entryOffset := entriesOffset + i*12
+		if entryOffset+12 > len(data) {
+			return 1
+		}
+
+		tag := order.Uint16(data[entryOffset : entryOffset+2])
+		fieldType := order.Uint16(data[entryOffset+2 : entryOffset+4])
+		count := order.Uint32(data[entryOffset+4 : entryOffset+8])
+
+		if tag == 0x0112 && fieldType == 3 && count == 1 {
+			orientation := int(order.Uint16(data[entryOffset+8 : entryOffset+10]))
+			if orientation >= 1 && orientation <= 8 {
+				return orientation
+			}
+			return 1
+		}
+	}
+
+	return 1
+}
+
+func orientImage(img image.Image, orientation int) image.Image {
+	if orientation <= 1 || orientation > 8 {
+		return img
+	}
+
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	var oriented *image.RGBA
+	if orientation >= 5 && orientation <= 8 {
+		oriented = image.NewRGBA(image.Rect(0, 0, height, width))
+	} else {
+		oriented = image.NewRGBA(image.Rect(0, 0, width, height))
+	}
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			source := img.At(bounds.Min.X+x, bounds.Min.Y+y)
+			switch orientation {
+			case 2:
+				oriented.Set(width-1-x, y, source)
+			case 3:
+				oriented.Set(width-1-x, height-1-y, source)
+			case 4:
+				oriented.Set(x, height-1-y, source)
+			case 5:
+				oriented.Set(y, x, source)
+			case 6:
+				oriented.Set(height-1-y, x, source)
+			case 7:
+				oriented.Set(height-1-y, width-1-x, source)
+			case 8:
+				oriented.Set(y, width-1-x, source)
+			}
+		}
+	}
+
+	return oriented
 }
 
 func resizeImageToJPEG(img image.Image, maxDimension int, output io.Writer) error {
@@ -161,24 +287,8 @@ func resizeImageToJPEG(img image.Image, maxDimension int, output io.Writer) erro
 	}
 
 	resized := image.NewRGBA(image.Rect(0, 0, targetWidth, targetHeight))
-	sourceWidth := bounds.Dx()
-	sourceHeight := bounds.Dy()
-
-	for y := 0; y < targetHeight; y++ {
-		sourceY := bounds.Min.Y + int(float64(y)*float64(sourceHeight)/float64(targetHeight))
-		if sourceY >= bounds.Max.Y {
-			sourceY = bounds.Max.Y - 1
-		}
-
-		for x := 0; x < targetWidth; x++ {
-			sourceX := bounds.Min.X + int(float64(x)*float64(sourceWidth)/float64(targetWidth))
-			if sourceX >= bounds.Max.X {
-				sourceX = bounds.Max.X - 1
-			}
-
-			resized.SetRGBA(x, y, rgbaOverWhite(img, sourceX, sourceY))
-		}
-	}
+	stddraw.Draw(resized, resized.Bounds(), image.White, image.Point{}, stddraw.Src)
+	draw.CatmullRom.Scale(resized, resized.Bounds(), img, bounds, stddraw.Over, nil)
 
 	return jpeg.Encode(output, resized, &jpeg.Options{Quality: imageVariantJPEGQuality})
 }
@@ -196,16 +306,17 @@ func ensureImageVariant(storedFile StoredFile, size string) (string, bool, error
 		return "", false, err
 	}
 
-	source, err := os.Open(storedFilePath(storedFile.ContentHash))
+	fileData, err := os.ReadFile(storedFilePath(storedFile.ContentHash))
 	if err != nil {
 		return "", false, err
 	}
-	defer source.Close()
 
-	img, _, err := image.Decode(source)
+	img, _, err := image.Decode(bytes.NewReader(fileData))
 	if err != nil {
 		return storedFilePath(storedFile.ContentHash), false, nil
 	}
+
+	img = orientImage(img, jpegEXIFOrientation(fileData))
 
 	if imageFitsMaxDimension(img.Bounds(), maxDimension) {
 		return storedFilePath(storedFile.ContentHash), false, nil
