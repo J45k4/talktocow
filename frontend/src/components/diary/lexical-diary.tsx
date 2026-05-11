@@ -153,9 +153,37 @@ const fileUrl = (fileId: number, size: "thumb" | "medium" | "large" | "original"
 const maxImageDimension = 1600
 const imageUploadQuality = 0.82
 
-const resizeImageForUpload = (file: File) => {
+const isHeicImageFile = (file: File) => {
+    const name = file.name.toLowerCase()
+
+    return file.type === "image/heic"
+        || file.type === "image/heif"
+        || name.endsWith(".heic")
+        || name.endsWith(".heif")
+}
+
+const convertHeicToJpeg = async (file: File) => {
+    const heic2any = (await import("heic2any")).default
+    const result = await heic2any({
+        blob: file,
+        quality: imageUploadQuality,
+        toType: "image/jpeg"
+    })
+    const blob = Array.isArray(result) ? result[0] : result
+
+    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+        lastModified: file.lastModified,
+        type: "image/jpeg"
+    })
+}
+
+const resizeImageForUpload = async (file: File): Promise<File> => {
+    if (isHeicImageFile(file)) {
+        return resizeImageForUpload(await convertHeicToJpeg(file))
+    }
+
     if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
-        return Promise.resolve(file)
+        return file
     }
 
     return new Promise<File>(resolve => {
