@@ -809,11 +809,17 @@ const renderInlineNode = (node: DiaryRichTextInlineNode, key: string) => {
     return <React.Fragment key={key}>{content}</React.Fragment>
 }
 
-const renderBlock = (block: DiaryRichTextBlock, key: string): React.ReactNode => {
+const renderBlock = (block: DiaryRichTextBlock, key: string, onImageClick?: (image: { alt?: string, fileId: number }) => void): React.ReactNode => {
     if (block.type === "image") {
+        const image = <img className={styles.inlineImage} src={pictureSource(fileUrl(block.fileId))} alt={block.alt ?? ""} />
+
         return (
             <figure className={styles.readonlyImageFrame} key={key}>
-                <img className={styles.inlineImage} src={pictureSource(fileUrl(block.fileId))} alt={block.alt ?? ""} />
+                {onImageClick ? (
+                    <button className={styles.imagePreviewButton} onClick={() => onImageClick({ alt: block.alt, fileId: block.fileId })} type="button">
+                        {image}
+                    </button>
+                ) : image}
             </figure>
         )
     }
@@ -837,6 +843,7 @@ const renderBlock = (block: DiaryRichTextBlock, key: string): React.ReactNode =>
 
 export function DiaryBodyRenderer(props: {
     body: string
+    onImageClick?: (image: { alt?: string, fileId: number }) => void
 }) {
     if (!isStructuredDiaryBody(props.body)) {
         return <div className={styles.plainBody}>{props.body}</div>
@@ -846,7 +853,7 @@ export function DiaryBodyRenderer(props: {
 
     return (
         <div className={styles.readonlyBody}>
-            {document.content.map((block, index) => renderBlock(block, String(index)))}
+            {document.content.map((block, index) => renderBlock(block, String(index), props.onImageClick))}
         </div>
     )
 }

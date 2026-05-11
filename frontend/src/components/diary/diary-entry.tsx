@@ -129,7 +129,15 @@ export const DiaryEntry = (props: {
                     )}
                 </div>
             </div>
-            <DiaryBodyRenderer body={props.body} />
+            <DiaryBodyRenderer
+                body={props.body}
+                onImageClick={image => setPreviewPicture({
+                    id: image.fileId,
+                    fileId: image.fileId,
+                    fileName: image.alt ?? "Diary image",
+                    url: `/api/files/${image.fileId}`
+                })}
+            />
             {!bodyIsStructured && pictures.length > 0 && (
                 <div className={styles.pictureGrid}>
                     {pictures.map(picture => (

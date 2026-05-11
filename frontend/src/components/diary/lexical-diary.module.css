@@ -153,6 +153,19 @@
     margin: 14px 0;
 }
 
+.imagePreviewButton {
+    display: block;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+}
+
+.imagePreviewButton:hover .inlineImage {
+    filter: brightness(0.96);
+}
+
 .inlineImage {
     display: block;
     max-width: min(100%, 680px);
