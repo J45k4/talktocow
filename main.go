@@ -83,6 +83,7 @@ func main() {
 	})
 
 	r.POST("/api/login", routes.HandleLogin)
+	r.POST("/api/token", routes.HandleTokenLogin)
 	r.POST("/api/passkeys/login/begin", routes.HandlePasskeyLoginBegin)
 	r.POST("/api/passkeys/login/finish", routes.HandlePasskeyLoginFinish)
 	r.POST("/api/logout", routes.HandleLogout)

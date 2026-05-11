@@ -47,7 +47,7 @@ func CreateLoginResponseForUser(user *models.User, authMethod string) (LoginResp
 	}, nil
 }
 
-func HandleLogin(ctx *gin.Context) {
+func loginWithPassword(ctx *gin.Context) (LoginResponse, bool) {
 	db := GetDBFromContext(ctx)
 
 	var loginRequest LoginRequest
@@ -64,7 +64,7 @@ func HandleLogin(ctx *gin.Context) {
 		log.Printf("fetching user failed %v", err)
 
 		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, ""))
-		return
+		return LoginResponse{}, false
 	}
 
 	if user == nil {
@@ -72,7 +72,7 @@ func HandleLogin(ctx *gin.Context) {
 
 		ctx.Status(http.StatusForbidden)
 		ctx.JSON(http.StatusForbidden, CreateErrorResponse(InvalidCredentials, "Credentials are incorrect"))
-		return
+		return LoginResponse{}, false
 	}
 
 	if !auth.CheckPasswordHash(loginRequest.Password, user.PasswordHash.String) {
@@ -81,7 +81,7 @@ func HandleLogin(ctx *gin.Context) {
 		ctx.Status(http.StatusForbidden)
 		ctx.JSON(http.StatusForbidden, CreateErrorResponse(InvalidCredentials, "Credentials are incorrect"))
 
-		return
+		return LoginResponse{}, false
 	}
 
 	resp, err := CreateLoginResponseForUser(user, authMethodPassword)
@@ -92,11 +92,31 @@ func HandleLogin(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Internal server error"))
 		ctx.Abort()
 
+		return LoginResponse{}, false
+	}
+
+	return resp, true
+}
+
+func HandleLogin(ctx *gin.Context) {
+	resp, ok := loginWithPassword(ctx)
+
+	if !ok {
 		return
 	}
 
 	SetAuthCookie(ctx, resp.Token)
 	resp.Token = ""
+
+	ctx.JSON(200, resp)
+}
+
+func HandleTokenLogin(ctx *gin.Context) {
+	resp, ok := loginWithPassword(ctx)
+
+	if !ok {
+		return
+	}
 
 	ctx.JSON(200, resp)
 }
