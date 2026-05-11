@@ -11,6 +11,7 @@ import { $setBlocksType } from "@lexical/selection"
 import {
     $applyNodeReplacement,
     $createParagraphNode,
+    $getNodeByKey,
     $getSelection,
     $insertNodes,
     $isRangeSelection,
@@ -108,9 +109,36 @@ export class DiaryImageNode extends DecoratorNode<React.ReactNode> {
         return false
     }
 
-    decorate(_editor: LexicalEditor, _config: EditorConfig): React.ReactNode {
-        return <img className={styles.inlineImage} src={pictureSource(fileUrl(this.__fileId))} alt={this.__alt} />
+    decorate(editor: LexicalEditor, _config: EditorConfig): React.ReactNode {
+        return <EditableDiaryImage editor={editor} nodeKey={this.__key} fileId={this.__fileId} alt={this.__alt} />
     }
+}
+
+function EditableDiaryImage(props: {
+    alt: string
+    editor: LexicalEditor
+    fileId: number
+    nodeKey: NodeKey
+}) {
+    const removeImage = () => {
+        props.editor.update(() => {
+            $getNodeByKey(props.nodeKey)?.remove()
+        })
+    }
+
+    return (
+        <div className={styles.editableImageFrame}>
+            <img className={styles.inlineImage} src={pictureSource(fileUrl(props.fileId))} alt={props.alt} />
+            <button
+                aria-label="Remove picture"
+                className={styles.removeImageButton}
+                onClick={removeImage}
+                title="Remove picture"
+                type="button">
+                ×
+            </button>
+        </div>
+    )
 }
 
 function $createDiaryImageNode(payload: {
