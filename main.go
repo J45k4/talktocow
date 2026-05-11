@@ -70,8 +70,7 @@ func main() {
 	corsConfig := cors.DefaultConfig()
 
 	corsConfig.AllowCredentials = true
-	// corsConfig.AllowOrigins = []string{"http://localhost:3080", "https://talktocow.dy.fi/"}
-	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowOrigins = config.CORSAllowOrigins
 	corsConfig.AddAllowMethods("OPTIONS")
 	corsConfig.AddAllowHeaders("authorization")
 	corsConfig.AddAllowHeaders("x-device-id")
@@ -86,6 +85,7 @@ func main() {
 	r.POST("/api/login", routes.HandleLogin)
 	r.POST("/api/passkeys/login/begin", routes.HandlePasskeyLoginBegin)
 	r.POST("/api/passkeys/login/finish", routes.HandlePasskeyLoginFinish)
+	r.POST("/api/logout", routes.HandleLogout)
 	r.GET("/api/ws", routes.HandleWs)
 
 	r.Use(routes.SessionMiddleware)

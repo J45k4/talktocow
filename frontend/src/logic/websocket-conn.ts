@@ -37,7 +37,8 @@ let socket: WebSocket
 
 let socketConnected = false
 let token = getSession().token
-let tryingToConnect = token != null
+let userId = getSession().userId
+let tryingToConnect = token != null || userId != null
 
 console.log("tryingToConnect socket " + tryingToConnect)
 
@@ -60,7 +61,7 @@ const notifySocketStatusChanged = () => {
 }
 
 function createClient() {
-    if (token == null) {
+    if (token == null && userId == null) {
         return
     }
 
@@ -68,9 +69,7 @@ function createClient() {
 
     var scheme = url.protocol == "https:" ? "wss" : "ws";
     var port = url.port ? ":" + url.port : "";
-    var wsURL = scheme + "://" + url.hostname + port + "/api/socket?token=" + token
-
-    console.log("wsURL", wsURL)
+    var wsURL = scheme + "://" + url.hostname + port + "/api/socket"
 
     socket = new WebSocket(wsURL)
 
@@ -112,17 +111,19 @@ function createClient() {
 }
 
 subscribeToSessionEvents((s) => {
-    if (s.token) {
+    if (s.token || s.userId) {
         token = s.token
+        userId = s.userId
         tryingToConnect = true
         createClient()
     } else {
-        console.log("Token is undefined closing connection")
+        console.log("Session cleared; closing connection")
 
         token = undefined
+        userId = undefined
         tryingToConnect = false
         socketConnected = false
-        socket.close(1000)
+        socket?.close(1000)
 
         notifySocketStatusChanged()
     }

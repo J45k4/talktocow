@@ -5,11 +5,11 @@ export const useIsLoggedIn = () => {
     const [isLoggedin, setIsloggedin] = useState(true)
     
     useEffect(() => {
-		const a = getSession().token != null
+		const a = getSession().userId != null
 		setIsloggedin(a)
 
         function handle(s: SessionChangeNotify) {
-            if (s.token != null) {
+            if (s.userId != null) {
                 setIsloggedin(true)
             } else {
                 setIsloggedin(false)

@@ -1,9 +1,9 @@
-import { clearSession } from "../logic/session-manager"
+import { logout } from "../logic/session-manager"
 
 export const LogoutButton = () => {
     return (
         <button onClick={() => {
-            clearSession()
+            logout()
         }}>
             Log out
         </button>

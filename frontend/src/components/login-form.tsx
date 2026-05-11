@@ -35,13 +35,12 @@ export const LoginForm = () => {
 				return
 			}
 
-			ws.openConn(res.payload.token)
+			ws.openConn()
 			
 			setSession({
-				token: res.payload.token,
 				userId: res.payload.userId,
 				username: res.payload.username,
-				authMethod: "password"
+				authMethod: res.payload.authMethod ?? "password"
 			})
 		} catch (e) {
 			setLoginError("Unknown login error")
@@ -82,13 +81,12 @@ export const LoginForm = () => {
 				return
 			}
 
-			ws.openConn(finish.payload.token)
+			ws.openConn()
 
 			setSession({
-				token: finish.payload.token,
 				userId: finish.payload.userId,
 				username: finish.payload.username,
-				authMethod: "passkey"
+				authMethod: finish.payload.authMethod ?? "passkey"
 			})
 		} catch (e) {
 			setLoginError(e instanceof Error ? e.message : "Unknown passkey login error")

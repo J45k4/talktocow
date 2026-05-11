@@ -1,9 +1,10 @@
 import { v4 } from "uuid"
+import { resolveServerUrl } from "../utility"
 
 type SubscriberCallback = (payload: SessionChangeNotify) => void;
 
 export interface SessionChangeNotify {
-    token: string
+    token?: string
     deviceId: string
     username: string
     userId: string
@@ -45,12 +46,11 @@ if (typeof window !== "undefined") {
         localStorage.setItem("deviceId", deviceId) 
     }
 
-    console.log("token", token)
 }
 
 
 export const setSession = (args: {
-    token: string
+    token?: string
     username: string
     userId: string
     authMethod?: "password" | "passkey"
@@ -60,7 +60,12 @@ export const setSession = (args: {
     userId = args.userId
     authMethod = args.authMethod
 
-    localStorage.setItem("token", token)
+    if (token) {
+        localStorage.setItem("token", token)
+    } else {
+        localStorage.removeItem("token")
+    }
+
     localStorage.setItem("username", args.username)
     localStorage.setItem("userId", args.userId)
 
@@ -85,6 +90,19 @@ export const clearSession = () => {
     localStorage.removeItem("authMethod")
 
     notifyChanges()
+}
+
+export const logout = async () => {
+    try {
+        await fetch(resolveServerUrl("/api/logout"), {
+            method: "POST",
+            credentials: "include"
+        })
+    } catch (e) {
+        // Logout must still clear local UI state if the network request fails.
+    } finally {
+        clearSession()
+    }
 }
 
 export const subscribeToSessionEvents = (cb: SubscriberCallback) => {

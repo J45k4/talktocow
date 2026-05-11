@@ -205,6 +205,9 @@ func HandlePasskeyLoginFinish(ctx *gin.Context) {
 		return
 	}
 
+	SetAuthCookie(ctx, resp.Token)
+	resp.Token = ""
+
 	ctx.JSON(http.StatusOK, resp)
 }
 

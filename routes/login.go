@@ -22,9 +22,10 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token    string `json:"token"`
-	UserID   string `json:"userId"`
-	Username string `json:"username"`
+	Token      string `json:"token,omitempty"`
+	UserID     string `json:"userId"`
+	Username   string `json:"username"`
+	AuthMethod string `json:"authMethod"`
 }
 
 func CreateLoginResponseForUser(user *models.User, authMethod string) (LoginResponse, error) {
@@ -39,9 +40,10 @@ func CreateLoginResponseForUser(user *models.User, authMethod string) (LoginResp
 	}
 
 	return LoginResponse{
-		Token:    string(token),
-		UserID:   fmt.Sprint(user.ID),
-		Username: user.Name.String,
+		Token:      string(token),
+		UserID:     fmt.Sprint(user.ID),
+		Username:   user.Name.String,
+		AuthMethod: authMethod,
 	}, nil
 }
 
@@ -93,5 +95,13 @@ func HandleLogin(ctx *gin.Context) {
 		return
 	}
 
+	SetAuthCookie(ctx, resp.Token)
+	resp.Token = ""
+
 	ctx.JSON(200, resp)
+}
+
+func HandleLogout(ctx *gin.Context) {
+	ClearAuthCookie(ctx)
+	ctx.Status(http.StatusNoContent)
 }

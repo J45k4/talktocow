@@ -1,6 +1,6 @@
 import React, { useRef } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { clearSession, getSession, SessionChangeNotify, subscribeToSessionEvents, unsubscribeToSessionEvents } from "../logic/session-manager"
+import { getSession, logout, SessionChangeNotify, subscribeToSessionEvents, unsubscribeToSessionEvents } from "../logic/session-manager"
 import { IsLoggedIn } from "./isloggedin"
 import { useAddPasskey } from "../use-add-passkey"
 import { useEffect, useState } from "react"
@@ -86,7 +86,7 @@ export const NavigationBar = () => {
                                 </button>
                             ) : null}
                             <button className={styles.dropdownItem} onClick={() => {
-                                clearSession()
+                                logout()
                                 setIsMenuOpen(false)
                             }} role="menuitem">
                                 Logout
