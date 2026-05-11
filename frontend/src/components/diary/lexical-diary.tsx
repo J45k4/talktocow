@@ -162,6 +162,10 @@ const isHeicImageFile = (file: File) => {
         || name.endsWith(".heif")
 }
 
+const isSupportedImageUploadFile = (file: File) => {
+    return file.type.startsWith("image/") || isHeicImageFile(file)
+}
+
 const convertHeicToJpeg = async (file: File) => {
     const heic2any = (await import("heic2any")).default
     const result = await heic2any({
@@ -575,7 +579,7 @@ function DiaryToolbarPlugin(props: {
     }
 
     const uploadFiles = async (files: FileList | File[] | null) => {
-        const selectedFiles = Array.from(files ?? []).filter(file => file.type.startsWith("image/"))
+        const selectedFiles = Array.from(files ?? []).filter(isSupportedImageUploadFile)
 
         if (selectedFiles.length === 0) {
             return
@@ -681,11 +685,11 @@ function DiaryImageDropPlugin() {
     const dragDepth = useRef(0)
 
     const imageFilesFromDataTransfer = (dataTransfer: DataTransfer) => {
-        return Array.from(dataTransfer.files).filter(file => file.type.startsWith("image/"))
+        return Array.from(dataTransfer.files).filter(isSupportedImageUploadFile)
     }
 
     const hasImageDragItems = (dataTransfer: DataTransfer) => {
-        return Array.from(dataTransfer.items ?? []).some(item => item.kind === "file" && item.type.startsWith("image/"))
+        return Array.from(dataTransfer.items ?? []).some(item => item.kind === "file" && (item.type.startsWith("image/") || item.type === ""))
     }
 
     const uploadFiles = async (files: File[]) => {
