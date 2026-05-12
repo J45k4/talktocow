@@ -16,6 +16,7 @@ type DiaryEntry struct {
 	Body           string  `json:"body"`
 	PostedByUserID string  `json:"postedByUserId"`
 	CreateAt       string  `json:"createdAt"`
+	CanEditDate    bool    `json:"canEditDate"`
 	Label          *string `json:"label"`
 	PictureCount   int     `json:"pictureCount"`
 }
@@ -41,11 +42,19 @@ type CreateDiaryEntryRequest struct {
 type UpdateDiaryEntryRequest struct {
 	Title          string   `json:"title"`
 	Body           string   `json:"body"`
+	CreatedAt      string   `json:"createdAt"`
 	Offset         int      `json:"offset"`
 	Mask           []string `json:"mask"`
 	Label          *string  `json:"label"`
 	PictureFileIDs []int    `json:"pictureFileIds"`
 }
+
+const diaryEntryDateEditWindow = 7 * 24 * time.Hour
+
+var (
+	errDiaryEntryDateEditExpired = errors.New("diary entry date edit window expired")
+	errInvalidDiaryEntryDate     = errors.New("invalid diary entry date")
+)
 
 func parseDiaryTime(value string) (time.Time, error) {
 	if parsed, err := time.Parse(time.RFC3339, value); err == nil {
@@ -61,6 +70,23 @@ func parseDiaryTime(value string) (time.Time, error) {
 
 func formatDiaryTime(value time.Time) string {
 	return value.Format(time.RFC3339)
+}
+
+func canEditDiaryEntryDate(createdAt time.Time, now time.Time) bool {
+	return now.Sub(createdAt) < diaryEntryDateEditWindow
+}
+
+func validateDiaryEntryDateEdit(existingCreatedAt time.Time, requestedCreatedAt string, now time.Time) (time.Time, error) {
+	if !canEditDiaryEntryDate(existingCreatedAt, now) {
+		return time.Time{}, errDiaryEntryDateEditExpired
+	}
+
+	parsed, err := parseDiaryTime(requestedCreatedAt)
+	if err != nil {
+		return time.Time{}, errInvalidDiaryEntryDate
+	}
+
+	return parsed, nil
 }
 
 func scanDiaryEntry(scanner interface {
@@ -91,6 +117,7 @@ func scanDiaryEntry(scanner interface {
 	entry.Body = body.String
 	entry.PostedByUserID = strconv.Itoa(postedByUserID)
 	entry.CreateAt = formatDiaryTime(createdAt)
+	entry.CanEditDate = canEditDiaryEntryDate(createdAt, time.Now())
 
 	if label.Valid {
 		entry.Label = &label.String
@@ -194,6 +221,7 @@ func GetDiaryEntry(ctx *gin.Context) {
 
 func UpdateDiaryEntry(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
+	userSession := GetUserSessionFromContext(ctx)
 
 	entryId, err := strconv.Atoi(ctx.Params.ByName("diaryEntryId"))
 
@@ -216,17 +244,60 @@ func UpdateDiaryEntry(ctx *gin.Context) {
 	}
 	defer tx.Rollback()
 
+	var postedByUserID int
+	var existingCreatedAt time.Time
+
+	err = tx.QueryRowContext(ctx.Request.Context(), `
+		select who_posted_user_id, created_at
+		from diary_entries
+		where id = $1
+	`, entryId).Scan(&postedByUserID, &existingCreatedAt)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "Diary entry not found"))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to update diary entry"))
+		return
+	}
+
+	if postedByUserID != int(userSession.UserID) {
+		ctx.JSON(http.StatusForbidden, CreateErrorResponse(AuthorizationError, "Only the author can edit this diary entry"))
+		return
+	}
+
+	shouldUpdateCreatedAt := DoesMaskHaveField(updateDiaryEntryRequest.Mask, "createdAt")
+	updatedCreatedAt := time.Time{}
+
+	if shouldUpdateCreatedAt {
+		updatedCreatedAt, err = validateDiaryEntryDateEdit(existingCreatedAt, updateDiaryEntryRequest.CreatedAt, time.Now())
+
+		if err != nil {
+			if errors.Is(err, errDiaryEntryDateEditExpired) {
+				ctx.JSON(http.StatusForbidden, CreateErrorResponse(AuthorizationError, "Diary entry dates can only be changed during the first 7 days"))
+				return
+			}
+
+			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry date"))
+			return
+		}
+	}
+
 	_, err = tx.ExecContext(ctx.Request.Context(), `
 		update diary_entries
 		set title = case when $2 then $3 else title end,
 		    body = case when $4 then $5 else body end,
-		    label = case when $6 then $7 else label end
+		    label = case when $6 then $7 else label end,
+		    created_at = case when $8 then $9 else created_at end
 		where id = $1
 	`,
 		entryId,
 		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "title"), updateDiaryEntryRequest.Title,
 		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "body"), updateDiaryEntryRequest.Body,
 		DoesMaskHaveField(updateDiaryEntryRequest.Mask, "label"), updateDiaryEntryRequest.Label,
+		shouldUpdateCreatedAt, updatedCreatedAt,
 	)
 
 	if err != nil {
