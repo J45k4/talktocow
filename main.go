@@ -8,7 +8,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/gin-contrib/cors"
@@ -47,6 +51,41 @@ func corsOriginAllowed(origin string) bool {
 	}
 
 	return ip.IsLoopback() || ip.IsPrivate()
+}
+
+func registerFrontendRoutes(r *gin.Engine, distPath string) {
+	if distPath == "" {
+		return
+	}
+
+	indexPath := filepath.Join(distPath, "index.html")
+	if _, err := os.Stat(indexPath); err != nil {
+		log.Printf("frontend dist not available at %s", distPath)
+		return
+	}
+
+	r.NoRoute(func(ctx *gin.Context) {
+		if ctx.Request.URL.Path == "/api" || strings.HasPrefix(ctx.Request.URL.Path, "/api/") {
+			ctx.JSON(http.StatusNotFound, routes.CreateErrorResponse(routes.NotFound, "Not found"))
+			return
+		}
+
+		requestPath := path.Clean("/" + ctx.Request.URL.Path)
+		filePath := filepath.Join(distPath, filepath.FromSlash(strings.TrimPrefix(requestPath, "/")))
+		relativePath, err := filepath.Rel(distPath, filePath)
+		if err != nil || relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
+			ctx.JSON(http.StatusNotFound, routes.CreateErrorResponse(routes.NotFound, "Not found"))
+			return
+		}
+
+		fileInfo, err := os.Stat(filePath)
+		if err == nil && !fileInfo.IsDir() {
+			ctx.File(filePath)
+			return
+		}
+
+		ctx.File(indexPath)
+	})
 }
 
 func main() {
@@ -178,6 +217,8 @@ func main() {
 	r.GET("/api/course/:courseId/student/:userId/submissions", routes.GetStudentSubmissions)
 	r.GET("/api/course/:courseId/students", routes.GetCourseStudents)
 	r.POST("/api/course/:courseId/student", routes.AddUserToCourse)
+
+	registerFrontendRoutes(r, config.FrontendDistPath)
 
 	r.Run(":12001")
 }

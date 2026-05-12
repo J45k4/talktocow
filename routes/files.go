@@ -147,6 +147,27 @@ func jpegFileName(fileName string) string {
 	return strings.TrimSuffix(fileName, extension) + ".jpg"
 }
 
+func imageMagickConvertCommand(inputPath string, outputPath string) (*exec.Cmd, *fileRouteError) {
+	args := []string{
+		inputPath + "[0]",
+		"-auto-orient",
+		"-strip",
+		"-quality",
+		strconv.Itoa(imageVariantJPEGQuality),
+		outputPath,
+	}
+
+	if magickPath, err := exec.LookPath("magick"); err == nil {
+		return exec.Command(magickPath, args...), nil
+	}
+
+	if convertPath, err := exec.LookPath("convert"); err == nil {
+		return exec.Command(convertPath, args...), nil
+	}
+
+	return nil, &fileRouteError{status: http.StatusInternalServerError, code: InternalServerError, message: "Image conversion is not available"}
+}
+
 func convertHEIFToJPEG(data []byte, fileName string) ([]byte, string, string, *fileRouteError) {
 	tempDir, err := os.MkdirTemp("", "talktocow-heif-*")
 	if err != nil {
@@ -164,7 +185,11 @@ func convertHEIFToJPEG(data []byte, fileName string) ([]byte, string, string, *f
 		return nil, "", "", &fileRouteError{status: http.StatusInternalServerError, code: InternalServerError, message: "Failed to prepare image conversion"}
 	}
 
-	command := exec.Command("magick", inputPath+"[0]", "-auto-orient", "-strip", "-quality", strconv.Itoa(imageVariantJPEGQuality), outputPath)
+	command, routeErr := imageMagickConvertCommand(inputPath, outputPath)
+	if routeErr != nil {
+		return nil, "", "", routeErr
+	}
+
 	if output, err := command.CombinedOutput(); err != nil {
 		_ = output
 		return nil, "", "", &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Unsupported HEIC image"}
