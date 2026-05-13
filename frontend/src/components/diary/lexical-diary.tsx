@@ -24,8 +24,7 @@ import {
     Spread
 } from "lexical"
 import { postFormData } from "../../api-methods"
-import { getSession } from "../../logic/session-manager"
-import { resolveServerUrl } from "../../utility"
+import { diaryFileImageUrl, diaryImageSource } from "./diary-image-source"
 import {
     DIARY_RICH_TEXT_DOCUMENT_VERSION,
     DiaryRichTextBlock,
@@ -54,12 +53,6 @@ type SerializedDiaryImageNode = Spread<{
     fileId: number
     src: string
 }, SerializedLexicalNode>
-
-const pictureSource = (url: string) => {
-    const token = getSession().token
-    const separator = url.includes("?") ? "&" : "?"
-    return resolveServerUrl(token ? `${url}${separator}token=${encodeURIComponent(token)}` : url)
-}
 
 export class DiaryImageNode extends DecoratorNode<React.ReactNode> {
     __fileId: number
@@ -128,7 +121,7 @@ function EditableDiaryImage(props: {
 
     return (
         <div className={styles.editableImageFrame}>
-            <img className={styles.inlineImage} src={pictureSource(fileUrl(props.fileId))} alt={props.alt} />
+            <img className={styles.inlineImage} src={diaryImageSource(diaryFileImageUrl(props.fileId))} alt={props.alt} />
             <button
                 aria-label="Remove picture"
                 className={styles.removeImageButton}
@@ -149,7 +142,6 @@ function $createDiaryImageNode(payload: {
     return $applyNodeReplacement(new DiaryImageNode(payload.fileId, payload.src, payload.alt))
 }
 
-const fileUrl = (fileId: number, size: "thumb" | "medium" | "large" | "original" = "medium") => `/api/files/${fileId}?size=${size}`
 const maxImageDimension = 1600
 const imageUploadQuality = 0.82
 
@@ -354,7 +346,7 @@ const lexicalStateFromDiaryDocument = (document: DiaryRichTextDocument) => {
             return {
                 alt: block.alt ?? "",
                 fileId: block.fileId,
-                src: fileUrl(block.fileId),
+                src: diaryFileImageUrl(block.fileId),
                 type: "diary-image",
                 version: 1
             }
@@ -590,7 +582,7 @@ function DiaryToolbarPlugin(props: {
                             $createDiaryImageNode({
                                 alt: response.payload?.fileName ?? file.name,
                                 fileId: response.payload.id,
-                                src: fileUrl(response.payload.id)
+                                src: diaryFileImageUrl(response.payload.id)
                             }),
                             $createParagraphNode()
                         ])
@@ -702,7 +694,7 @@ function DiaryImageDropPlugin() {
                             $createDiaryImageNode({
                                 alt: response.payload?.fileName ?? file.name,
                                 fileId: response.payload.id,
-                                src: fileUrl(response.payload.id)
+                                src: diaryFileImageUrl(response.payload.id)
                             }),
                             $createParagraphNode()
                         ])
@@ -856,7 +848,7 @@ const renderInlineNode = (node: DiaryRichTextInlineNode, key: string) => {
 
 const renderBlock = (block: DiaryRichTextBlock, key: string, onImageClick?: (image: { alt?: string, fileId: number }) => void): React.ReactNode => {
     if (block.type === "image") {
-        const image = <img className={styles.inlineImage} src={pictureSource(fileUrl(block.fileId))} alt={block.alt ?? ""} />
+        const image = <img className={styles.inlineImage} src={diaryImageSource(diaryFileImageUrl(block.fileId))} alt={block.alt ?? ""} />
 
         return (
             <figure className={styles.readonlyImageFrame} key={key}>
