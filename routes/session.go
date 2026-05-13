@@ -71,25 +71,21 @@ func authenticateToken(token string, out *UserSession) error {
 	return auth.DecodeObjectFromToken(token, out)
 }
 
-func GetUserSessionFromRequest(ctx *gin.Context) (UserSession, bool) {
-	sources := []struct {
-		name  string
-		token string
-	}{
+type authTokenSource struct {
+	name  string
+	token string
+}
+
+func getUserSessionAndTokenSourceFromRequest(ctx *gin.Context) (UserSession, authTokenSource, bool) {
+	sources := []authTokenSource{
 		{name: "authorization header", token: bearerTokenFromHeader(ctx.GetHeader("authorization"))},
 	}
 
 	if cookie, err := ctx.Request.Cookie(AuthCookieName); err == nil {
-		sources = append(sources, struct {
-			name  string
-			token string
-		}{name: "auth cookie", token: cookie.Value})
+		sources = append(sources, authTokenSource{name: "auth cookie", token: cookie.Value})
 	}
 
-	sources = append(sources, struct {
-		name  string
-		token string
-	}{name: "query token", token: ctx.Query("token")})
+	sources = append(sources, authTokenSource{name: "query token", token: ctx.Query("token")})
 
 	for _, source := range sources {
 		if source.token == "" {
@@ -103,14 +99,19 @@ func GetUserSessionFromRequest(ctx *gin.Context) (UserSession, bool) {
 			continue
 		}
 
-		return userSession, true
+		return userSession, source, true
 	}
 
-	return UserSession{}, false
+	return UserSession{}, authTokenSource{}, false
+}
+
+func GetUserSessionFromRequest(ctx *gin.Context) (UserSession, bool) {
+	userSession, _, ok := getUserSessionAndTokenSourceFromRequest(ctx)
+	return userSession, ok
 }
 
 func SessionMiddleware(ctx *gin.Context) {
-	userSession, ok := GetUserSessionFromRequest(ctx)
+	userSession, tokenSource, ok := getUserSessionAndTokenSourceFromRequest(ctx)
 
 	if !ok {
 		log.Println("User is not authorized")
@@ -119,6 +120,10 @@ func SessionMiddleware(ctx *gin.Context) {
 
 		ctx.Abort()
 		return
+	}
+
+	if tokenSource.name == "authorization header" {
+		SetAuthCookie(ctx, tokenSource.token)
 	}
 
 	ctx.Set("userSession", userSession)
