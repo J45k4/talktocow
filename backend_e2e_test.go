@@ -30,10 +30,10 @@ import (
 )
 
 type e2eHarness struct {
-	t      *testing.T
-	db     *sql.DB
-	server http.Handler
-	userID int
+	t       *testing.T
+	db      *sql.DB
+	server  http.Handler
+	userIDs []int
 }
 
 func TestBackendE2EAuthFilesAndDiary(t *testing.T) {
@@ -113,6 +113,57 @@ func TestBackendE2EAuthFilesAndDiary(t *testing.T) {
 	}
 }
 
+func TestBackendE2EDiaryImageVisibleToOtherAuthenticatedUser(t *testing.T) {
+	if os.Getenv("TALKTOCOW_E2E") != "1" {
+		t.Skip("set TALKTOCOW_E2E=1 to run backend e2e tests against the configured Postgres database")
+	}
+
+	h := newE2EHarness(t)
+	defer h.cleanup()
+
+	stamp := time.Now().UnixNano()
+	ownerUsername := fmt.Sprintf("e2e_owner_%d", stamp)
+	viewerUsername := fmt.Sprintf("e2e_viewer_%d", stamp)
+	password := "test-password"
+	h.createUser(ownerUsername, password)
+	h.createUser(viewerUsername, password)
+
+	ownerCookies := h.loginCookies(ownerUsername, password)
+	viewerCookies := h.loginCookies(viewerUsername, password)
+
+	fileID := h.uploadJPEGWithCookies(ownerCookies)
+	diary := h.jsonRequest("POST", "/api/diary/entry", map[string]any{
+		"title":          "E2E shared diary image",
+		"body":           "Uploaded by one user and viewed by another",
+		"createdAt":      "2026-05-13T05:00:00Z",
+		"pictureFileIds": []int{fileID},
+	}, ownerCookies)
+	assertStatus(t, diary, http.StatusOK)
+
+	entryID, err := strconv.Atoi(jsonField(t, diary.Body.Bytes(), "id"))
+	if err != nil || entryID == 0 {
+		t.Fatalf("parse created diary entry id: %v; body=%s", err, diary.Body.String())
+	}
+
+	entryAsViewer := h.request("GET", fmt.Sprintf("/api/diary/entry/%d", entryID), nil, nil, viewerCookies...)
+	assertStatus(t, entryAsViewer, http.StatusOK)
+	if got := jsonField(t, entryAsViewer.Body.Bytes(), "pictureCount"); got != "1" {
+		t.Fatalf("viewer diary pictureCount = %q, want 1; body=%s", got, entryAsViewer.Body.String())
+	}
+
+	picturesAsViewer := h.request("GET", fmt.Sprintf("/api/diary/entry/%d/pictures", entryID), nil, nil, viewerCookies...)
+	assertStatus(t, picturesAsViewer, http.StatusOK)
+
+	imageAsViewer := h.request("GET", fmt.Sprintf("/api/files/%d?size=medium", fileID), nil, nil, viewerCookies...)
+	assertStatus(t, imageAsViewer, http.StatusOK)
+	if contentType := imageAsViewer.Header().Get("Content-Type"); contentType != "image/jpeg" {
+		t.Fatalf("viewer image content type = %q, want image/jpeg", contentType)
+	}
+	if imageAsViewer.Body.Len() == 0 {
+		t.Fatalf("viewer image response was empty")
+	}
+}
+
 func newE2EHarness(t *testing.T) *e2eHarness {
 	t.Helper()
 
@@ -150,28 +201,48 @@ func (h *e2eHarness) createUser(username, password string) {
 		h.t.Fatalf("hash password: %v", err)
 	}
 
+	var userID int
 	err = h.db.QueryRowContext(context.Background(), `
 		insert into users (name, username, password_hash, created_at)
 		values ($1, $1, $2, now())
 		returning id
-	`, username, hash).Scan(&h.userID)
+	`, username, hash).Scan(&userID)
 	if err != nil {
 		h.t.Fatalf("insert e2e user: %v", err)
 	}
+	h.userIDs = append(h.userIDs, userID)
 }
 
 func (h *e2eHarness) cleanup() {
-	if h.userID == 0 {
+	if len(h.userIDs) == 0 {
 		return
 	}
 
 	ctx := context.Background()
-	_, _ = h.db.ExecContext(ctx, `delete from diary_entry_comments where user_id = $1`, h.userID)
-	_, _ = h.db.ExecContext(ctx, `delete from diary_entry_pictures where diary_entry_id in (select id from diary_entries where user_id = $1)`, h.userID)
-	_, _ = h.db.ExecContext(ctx, `delete from shared_diary_entries where diary_entry_id in (select id from diary_entries where user_id = $1)`, h.userID)
-	_, _ = h.db.ExecContext(ctx, `delete from diary_entries where user_id = $1`, h.userID)
-	_, _ = h.db.ExecContext(ctx, `delete from files where uploaded_by_user_id = $1`, h.userID)
-	_, _ = h.db.ExecContext(ctx, `delete from users where id = $1`, h.userID)
+	for _, userID := range h.userIDs {
+		_, _ = h.db.ExecContext(ctx, `delete from diary_entry_comments where user_id = $1`, userID)
+		_, _ = h.db.ExecContext(ctx, `delete from diary_entry_pictures where diary_entry_id in (select id from diary_entries where who_posted_user_id = $1)`, userID)
+		_, _ = h.db.ExecContext(ctx, `delete from shared_diary_entries where diary_entry_id in (select id from diary_entries where who_posted_user_id = $1)`, userID)
+		_, _ = h.db.ExecContext(ctx, `delete from diary_entries where who_posted_user_id = $1`, userID)
+		_, _ = h.db.ExecContext(ctx, `delete from files where uploaded_by_user_id = $1`, userID)
+		_, _ = h.db.ExecContext(ctx, `delete from users where id = $1`, userID)
+	}
+}
+
+func (h *e2eHarness) loginCookies(username, password string) []*http.Cookie {
+	h.t.Helper()
+
+	response := h.jsonRequest("POST", "/api/login", map[string]string{
+		"username": username,
+		"password": password,
+	}, nil)
+	assertStatus(h.t, response, http.StatusOK)
+
+	cookies := response.Result().Cookies()
+	if len(cookies) == 0 {
+		h.t.Fatalf("/api/login did not set an auth cookie for %s", username)
+	}
+	return cookies
 }
 
 func (h *e2eHarness) jsonRequest(method, path string, body any, cookies []*http.Cookie) *httptest.ResponseRecorder {
@@ -223,6 +294,34 @@ func (h *e2eHarness) uploadJPEGWithBearer(token string) int {
 		"Authorization": "Bearer " + token,
 		"Content-Type":  writer.FormDataContentType(),
 	})
+	assertStatus(h.t, response, http.StatusOK)
+
+	fileID, err := strconv.Atoi(jsonField(h.t, response.Body.Bytes(), "id"))
+	if err != nil {
+		h.t.Fatalf("parse uploaded file id: %v; body=%s", err, response.Body.String())
+	}
+	return fileID
+}
+
+func (h *e2eHarness) uploadJPEGWithCookies(cookies []*http.Cookie) int {
+	h.t.Helper()
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", "diary.jpg")
+	if err != nil {
+		h.t.Fatalf("create multipart file: %v", err)
+	}
+	if _, err := part.Write(orientedJPEGFixture(h.t)); err != nil {
+		h.t.Fatalf("write multipart file: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		h.t.Fatalf("close multipart writer: %v", err)
+	}
+
+	response := h.request("POST", "/api/files", &body, map[string]string{
+		"Content-Type": writer.FormDataContentType(),
+	}, cookies...)
 	assertStatus(h.t, response, http.StatusOK)
 
 	fileID, err := strconv.Atoi(jsonField(h.t, response.Body.Bytes(), "id"))
