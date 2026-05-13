@@ -131,6 +131,18 @@
     box-shadow: 0 0 0 4px rgba(140, 99, 179, 0.16);
 }
 
+.draftField input:disabled {
+    background: #f3f4f6;
+    color: #667085;
+    cursor: not-allowed;
+}
+
+.fieldHint {
+    color: #667085;
+    font-size: 13px;
+    font-weight: 700;
+}
+
 .titleInput {
     color: #5b2b82 !important;
     font-size: 24px !important;

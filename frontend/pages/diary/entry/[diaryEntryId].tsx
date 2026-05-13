@@ -3,6 +3,7 @@ import { getJson, putJson } from "../../../src/api-methods"
 
 import { useNavigate, useParams } from "react-router-dom"
 import { PageContainer } from "../../../src/components/page-container"
+import { createdAtFromDiaryDateInputValue, dateInputValueFromDiaryDate, isDiaryDateEditable } from "../../../src/components/diary/diary-entry-date"
 import { createDiaryBodyFromPlainTextAndImages, DiaryLexicalEditor, getDiaryBodyFileIds, isStructuredDiaryBody } from "../../../src/components/diary/lexical-diary"
 import styles from "../../../src/components/diary/diary.module.css"
 
@@ -18,6 +19,8 @@ export default function DiaryEntryPage() {
     const { diaryEntryId } = useParams()
 
     const [entry, setEntry] = useState<any>()
+    const [entryDate, setEntryDate] = useState("")
+    const [originalEntryDate, setOriginalEntryDate] = useState("")
     const [isSaving, setIsSaving] = useState(false)
     const [saveError, setSaveError] = useState("")
 
@@ -33,6 +36,10 @@ export default function DiaryEntryPage() {
                 setEntry(loadedEntry)
                 return
             }
+
+            const loadedEntryDate = dateInputValueFromDiaryDate(loadedEntry.createdAt)
+            setEntryDate(loadedEntryDate)
+            setOriginalEntryDate(loadedEntryDate)
 
             setEntry({
                 ...loadedEntry,
@@ -52,15 +59,24 @@ export default function DiaryEntryPage() {
             return
         }
 
+        const canEditDate = entry.canEditDate ?? isDiaryDateEditable(entry.createdAt)
+        const mask = ["title", "body", "label", "pictureFileIds"]
+        const updatedCreatedAt = createdAtFromDiaryDateInputValue(entryDate)
+
+        if (canEditDate && entryDate !== originalEntryDate && updatedCreatedAt) {
+            mask.push("createdAt")
+        }
+
         setIsSaving(true)
         setSaveError("")
 
-        putJson("/api/diary/entry/" + diaryEntryId, {
+        putJson<any>("/api/diary/entry/" + diaryEntryId, {
             title: entry.title,
             body: entry.body,
+            createdAt: updatedCreatedAt,
             label: entry.label || undefined,
             pictureFileIds: getDiaryBodyFileIds(entry.body ?? ""),
-            mask: ["title", "body", "label", "pictureFileIds"]
+            mask
         }).then(r => {
             if (r.error) {
                 setSaveError(r.error.message)
@@ -69,6 +85,9 @@ export default function DiaryEntryPage() {
 
             if (r.payload) {
                 setEntry(r.payload)
+                const savedEntryDate = dateInputValueFromDiaryDate(r.payload.createdAt)
+                setEntryDate(savedEntryDate)
+                setOriginalEntryDate(savedEntryDate)
             }
         }).finally(() => {
             setIsSaving(false)
@@ -93,6 +112,19 @@ export default function DiaryEntryPage() {
 
                     {entry && (
                         <div className={styles.draftForm}>
+                            <label className={styles.draftField}>
+                                <span>Entry date</span>
+                                <input
+                                    className={styles.datePicker}
+                                    disabled={!(entry.canEditDate ?? isDiaryDateEditable(entry.createdAt))}
+                                    type="date"
+                                    value={entryDate}
+                                    onChange={e => setEntryDate(e.target.value)}
+                                />
+                                {!(entry.canEditDate ?? isDiaryDateEditable(entry.createdAt)) && (
+                                    <span className={styles.fieldHint}>Dates can only be changed during the first 7 days.</span>
+                                )}
+                            </label>
                             <label className={styles.draftField}>
                                 <span>Title</span>
                                 <input
