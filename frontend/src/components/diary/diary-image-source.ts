@@ -7,6 +7,7 @@ const externalSchemePattern = /^[a-z][a-z\d+\-.]*:/i
 const passthroughSchemePattern = /^(blob|data|file):/i
 
 const canAppendServerImageParams = (url: string) => !passthroughSchemePattern.test(url)
+const isRootRelativeUrl = (url: string) => url.startsWith("/")
 
 const appendQueryParam = (url: string, name: string, value?: string) => {
     if (!value || !canAppendServerImageParams(url)) {
@@ -44,7 +45,7 @@ export const diaryFileImageUrl = (fileId: number, size: DiaryImageSize = "medium
 }
 
 export const diaryImageSource = (url: string, token = getSession().token, currentOrigin?: string) => {
-    const resolvedUrl = externalSchemePattern.test(url) ? url : resolveServerUrl(url)
+    const resolvedUrl = externalSchemePattern.test(url) || isRootRelativeUrl(url) ? url : resolveServerUrl(url)
 
     if (!isCrossOriginUrl(resolvedUrl, currentOrigin)) {
         return resolvedUrl
