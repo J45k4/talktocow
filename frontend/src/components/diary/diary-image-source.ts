@@ -1,4 +1,3 @@
-import { getSession } from "../../logic/session-manager"
 import { resolveServerUrl } from "../../utility"
 
 export type DiaryImageSize = "thumb" | "medium" | "large" | "original"
@@ -21,18 +20,6 @@ const appendQueryParam = (url: string, name: string, value?: string) => {
     return `${beforeHash}${separator}${encodeURIComponent(name)}=${encodeURIComponent(value)}${hash}`
 }
 
-const isCrossOriginUrl = (url: string, currentOrigin = globalThis.location?.origin) => {
-    if (!currentOrigin || !canAppendServerImageParams(url)) {
-        return false
-    }
-
-    try {
-        return new URL(url, currentOrigin).origin !== currentOrigin
-    } catch (_error) {
-        return false
-    }
-}
-
 export const diaryFileUrl = (fileId: number) => `/api/files/${fileId}`
 
 export const diaryImageVariantUrl = (url: string, size: DiaryImageSize) => {
@@ -43,12 +30,10 @@ export const diaryFileImageUrl = (fileId: number, size: DiaryImageSize = "medium
     return diaryImageVariantUrl(diaryFileUrl(fileId), size)
 }
 
-export const diaryImageSource = (url: string, token = getSession().token, currentOrigin?: string) => {
-    const resolvedUrl = externalSchemePattern.test(url) ? url : resolveServerUrl(url)
-
-    if (!isCrossOriginUrl(resolvedUrl, currentOrigin)) {
-        return resolvedUrl
+export const diaryImageSource = (url: string) => {
+    if (externalSchemePattern.test(url)) {
+        return url
     }
 
-    return appendQueryParam(resolvedUrl, "token", token)
+    return resolveServerUrl(url)
 }

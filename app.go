@@ -107,6 +107,7 @@ func setupRouter(db *sql.DB, eventbus *eventbus.Eventbus, chatroomEventbus *chat
 	authenticated := r.Group("", routes.SessionMiddleware)
 
 	authenticated.GET("/api/passkeys", routes.GetPasskeys)
+	authenticated.POST("/api/session/cookie", routes.RefreshAuthCookie)
 	authenticated.POST("/api/passkeys/registration/begin", routes.HandlePasskeyRegistrationBegin)
 	authenticated.POST("/api/passkeys/registration/finish", routes.HandlePasskeyRegistrationFinish)
 	authenticated.GET("/api/users", routes.GetUsers)

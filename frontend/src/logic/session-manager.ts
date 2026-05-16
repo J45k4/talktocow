@@ -18,6 +18,7 @@ let userId;
 let authMethod;
 
 const subscribers = new Set<SubscriberCallback>()
+let sessionReady = Promise.resolve()
 
 const notifyChanges = () => {
     const notify: SessionChangeNotify = {
@@ -30,6 +31,35 @@ const notifyChanges = () => {
 
     for (const [, sub] of subscribers.entries()) {
         sub(notify)
+    }
+}
+
+const clearStoredToken = () => {
+    token = undefined
+    localStorage.removeItem("token")
+    notifyChanges()
+}
+
+const syncAuthCookieFromStoredToken = async (storedToken: string) => {
+    const abortController = new AbortController()
+    const timeout = window.setTimeout(() => abortController.abort(), 3000)
+
+    try {
+        const response = await fetch(resolveServerUrl("/api/session/cookie"), {
+            method: "POST",
+            headers: {
+                Authorization: "Bearer " + storedToken
+            },
+            credentials: "include",
+            signal: abortController.signal
+        })
+
+        if (response.ok) {
+            clearStoredToken()
+        }
+    } catch (_error) {
+    } finally {
+        window.clearTimeout(timeout)
     }
 }
 
@@ -46,6 +76,9 @@ if (typeof window !== "undefined") {
         localStorage.setItem("deviceId", deviceId) 
     }
 
+    if (token) {
+        sessionReady = syncAuthCookieFromStoredToken(token)
+    }
 }
 
 
@@ -124,3 +157,5 @@ export const getSession = () => {
 
     return notify
 }
+
+export const waitForSessionReady = () => sessionReady

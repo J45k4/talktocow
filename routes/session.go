@@ -109,6 +109,37 @@ func GetUserSessionFromRequest(ctx *gin.Context) (UserSession, bool) {
 	return UserSession{}, false
 }
 
+func authTokenFromRequest(ctx *gin.Context) string {
+	token := bearerTokenFromHeader(ctx.GetHeader("authorization"))
+	if token != "" {
+		return token
+	}
+
+	if cookie, err := ctx.Request.Cookie(AuthCookieName); err == nil {
+		return cookie.Value
+	}
+
+	return ""
+}
+
+func RefreshAuthCookie(ctx *gin.Context) {
+	token := authTokenFromRequest(ctx)
+	if token == "" {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+
+	var userSession UserSession
+	if err := authenticateToken(token, &userSession); err != nil {
+		log.Printf("auth cookie refresh token is invalid: %v", err)
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+
+	SetAuthCookie(ctx, token)
+	ctx.Status(http.StatusNoContent)
+}
+
 func SessionMiddleware(ctx *gin.Context) {
 	userSession, ok := GetUserSessionFromRequest(ctx)
 

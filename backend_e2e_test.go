@@ -67,6 +67,15 @@ func TestBackendE2EAuthFilesAndDiary(t *testing.T) {
 		t.Fatalf("/api/token returned username %q, want %q", tokenBody.Username, username)
 	}
 
+	cookieRefresh := h.request("POST", "/api/session/cookie", nil, map[string]string{
+		"Authorization": "Bearer " + tokenBody.Token,
+	})
+	assertStatus(t, cookieRefresh, http.StatusNoContent)
+	refreshedCookies := cookieRefresh.Result().Cookies()
+	if len(refreshedCookies) == 0 {
+		t.Fatalf("/api/session/cookie did not set an auth cookie")
+	}
+
 	fileID := h.uploadJPEGWithBearer(tokenBody.Token)
 	medium := h.request("GET", fmt.Sprintf("/api/files/%d?size=medium", fileID), nil, map[string]string{
 		"Authorization": "Bearer " + tokenBody.Token,
@@ -85,6 +94,15 @@ func TestBackendE2EAuthFilesAndDiary(t *testing.T) {
 	}
 	if got, want := img.Bounds().Dy(), 1280; got != want {
 		t.Fatalf("medium height = %d, want %d", got, want)
+	}
+
+	mediumWithRefreshedCookie := h.request("GET", fmt.Sprintf("/api/files/%d?size=medium", fileID), nil, nil, refreshedCookies...)
+	assertStatus(t, mediumWithRefreshedCookie, http.StatusOK)
+	if contentType := mediumWithRefreshedCookie.Header().Get("Content-Type"); contentType != "image/jpeg" {
+		t.Fatalf("medium with refreshed cookie content type = %q, want image/jpeg", contentType)
+	}
+	if mediumWithRefreshedCookie.Body.Len() == 0 {
+		t.Fatalf("medium with refreshed cookie response was empty")
 	}
 
 	cookieLogin := h.jsonRequest("POST", "/api/login", map[string]string{
