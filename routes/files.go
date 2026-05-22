@@ -549,6 +549,17 @@ func getStoredFileByID(ctx context.Context, db *sql.DB, fileID int) (StoredFile,
 	return scanStoredFile(row)
 }
 
+func getStoredFileByDiaryPictureID(ctx context.Context, db *sql.DB, pictureID int) (StoredFile, error) {
+	row := db.QueryRowContext(ctx, `
+		select files.id, files.uploaded_by_user_id, files.file_name, files.content_type, files.content_hash, files.size_bytes, files.created_at
+		from diary_entry_pictures
+		join files on files.id = diary_entry_pictures.file_id
+		where diary_entry_pictures.id = $1
+	`, pictureID)
+
+	return scanStoredFile(row)
+}
+
 func readUploadedFile(fileHeader *multipart.FileHeader, options storeUploadedFileOptions) (uploadedFileData, *fileRouteError) {
 	if fileHeader.Size > maxUploadedFileSize {
 		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "File must be 8 MB or smaller"}
@@ -710,8 +721,14 @@ func GetFile(ctx *gin.Context) {
 
 	storedFile, err := getStoredFileByID(ctx.Request.Context(), db, fileID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "File not found"))
-		return
+		// Legacy diary bodies can contain diary_entry_pictures.id values in image nodes.
+		// Fall back to resolving those to their backing file record so old rich entries
+		// keep rendering after the shared /api/files/:fileId renderer path is used.
+		storedFile, err = getStoredFileByDiaryPictureID(ctx.Request.Context(), db, fileID)
+		if err != nil {
+			ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "File not found"))
+			return
+		}
 	}
 
 	serveStoredFile(ctx, storedFile)
