@@ -846,14 +846,17 @@ const renderInlineNode = (node: DiaryRichTextInlineNode, key: string) => {
     return <React.Fragment key={key}>{content}</React.Fragment>
 }
 
-const renderBlock = (block: DiaryRichTextBlock, key: string, onImageClick?: (image: { alt?: string, fileId: number }) => void): React.ReactNode => {
+const renderBlock = (block: DiaryRichTextBlock, key: string, options: {
+    isCompact?: boolean
+    onImageClick?: (image: { alt?: string, fileId: number }) => void
+}): React.ReactNode => {
     if (block.type === "image") {
-        const image = <img className={styles.inlineImage} src={diaryImageSource(diaryFileImageUrl(block.fileId))} alt={block.alt ?? ""} />
+        const image = <img className={options.isCompact ? styles.compactInlineImage : styles.inlineImage} src={diaryImageSource(diaryFileImageUrl(block.fileId))} alt={block.alt ?? ""} />
 
         return (
-            <figure className={styles.readonlyImageFrame} key={key}>
-                {onImageClick ? (
-                    <button className={styles.imagePreviewButton} onClick={() => onImageClick({ alt: block.alt, fileId: block.fileId })} type="button">
+            <figure className={options.isCompact ? styles.compactImageFrame : styles.readonlyImageFrame} key={key}>
+                {options.onImageClick ? (
+                    <button className={styles.imagePreviewButton} onClick={() => options.onImageClick?.({ alt: block.alt, fileId: block.fileId })} type="button">
                         {image}
                     </button>
                 ) : image}
@@ -865,32 +868,40 @@ const renderBlock = (block: DiaryRichTextBlock, key: string, onImageClick?: (ima
 
     if (block.type === "paragraph") {
         return (
-            <p className={styles.readonlyParagraph} key={key}>
+            <p className={options.isCompact ? styles.compactParagraph : styles.readonlyParagraph} key={key}>
                 {children}
             </p>
         )
     }
 
     if (block.level === 3) {
-        return <h3 className={styles.readonlySubheading} key={key}>{children}</h3>
+        return <h3 className={options.isCompact ? styles.compactSubheading : styles.readonlySubheading} key={key}>{children}</h3>
     }
 
-    return <h2 className={styles.readonlyHeading} key={key}>{children}</h2>
+    return <h2 className={options.isCompact ? styles.compactHeading : styles.readonlyHeading} key={key}>{children}</h2>
 }
 
 export function DiaryBodyRenderer(props: {
     body: string
+    maxBlocks?: number
     onImageClick?: (image: { alt?: string, fileId: number }) => void
+    variant?: "full" | "compact"
 }) {
+    const isCompact = props.variant === "compact"
+
     if (!isStructuredDiaryBody(props.body)) {
-        return <div className={styles.plainBody}>{props.body}</div>
+        return <div className={isCompact ? styles.compactPlainBody : styles.plainBody}>{props.body}</div>
     }
 
     const document = diaryDocumentFromBody(props.body)
+    const blocks = props.maxBlocks ? document.content.slice(0, props.maxBlocks) : document.content
 
     return (
-        <div className={styles.readonlyBody}>
-            {document.content.map((block, index) => renderBlock(block, String(index), props.onImageClick))}
+        <div className={isCompact ? styles.readonlyBodyCompact : styles.readonlyBody}>
+            {blocks.map((block, index) => renderBlock(block, String(index), {
+                isCompact,
+                onImageClick: props.onImageClick
+            }))}
         </div>
     )
 }

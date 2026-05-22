@@ -58,6 +58,7 @@ export const DiaryEntryList = () => {
                             body={p.body}
                             postedAt={p.createdAt}
                             postedByUserId={p.postedByUserId}
+                            postedByUserName={p.postedByUserName}
                             label={p.label}
                             onDelete={() => {
                                 setEntries(entries.filter(entry => entry.id !== p.id))

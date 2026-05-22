@@ -21,6 +21,7 @@ export const DiaryEntry = (props: {
     body: string
     postedAt: string
     postedByUserId: string
+    postedByUserName?: string
     label?: string
     onDelete: () => void
 }) => {
@@ -107,6 +108,9 @@ export const DiaryEntry = (props: {
                         <div className={styles.title}>
                             {props.title}
                         </div>
+                        {props.postedByUserName && (
+                            <div className={styles.creatorName}>By {props.postedByUserName}</div>
+                        )}
                     </div>
                     {isAuthor && (
                         <div className={styles.actions}>

@@ -344,6 +344,96 @@
     color: #FFFFFF !important;
 }
 
+.labelColorLime {
+    background: #84CC16 !important;
+    color: #111827 !important;
+}
+
+.labelColorTeal {
+    background: #0D9488 !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorSky {
+    background: #0284C7 !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorIndigo {
+    background: #4F46E5 !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorViolet {
+    background: #8B5CF6 !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorFuchsia {
+    background: #C026D3 !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorRose {
+    background: #E11D48 !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorAmber {
+    background: #F59E0B !important;
+    color: #111827 !important;
+}
+
+.labelColorEmerald {
+    background: #059669 !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorSlate {
+    background: #334155 !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorStone {
+    background: #78716C !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorWine {
+    background: #9F1239 !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorMint {
+    background: #2DD4BF !important;
+    color: #111827 !important;
+}
+
+.labelColorNavy {
+    background: #1E3A8A !important;
+    color: #FFFFFF !important;
+}
+
+.labelColorCoral {
+    background: #FB7185 !important;
+    color: #111827 !important;
+}
+
+.labelColorOlive {
+    background: #65A30D !important;
+    color: #111827 !important;
+}
+
+.labelColorLavender {
+    background: #A78BFA !important;
+    color: #111827 !important;
+}
+
+.labelColorPeach {
+    background: #FDBA74 !important;
+    color: #111827 !important;
+}
+
 .quickAddInputRow {
     display: flex;
     gap: 8px;

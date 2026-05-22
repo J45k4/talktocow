@@ -11,14 +11,15 @@ import (
 )
 
 type DiaryEntry struct {
-	ID             int     `json:"id"`
-	Title          string  `json:"title"`
-	Body           string  `json:"body"`
-	PostedByUserID string  `json:"postedByUserId"`
-	CreateAt       string  `json:"createdAt"`
-	CanEditDate    bool    `json:"canEditDate"`
-	Label          *string `json:"label"`
-	PictureCount   int     `json:"pictureCount"`
+	ID               int     `json:"id"`
+	Title            string  `json:"title"`
+	Body             string  `json:"body"`
+	PostedByUserID   string  `json:"postedByUserId"`
+	PostedByUserName string  `json:"postedByUserName"`
+	CreateAt         string  `json:"createdAt"`
+	CanEditDate      bool    `json:"canEditDate"`
+	Label            *string `json:"label"`
+	PictureCount     int     `json:"pictureCount"`
 }
 
 type DiaryEntryPicture struct {
@@ -96,6 +97,7 @@ func scanDiaryEntry(scanner interface {
 	var title sql.NullString
 	var body sql.NullString
 	var label sql.NullString
+	var postedByUserName sql.NullString
 	var createdAt time.Time
 	var postedByUserID int
 
@@ -104,6 +106,7 @@ func scanDiaryEntry(scanner interface {
 		&title,
 		&body,
 		&postedByUserID,
+		&postedByUserName,
 		&createdAt,
 		&label,
 		&entry.PictureCount,
@@ -116,6 +119,7 @@ func scanDiaryEntry(scanner interface {
 	entry.Title = title.String
 	entry.Body = body.String
 	entry.PostedByUserID = strconv.Itoa(postedByUserID)
+	entry.PostedByUserName = postedByUserName.String
 	entry.CreateAt = formatDiaryTime(createdAt)
 	entry.CanEditDate = canEditDiaryEntryDate(createdAt, time.Now())
 
@@ -165,7 +169,7 @@ func CreateDiaryEntry(ctx *gin.Context) {
 	row := tx.QueryRowContext(ctx.Request.Context(), `
 		insert into diary_entries (title, body, who_posted_user_id, created_at, label)
 		values ($1, $2, $3, $4, $5)
-		returning id, title, body, who_posted_user_id, created_at, label, 0 as picture_count
+		returning id, title, body, who_posted_user_id, (select name from users where id = who_posted_user_id) as posted_by_user_name, created_at, label, 0 as picture_count
 	`, title, createRequest.Body, userSession.UserID, createdAt, createRequest.Label)
 
 	entry, err := scanDiaryEntry(row)
@@ -202,11 +206,12 @@ func GetDiaryEntry(ctx *gin.Context) {
 	}
 
 	row := db.QueryRowContext(ctx.Request.Context(), `
-		select diary_entries.id, title, body, who_posted_user_id, diary_entries.created_at, label, count(diary_entry_pictures.id) as picture_count
+		select diary_entries.id, title, body, who_posted_user_id, users.name as posted_by_user_name, diary_entries.created_at, label, count(diary_entry_pictures.id) as picture_count
 		from diary_entries
+		left join users on users.id = diary_entries.who_posted_user_id
 		left join diary_entry_pictures on diary_entry_pictures.diary_entry_id = diary_entries.id
 		where diary_entries.id = $1
-		group by diary_entries.id
+		group by diary_entries.id, users.name
 	`, entryId)
 
 	diaryEntry, err := scanDiaryEntry(row)
@@ -749,10 +754,11 @@ func GetDiaryEntries(ctx *gin.Context) {
 	offset, limit := GetOffsetAndLimit(ctx, 0, 30)
 
 	rows, err := db.QueryContext(ctx.Request.Context(), `
-		select diary_entries.id, title, body, who_posted_user_id, diary_entries.created_at, label, count(diary_entry_pictures.id) as picture_count
+		select diary_entries.id, title, body, who_posted_user_id, users.name as posted_by_user_name, diary_entries.created_at, label, count(diary_entry_pictures.id) as picture_count
 		from diary_entries
+		left join users on users.id = diary_entries.who_posted_user_id
 		left join diary_entry_pictures on diary_entry_pictures.diary_entry_id = diary_entries.id
-		group by diary_entries.id
+		group by diary_entries.id, users.name
 		order by diary_entries.created_at desc
 		offset $1 limit $2
 	`, offset, limit)
