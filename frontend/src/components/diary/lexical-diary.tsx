@@ -24,7 +24,7 @@ import {
     Spread
 } from "lexical"
 import { postFormData } from "../../api-methods"
-import { diaryFileImageUrl, diaryImageSource } from "./diary-image-source"
+import { DiaryImageSize, diaryFileImageUrl, diaryImageSource, diaryImageVariantUrl } from "./diary-image-source"
 import {
     DIARY_RICH_TEXT_DOCUMENT_VERSION,
     DiaryRichTextBlock,
@@ -846,12 +846,62 @@ const renderInlineNode = (node: DiaryRichTextInlineNode, key: string) => {
     return <React.Fragment key={key}>{content}</React.Fragment>
 }
 
+const diaryEntryPictureImageUrl = (entryId: number, pictureId: number, size: DiaryImageSize) => {
+    return diaryImageVariantUrl(`/api/diary/entry/${entryId}/picture/${pictureId}`, size)
+}
+
+function ReadonlyDiaryImage(props: {
+    alt: string
+    className: string
+    fallbackUrl?: string
+    src: string
+}) {
+    const [src, setSrc] = useState(props.src)
+    const [didFallback, setDidFallback] = useState(false)
+
+    return (
+        <img
+            className={props.className}
+            src={src}
+            alt={props.alt}
+            onError={() => {
+                if (!props.fallbackUrl || didFallback) {
+                    return
+                }
+
+                setDidFallback(true)
+                setSrc(props.fallbackUrl)
+            }}
+        />
+    )
+}
+
+export type DiaryImageFallback = {
+    fileId?: number
+    fileName?: string
+    id: number
+}
+
+const findImageFallback = (block: Extract<DiaryRichTextBlock, { type: "image" }>, fallbacks?: DiaryImageFallback[]) => {
+    return fallbacks?.find(fallback => fallback.fileId === block.fileId)
+        ?? fallbacks?.find(fallback => fallback.fileName === block.alt)
+}
+
 const renderBlock = (block: DiaryRichTextBlock, key: string, options: {
+    imageFallbacks?: DiaryImageFallback[]
     isCompact?: boolean
+    legacyDiaryEntryId?: number
     onImageClick?: (image: { alt?: string, fileId: number }) => void
 }): React.ReactNode => {
     if (block.type === "image") {
-        const image = <img className={options.isCompact ? styles.compactInlineImage : styles.inlineImage} src={diaryImageSource(diaryFileImageUrl(block.fileId))} alt={block.alt ?? ""} />
+        const size = options.isCompact ? "thumb" : "medium"
+        const imageUrl = diaryImageSource(diaryFileImageUrl(block.fileId, size))
+        const fallback = findImageFallback(block, options.imageFallbacks)
+        const fallbackPictureId = fallback?.id ?? block.fileId
+        const fallbackUrl = options.legacyDiaryEntryId
+            ? diaryImageSource(diaryEntryPictureImageUrl(options.legacyDiaryEntryId, fallbackPictureId, size))
+            : undefined
+        const image = <ReadonlyDiaryImage className={options.isCompact ? styles.compactInlineImage : styles.inlineImage} src={imageUrl} fallbackUrl={fallbackUrl} alt={block.alt ?? ""} />
 
         return (
             <figure className={options.isCompact ? styles.compactImageFrame : styles.readonlyImageFrame} key={key}>
@@ -883,6 +933,8 @@ const renderBlock = (block: DiaryRichTextBlock, key: string, options: {
 
 export function DiaryBodyRenderer(props: {
     body: string
+    imageFallbacks?: DiaryImageFallback[]
+    legacyDiaryEntryId?: number
     maxBlocks?: number
     onImageClick?: (image: { alt?: string, fileId: number }) => void
     variant?: "full" | "compact"
@@ -899,7 +951,9 @@ export function DiaryBodyRenderer(props: {
     return (
         <div className={isCompact ? styles.readonlyBodyCompact : styles.readonlyBody}>
             {blocks.map((block, index) => renderBlock(block, String(index), {
+                imageFallbacks: props.imageFallbacks,
                 isCompact,
+                legacyDiaryEntryId: props.legacyDiaryEntryId,
                 onImageClick: props.onImageClick
             }))}
         </div>
