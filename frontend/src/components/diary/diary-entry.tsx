@@ -126,6 +126,8 @@ export const DiaryEntry = (props: {
             </div>
             <DiaryBodyRenderer
                 body={props.body}
+                imageFallbacks={pictures}
+                legacyDiaryEntryId={props.id}
                 onImageClick={image => setPreviewPicture({
                     id: image.fileId,
                     fileId: image.fileId,
