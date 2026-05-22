@@ -88,6 +88,13 @@
     overflow-wrap: anywhere;
 }
 
+.creatorName {
+    margin-top: 4px;
+    color: #667085;
+    font-size: 14px;
+    font-weight: 700;
+}
+
 @media (max-width: 520px) {
     .header {
         align-items: flex-start;

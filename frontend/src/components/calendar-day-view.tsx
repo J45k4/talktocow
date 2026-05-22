@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { deleteJson, getJson, postJson } from "../api-methods"
+import { DiaryBodyRenderer } from "./diary/lexical-diary"
 import { Modal } from "./modal"
 import styles from "./calendar-day-view.module.css"
 
@@ -52,18 +53,26 @@ const labelColorClasses = [
     styles.labelColorYellow,
     styles.labelColorRed,
     styles.labelColorBrown,
-    styles.labelColorGray
+    styles.labelColorGray,
+    styles.labelColorLime,
+    styles.labelColorTeal,
+    styles.labelColorSky,
+    styles.labelColorIndigo,
+    styles.labelColorViolet,
+    styles.labelColorFuchsia,
+    styles.labelColorRose,
+    styles.labelColorAmber,
+    styles.labelColorEmerald,
+    styles.labelColorSlate,
+    styles.labelColorStone,
+    styles.labelColorWine,
+    styles.labelColorMint,
+    styles.labelColorNavy,
+    styles.labelColorCoral,
+    styles.labelColorOlive,
+    styles.labelColorLavender,
+    styles.labelColorPeach
 ]
-
-const getLabelColorClass = (label: string) => {
-    let hash = 5381
-
-    for (const char of label.toLowerCase()) {
-        hash = ((hash << 5) + hash) ^ char.charCodeAt(0)
-    }
-
-    return labelColorClasses[Math.abs(hash) % labelColorClasses.length]
-}
 
 const getUniqueLabels = (entries: DiaryCalendarEntry[]) => {
     const labels: string[] = []
@@ -75,14 +84,6 @@ const getUniqueLabels = (entries: DiaryCalendarEntry[]) => {
     }
 
     return labels
-}
-
-const getPreview = (body: string) => {
-    if (!body) {
-        return "No details yet."
-    }
-
-    return body.length > 120 ? `${body.slice(0, 120)}…` : body
 }
 
 export const CalendarDayView = () => {
@@ -133,6 +134,22 @@ export const CalendarDayView = () => {
     const selectedEntries = useMemo(() => {
         return entries.filter(entry => entryHappensOnDay(entry, selectedDate))
     }, [entries, selectedDate])
+
+    const labelColorClassByLabel = useMemo(() => {
+        const allLabels = [...labels]
+
+        for (const entry of entries) {
+            if (entry.label && !allLabels.includes(entry.label)) {
+                allLabels.push(entry.label)
+            }
+        }
+
+        return new Map(allLabels.map((label, index) => [label, labelColorClasses[index % labelColorClasses.length]]))
+    }, [entries, labels])
+
+    const getLabelColorClass = useCallback((label: string) => {
+        return labelColorClassByLabel.get(label) ?? labelColorClasses[0]
+    }, [labelColorClassByLabel])
 
     const monthlyLabelCounts = useMemo(() => {
         const counts = new Map<string, number>()
@@ -304,7 +321,11 @@ export const CalendarDayView = () => {
                                 </div>
                                 <div>
                                     <div className={styles.eventTitle}>{entry.title}</div>
-                                    <div className={styles.eventBody}>{getPreview(entry.body)}</div>
+                                    <div className={styles.eventBody}>
+                                        {entry.body ? (
+                                            <DiaryBodyRenderer body={entry.body} variant="compact" maxBlocks={3} />
+                                        ) : "No details yet."}
+                                    </div>
                                 </div>
                             </Link>
                             <button className={styles.deleteEntryButton} onClick={() => setEntryToDelete(entry)} aria-label={`Remove ${entry.title}`}>

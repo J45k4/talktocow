@@ -238,3 +238,46 @@
     font-size: 20px;
     white-space: pre-wrap;
 }
+
+.readonlyBodyCompact,
+.compactPlainBody {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #3f4a54;
+    font-size: 14px;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+.compactPlainBody {
+    white-space: pre-wrap;
+}
+
+.compactParagraph,
+.compactHeading,
+.compactSubheading {
+    margin: 0 0 3px;
+}
+
+.compactHeading,
+.compactSubheading {
+    color: #293241;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.3;
+}
+
+.compactImageFrame {
+    display: inline-block;
+    margin: 4px 6px 0 0;
+    vertical-align: top;
+}
+
+.compactInlineImage {
+    display: block;
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    object-fit: cover;
+}
