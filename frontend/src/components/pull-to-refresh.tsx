@@ -6,8 +6,9 @@ type PullToRefreshProps = {
     onRefresh: () => Promise<void> | void
 }
 
-const refreshThreshold = 80
-const maxPullDistance = 110
+const pullActivationDistance = 32
+const refreshThreshold = 120
+const maxPullDistance = 150
 
 export const PullToRefresh = (props: PullToRefreshProps) => {
     const [startY, setStartY] = useState<number | null>(null)
@@ -34,7 +35,7 @@ export const PullToRefresh = (props: PullToRefreshProps) => {
             return
         }
 
-        const distance = event.touches[0].clientY - startY
+        const distance = event.touches[0].clientY - startY - pullActivationDistance
 
         if (distance <= 0) {
             setPullDistance(0)
