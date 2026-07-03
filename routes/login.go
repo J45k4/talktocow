@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -61,6 +63,13 @@ func loginWithPassword(ctx *gin.Context) (LoginResponse, bool) {
 	).One(ctx.Request.Context(), db)
 
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			fmt.Println("User not found")
+
+			ctx.JSON(http.StatusForbidden, CreateErrorResponse(InvalidCredentials, "Credentials are incorrect"))
+			return LoginResponse{}, false
+		}
+
 		log.Printf("fetching user failed %v", err)
 
 		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, ""))

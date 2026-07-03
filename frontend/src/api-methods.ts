@@ -94,14 +94,23 @@ const handleFetchResult = async <T>(r: Response): Promise<ApiResponse<T>> => {
 export const postJson = async <T>(path: string, payload: any): Promise<ApiResponse<T>> => {
     const headers = getHeaders()
 
-    let res = await fetch(resolveServerUrl(path), {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(payload),
-        credentials: "include"
-    })
+	try {
+		let res = await fetch(resolveServerUrl(path), {
+			method: "POST",
+			headers: headers,
+			body: JSON.stringify(payload),
+			credentials: "include"
+		})
 
-    return handleFetchResult(res)
+		return handleFetchResult(res)
+	} catch (e) {
+		return {
+			error: {
+				code: 500,
+				message: e instanceof Error ? e.message : String(e)
+			}
+		}
+	}
 }
 
 export const postFormData = async <T>(path: string, payload: FormData): Promise<ApiResponse<T>> => {
