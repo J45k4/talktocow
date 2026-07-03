@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
-import { deleteJson, getJson, postJson } from "../api-methods"
+import { FaEdit } from "react-icons/fa"
+import { deleteJson, getJson, postJson, putJson } from "../api-methods"
 import { DiaryBodyRenderer } from "./diary/lexical-diary"
 import { Modal } from "./modal"
 import styles from "./calendar-day-view.module.css"
@@ -11,6 +12,11 @@ type DiaryCalendarEntry = {
     body: string
     createdAt: string
     label?: string
+}
+
+type RenameDiaryLabelResponse = {
+    label: string
+    updatedCount: number
 }
 
 const sameDay = (a: Date, b: Date) => (
@@ -96,6 +102,10 @@ export const CalendarDayView = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [isAddingLabel, setIsAddingLabel] = useState(false)
     const [entryToDelete, setEntryToDelete] = useState<DiaryCalendarEntry | null>(null)
+    const [labelToEdit, setLabelToEdit] = useState("")
+    const [editedLabel, setEditedLabel] = useState("")
+    const [isSavingLabel, setIsSavingLabel] = useState(false)
+    const [editLabelError, setEditLabelError] = useState("")
     const [deleteError, setDeleteError] = useState("")
 
     const fetchCalendar = useCallback(() => {
@@ -210,6 +220,63 @@ export const CalendarDayView = () => {
         })
     }
 
+    const startEditingLabel = (label: string) => {
+        setLabelToEdit(label)
+        setEditedLabel(label)
+        setEditLabelError("")
+    }
+
+    const closeEditLabelModal = () => {
+        if (isSavingLabel) {
+            return
+        }
+
+        setLabelToEdit("")
+        setEditedLabel("")
+        setEditLabelError("")
+    }
+
+    const renameLabel = () => {
+        const cleanLabel = editedLabel.trim()
+
+        if (!labelToEdit || !cleanLabel) {
+            setEditLabelError("Label cannot be empty.")
+            return
+        }
+
+        if (cleanLabel === labelToEdit) {
+            closeEditLabelModal()
+            return
+        }
+
+        setIsSavingLabel(true)
+        setEditLabelError("")
+
+        putJson<RenameDiaryLabelResponse>("/api/diary/label", {
+            oldLabel: labelToEdit,
+            newLabel: cleanLabel
+        }).then(r => {
+            if (r.error) {
+                setEditLabelError(r.error.message)
+                return
+            }
+
+            setEntries(currentEntries => currentEntries.map(entry => (
+                entry.label === labelToEdit ? {
+                    ...entry,
+                    label: cleanLabel,
+                    title: entry.title === labelToEdit ? cleanLabel : entry.title
+                } : entry
+            )))
+            fetchCalendar()
+            setLabelToEdit("")
+            setEditedLabel("")
+            setEditLabelError("")
+        }).finally(() => {
+            setIsSavingLabel(false)
+        })
+    }
+
     return (
         <section className={styles.calendarCard}>
             <div className={styles.calendarHeader}>
@@ -289,7 +356,12 @@ export const CalendarDayView = () => {
                         <div className={styles.quickAddTitle}>Quick labels</div>
                         <div className={styles.labelChips}>
                             {labels.map(label => (
-                                <button className={getLabelColorClass(label)} key={label} onClick={() => addLabel(label)} disabled={isAddingLabel}>{label}</button>
+                                <span className={styles.labelChipControl} key={label}>
+                                    <button className={`${styles.labelChipButton} ${getLabelColorClass(label)}`} onClick={() => addLabel(label)} disabled={isAddingLabel}>{label}</button>
+                                    <button className={styles.editLabelButton} onClick={() => startEditingLabel(label)} aria-label={`Edit ${label} label`}>
+                                        <FaEdit />
+                                    </button>
+                                </span>
                             ))}
                         </div>
                         <div className={styles.quickAddInputRow}>
@@ -343,6 +415,22 @@ export const CalendarDayView = () => {
                         <button className={styles.dangerButton} onClick={() => entryToDelete && deleteEntry(entryToDelete)}>Remove</button>
                     </div>
                 </div>
+            </Modal>
+            <Modal isOpen={labelToEdit !== ""} title="Edit label" onClose={closeEditLabelModal}>
+                <form className={styles.confirmModalContent} onSubmit={e => {
+                    e.preventDefault()
+                    renameLabel()
+                }}>
+                    <label className={styles.modalField}>
+                        <span>Label</span>
+                        <input value={editedLabel} onChange={e => setEditedLabel(e.target.value)} disabled={isSavingLabel} autoFocus />
+                    </label>
+                    {editLabelError && <p className={styles.modalError}>{editLabelError}</p>}
+                    <div className={styles.modalActions}>
+                        <button className={styles.cancelButton} type="button" onClick={closeEditLabelModal} disabled={isSavingLabel}>Cancel</button>
+                        <button className={styles.primaryButton} type="submit" disabled={isSavingLabel}>Save</button>
+                    </div>
+                </form>
             </Modal>
             <Modal isOpen={deleteError !== ""} title="Could not remove entry" onClose={() => setDeleteError("")}>
                 <div className={styles.confirmModalContent}>

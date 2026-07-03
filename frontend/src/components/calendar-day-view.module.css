@@ -280,13 +280,48 @@
     gap: 8px;
 }
 
+.labelChipControl {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+}
+
 .labelChips button,
 .quickAddInputRow button {
     border: none;
-    border-radius: 999px;
     cursor: pointer;
     font-weight: 900;
     padding: 7px 11px;
+}
+
+.labelChipButton {
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 999px 0 0 999px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editLabelButton {
+    display: inline-flex;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid rgba(255, 255, 255, 0.7) !important;
+    border-radius: 0 999px 999px 0;
+    background: #eef2f7;
+    color: #344054;
+}
+
+.editLabelButton svg {
+    width: 13px;
+    height: 13px;
+}
+
+.quickAddInputRow button {
+    border-radius: 999px;
 }
 
 .labelChips button:hover,
@@ -523,6 +558,34 @@
     font-weight: 700;
 }
 
+.modalField {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+    color: #344054;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.modalField input {
+    border: 1px solid #d8d2e2;
+    border-radius: 8px;
+    font-size: 16px;
+    padding: 10px 12px;
+}
+
+.modalField input:focus {
+    border-color: #5b2b82;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(91, 43, 130, 0.14);
+}
+
+.modalError {
+    margin: 0 0 16px !important;
+    color: #b42318 !important;
+}
+
 .modalActions {
     display: flex;
     justify-content: flex-end;
@@ -530,12 +593,20 @@
 }
 
 .dangerButton,
-.cancelButton {
+.cancelButton,
+.primaryButton {
     border: none;
     border-radius: 999px;
     cursor: pointer;
     font-weight: 900;
     padding: 10px 14px;
+}
+
+.dangerButton:disabled,
+.cancelButton:disabled,
+.primaryButton:disabled {
+    cursor: default;
+    opacity: 0.65;
 }
 
 .dangerButton {
@@ -554,6 +625,15 @@
 
 .cancelButton:hover {
     background: #e3e8ef;
+}
+
+.primaryButton {
+    background: #5b2b82;
+    color: #ffffff;
+}
+
+.primaryButton:hover {
+    background: #4a226d;
 }
 
 .emptyState {

@@ -129,6 +129,7 @@ func setupRouter(db *sql.DB, eventbus *eventbus.Eventbus, chatroomEventbus *chat
 	authenticated.GET("/api/diary/entries", routes.GetDiaryEntries)
 	authenticated.GET("/api/diary/entries/count", routes.GetDiaryEntriesCount)
 	authenticated.GET("/api/diary/labels", routes.GetDiaryLabels)
+	authenticated.PUT("/api/diary/label", routes.RenameDiaryLabel)
 	authenticated.GET("/api/diary/entry/:diaryEntryId", routes.GetDiaryEntry)
 	authenticated.PUT("/api/diary/entry/:diaryEntryId", routes.UpdateDiaryEntry)
 	authenticated.DELETE("/api/diary/entry/:diaryEntryId", routes.DeleteDiaryEntry)

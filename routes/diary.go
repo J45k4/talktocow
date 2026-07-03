@@ -3,8 +3,10 @@ package routes
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -48,6 +50,16 @@ type UpdateDiaryEntryRequest struct {
 	Mask           []string `json:"mask"`
 	Label          *string  `json:"label"`
 	PictureFileIDs []int    `json:"pictureFileIds"`
+}
+
+type RenameDiaryLabelRequest struct {
+	OldLabel string `json:"oldLabel"`
+	NewLabel string `json:"newLabel"`
+}
+
+type RenameDiaryLabelResponse struct {
+	Label        string `json:"label"`
+	UpdatedCount int64  `json:"updatedCount"`
 }
 
 const diaryEntryDateEditWindow = 7 * 24 * time.Hour
@@ -816,6 +828,56 @@ func GetDiaryLabels(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, labels)
+}
+
+func RenameDiaryLabel(ctx *gin.Context) {
+	db := GetDBFromContext(ctx)
+	userSession := GetUserSessionFromContext(ctx)
+
+	var renameRequest RenameDiaryLabelRequest
+
+	if err := ctx.BindJSON(&renameRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid label payload"))
+		return
+	}
+
+	oldLabel := strings.TrimSpace(renameRequest.OldLabel)
+	newLabel := strings.TrimSpace(renameRequest.NewLabel)
+
+	if oldLabel == "" || newLabel == "" {
+		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Labels cannot be empty"))
+		return
+	}
+
+	result, err := db.ExecContext(ctx.Request.Context(), `
+		update diary_entries
+		set label = $1::text,
+		    title = case when title = $3::varchar then $1::varchar else title end
+		where who_posted_user_id = $2
+		  and label = $3::text
+	`, newLabel, userSession.UserID, oldLabel)
+
+	if err != nil {
+		log.Printf("renaming diary label failed: %v", err)
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to rename label"))
+		return
+	}
+
+	updatedCount, err := result.RowsAffected()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to rename label"))
+		return
+	}
+
+	if updatedCount == 0 {
+		ctx.JSON(http.StatusNotFound, CreateErrorResponse(NotFound, "Label not found"))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, RenameDiaryLabelResponse{
+		Label:        newLabel,
+		UpdatedCount: updatedCount,
+	})
 }
 
 func GetDiaryEntriesCount(ctx *gin.Context) {
