@@ -93,6 +93,42 @@ func TestDetectedUploadedContentTypePreservesQuickTimeVideoHeader(t *testing.T) 
 	}
 }
 
+func TestDetectedUploadedContentTypeAllowsQuickTimeFileNameWhenHeaderIsGeneric(t *testing.T) {
+	fileHeader := &multipart.FileHeader{
+		Filename: "IMG_1234.MOV",
+		Header: textproto.MIMEHeader{
+			"Content-Type": []string{"application/octet-stream"},
+		},
+	}
+	options := storeUploadedFileOptions{
+		AllowedContentTypes: []string{"video/mp4", "video/webm", "video/quicktime"},
+	}
+
+	got := detectedUploadedContentType([]byte{0x00, 0x00, 0x00, 0x18, 'f', 't', 'y', 'p', 'q', 't', ' ', ' '}, fileHeader, options)
+
+	if got != "video/quicktime" {
+		t.Fatalf("expected video/quicktime, got %q", got)
+	}
+}
+
+func TestDetectedUploadedContentTypeAllowsMP4FileNameWhenHeaderIsGeneric(t *testing.T) {
+	fileHeader := &multipart.FileHeader{
+		Filename: "clip.mp4",
+		Header: textproto.MIMEHeader{
+			"Content-Type": []string{"application/octet-stream"},
+		},
+	}
+	options := storeUploadedFileOptions{
+		AllowedContentTypes: []string{"video/mp4", "video/webm", "video/quicktime"},
+	}
+
+	got := detectedUploadedContentType([]byte{0x00, 0x00, 0x00, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'}, fileHeader, options)
+
+	if got != "video/mp4" {
+		t.Fatalf("expected video/mp4, got %q", got)
+	}
+}
+
 func TestDetectedUploadedContentTypeClassifiesWebMAsVideoWhenOnlyVideoIsAllowed(t *testing.T) {
 	fileHeader := &multipart.FileHeader{
 		Header: textproto.MIMEHeader{

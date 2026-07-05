@@ -2,7 +2,31 @@ import { createLogger, LogLevel, setLogLevel } from "./logger"
 
 const logger = createLogger("config")
 
-export const serverUrl = import.meta.env.VITE_SERVER_URL
+const configuredServerUrl = import.meta.env.VITE_SERVER_URL
+
+const isLoopbackHost = (hostname: string) => {
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1"
+}
+
+const resolveConfiguredServerUrl = () => {
+    if (!configuredServerUrl || typeof window === "undefined") {
+        return configuredServerUrl
+    }
+
+    try {
+        const url = new URL(configuredServerUrl)
+
+        if (isLoopbackHost(url.hostname) && !isLoopbackHost(window.location.hostname)) {
+            return ""
+        }
+
+        return configuredServerUrl
+    } catch (_error) {
+        return configuredServerUrl
+    }
+}
+
+export const serverUrl = resolveConfiguredServerUrl()
 
 console.log("Serverurl ", serverUrl)
 

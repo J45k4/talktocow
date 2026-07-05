@@ -641,6 +641,19 @@ func isMP4Data(data []byte) bool {
 	return len(data) >= 12 && string(data[4:8]) == "ftyp"
 }
 
+func mp4ContentTypeFromFileName(fileName string) string {
+	switch strings.ToLower(filepath.Ext(fileName)) {
+	case ".m4a":
+		return "audio/mp4"
+	case ".m4v", ".mp4":
+		return "video/mp4"
+	case ".mov", ".qt":
+		return "video/quicktime"
+	default:
+		return ""
+	}
+}
+
 func detectedUploadedContentType(data []byte, fileHeader *multipart.FileHeader, options storeUploadedFileOptions) string {
 	detectedContentType := normalizedContentType(http.DetectContentType(data))
 	headerContentType := normalizedContentType(fileHeader.Header.Get("Content-Type"))
@@ -665,10 +678,20 @@ func detectedUploadedContentType(data []byte, fileHeader *multipart.FileHeader, 
 		return "audio/wav"
 	}
 
-	if isMP4Data(data) && (strings.HasPrefix(headerContentType, "audio/") ||
-		headerContentType == "video/mp4" ||
-		headerContentType == "video/quicktime") {
-		return headerContentType
+	if isMP4Data(data) {
+		if strings.HasPrefix(headerContentType, "audio/") ||
+			headerContentType == "video/mp4" ||
+			headerContentType == "video/quicktime" {
+			return headerContentType
+		}
+
+		if fileNameContentType := mp4ContentTypeFromFileName(fileHeader.Filename); contentTypeAllowed(fileNameContentType, options) {
+			return fileNameContentType
+		}
+
+		if contentTypeAllowed("video/mp4", options) && !contentTypeAllowed("audio/mp4", options) {
+			return "video/mp4"
+		}
 	}
 
 	if detectedContentType == "application/octet-stream" && contentTypeAllowedByPrefixes(headerContentType, options.TrustedHeaderPrefixes) {
