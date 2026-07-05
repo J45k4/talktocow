@@ -54,6 +54,11 @@ export type DiaryInlineAudio = {
     fileName: string
 }
 
+export type DiaryInlineVideo = {
+    fileId: number
+    fileName: string
+}
+
 type SerializedDiaryImageNode = Spread<{
     alt: string
     fileId: number
@@ -62,6 +67,12 @@ type SerializedDiaryImageNode = Spread<{
 
 type SerializedDiaryAudioNode = Spread<{
     durationMs?: number
+    fileId: number
+    fileName: string
+    src: string
+}, SerializedLexicalNode>
+
+type SerializedDiaryVideoNode = Spread<{
     fileId: number
     fileName: string
     src: string
@@ -265,6 +276,97 @@ function $createDiaryAudioNode(payload: {
     return $applyNodeReplacement(new DiaryAudioNode(payload.fileId, payload.src, payload.fileName, payload.durationMs))
 }
 
+export class DiaryVideoNode extends DecoratorNode<React.ReactNode> {
+    __fileId: number
+    __fileName: string
+    __src: string
+
+    static getType(): string {
+        return "diary-video"
+    }
+
+    static clone(node: DiaryVideoNode): DiaryVideoNode {
+        return new DiaryVideoNode(node.__fileId, node.__src, node.__fileName, node.__key)
+    }
+
+    static importJSON(serializedNode: SerializedDiaryVideoNode): DiaryVideoNode {
+        return $createDiaryVideoNode({
+            fileId: serializedNode.fileId,
+            fileName: serializedNode.fileName,
+            src: serializedNode.src
+        })
+    }
+
+    constructor(fileId: number, src: string, fileName: string, key?: NodeKey) {
+        super(key)
+        this.__fileId = fileId
+        this.__fileName = fileName
+        this.__src = src
+    }
+
+    exportJSON(): SerializedDiaryVideoNode {
+        return {
+            fileId: this.__fileId,
+            fileName: this.__fileName,
+            src: this.__src,
+            type: "diary-video",
+            version: 1
+        }
+    }
+
+    createDOM(_config: EditorConfig): HTMLElement {
+        const element = document.createElement("figure")
+        element.className = styles.videoFrame
+        return element
+    }
+
+    updateDOM(): false {
+        return false
+    }
+
+    decorate(editor: LexicalEditor, _config: EditorConfig): React.ReactNode {
+        return <EditableDiaryVideo editor={editor} nodeKey={this.__key} fileName={this.__fileName} fileId={this.__fileId} />
+    }
+}
+
+function EditableDiaryVideo(props: {
+    editor: LexicalEditor
+    fileId: number
+    fileName: string
+    nodeKey: NodeKey
+}) {
+    const removeVideo = () => {
+        props.editor.update(() => {
+            $getNodeByKey(props.nodeKey)?.remove()
+        })
+    }
+
+    return (
+        <div className={styles.editableVideoFrame}>
+            <div className={styles.videoMeta}>
+                <span>{props.fileName}</span>
+            </div>
+            <video className={styles.videoPlayer} controls playsInline preload="metadata" src={diaryImageSource(diaryFileUrl(props.fileId))} />
+            <button
+                aria-label="Remove video"
+                className={styles.removeVideoButton}
+                onClick={removeVideo}
+                title="Remove video"
+                type="button">
+                ×
+            </button>
+        </div>
+    )
+}
+
+function $createDiaryVideoNode(payload: {
+    fileId: number
+    fileName: string
+    src: string
+}): DiaryVideoNode {
+    return $applyNodeReplacement(new DiaryVideoNode(payload.fileId, payload.src, payload.fileName))
+}
+
 const maxImageDimension = 1600
 const imageUploadQuality = 0.82
 
@@ -279,6 +381,41 @@ const isHeicImageFile = (file: File) => {
 
 const isSupportedImageUploadFile = (file: File) => {
     return file.type.startsWith("image/") || isHeicImageFile(file)
+}
+
+const supportedVideoUploadMimeTypes = new Set([
+    "video/mp4",
+    "video/quicktime",
+    "video/webm"
+])
+
+const isSupportedVideoUploadFile = (file: File) => {
+    const name = file.name.toLowerCase()
+    return supportedVideoUploadMimeTypes.has(file.type)
+        || name.endsWith(".mp4")
+        || name.endsWith(".mov")
+        || name.endsWith(".webm")
+}
+
+const supportedAudioUploadMimeTypes = new Set([
+    "audio/mp4",
+    "audio/ogg",
+    "audio/wav",
+    "audio/webm",
+    "video/webm"
+])
+
+const isSupportedAudioUploadFile = (file: File) => {
+    const name = file.name.toLowerCase()
+    return supportedAudioUploadMimeTypes.has(file.type)
+        || name.endsWith(".m4a")
+        || name.endsWith(".ogg")
+        || name.endsWith(".wav")
+        || name.endsWith(".webm")
+}
+
+const isSupportedMediaUploadFile = (file: File) => {
+    return isSupportedImageUploadFile(file) || isSupportedAudioUploadFile(file) || isSupportedVideoUploadFile(file)
 }
 
 const resizeImageForUpload = async (file: File): Promise<File> => {
@@ -337,6 +474,138 @@ const resizeImageForUpload = async (file: File): Promise<File> => {
 
         image.src = objectUrl
     })
+}
+
+const insertUploadedImage = (editor: LexicalEditor, uploadedFile: UploadedFile, originalFile: File) => {
+    editor.update(() => {
+        $insertNodes([
+            $createDiaryImageNode({
+                alt: uploadedFile.fileName ?? originalFile.name,
+                fileId: uploadedFile.id,
+                src: diaryFileImageUrl(uploadedFile.id)
+            }),
+            $createParagraphNode()
+        ])
+    })
+}
+
+const insertUploadedAudio = (editor: LexicalEditor, uploadedFile: UploadedFile, originalFile: File) => {
+    editor.update(() => {
+        $insertNodes([
+            $createDiaryAudioNode({
+                fileId: uploadedFile.id,
+                fileName: uploadedFile.fileName ?? originalFile.name,
+                src: diaryFileUrl(uploadedFile.id)
+            }),
+            $createParagraphNode()
+        ])
+    })
+}
+
+const insertUploadedVideo = (editor: LexicalEditor, uploadedFile: UploadedFile, originalFile: File) => {
+    editor.update(() => {
+        $insertNodes([
+            $createDiaryVideoNode({
+                fileId: uploadedFile.id,
+                fileName: uploadedFile.fileName ?? originalFile.name,
+                src: diaryFileUrl(uploadedFile.id)
+            }),
+            $createParagraphNode()
+        ])
+    })
+}
+
+type UploadMediaKind = "audio" | "image" | "video"
+
+const mediaUploadKind = (file: File, preferredKind?: UploadMediaKind): UploadMediaKind => {
+    const canUploadAudio = isSupportedAudioUploadFile(file)
+    const canUploadVideo = isSupportedVideoUploadFile(file)
+
+    if (preferredKind === "audio" && isSupportedAudioUploadFile(file)) {
+        return "audio"
+    }
+
+    if (preferredKind === "image" && isSupportedImageUploadFile(file)) {
+        return "image"
+    }
+
+    if (preferredKind === "video" && isSupportedVideoUploadFile(file)) {
+        return "video"
+    }
+
+    if (canUploadAudio && file.type.startsWith("audio/")) {
+        return "audio"
+    }
+
+    if (canUploadVideo && file.type.startsWith("video/")) {
+        return "video"
+    }
+
+    if (canUploadAudio && !canUploadVideo) {
+        return "audio"
+    }
+
+    if (canUploadVideo) {
+        return "video"
+    }
+
+    return "image"
+}
+
+type UploadState = {
+    current: number
+    total: number
+}
+
+const uploadMediaFile = async (editor: LexicalEditor, file: File, preferredKind?: UploadMediaKind) => {
+    const kind = mediaUploadKind(file, preferredKind)
+    const uploadFile = kind === "image" ? await resizeImageForUpload(file) : file
+    const formData = new FormData()
+    formData.append(kind === "audio" ? "recording" : kind === "video" ? "video" : "file", uploadFile)
+
+    const response = await postFormData<UploadedFile>(
+        kind === "audio" ? "/api/diary/recording" : kind === "video" ? "/api/diary/video" : "/api/files",
+        formData
+    )
+
+    if (response.error) {
+        throw new Error(response.error.message)
+    }
+
+    if (!response.payload) {
+        throw new Error("Upload did not return a file")
+    }
+
+    if (kind === "audio") {
+        insertUploadedAudio(editor, response.payload, file)
+        return
+    }
+
+	if (kind === "video") {
+		insertUploadedVideo(editor, response.payload, file)
+		return
+	}
+
+    insertUploadedImage(editor, response.payload, file)
+}
+
+function UploadIndicator(props: {
+    uploadState: UploadState | null
+}) {
+    if (!props.uploadState) {
+        return null
+    }
+
+    const label = props.uploadState.total > 1
+        ? `Uploading ${props.uploadState.current} of ${props.uploadState.total}`
+        : "Uploading"
+
+    return (
+        <div className={styles.uploadIndicator} role="status" aria-live="polite">
+            <span className={styles.uploadSpinner} aria-hidden="true" />
+            <span>{label}</span>
+        </div>
+    )
 }
 
 const parseJsonObject = (value?: string | null) => {
@@ -486,6 +755,16 @@ const lexicalStateFromDiaryDocument = (document: DiaryRichTextDocument) => {
             }
         }
 
+        if (block.type === "video") {
+            return {
+                fileId: block.fileId,
+                fileName: block.fileName ?? "Diary video",
+                src: diaryFileUrl(block.fileId),
+                type: "diary-video",
+                version: 1
+            }
+        }
+
         return createParagraphNode(inlineNodesToLexicalChildren(block.children))
     })
 
@@ -546,8 +825,16 @@ const blocksFromLexicalNode = (node: any): DiaryRichTextBlock[] => {
         }]
     }
 
+    if (node?.type === "diary-video" && typeof node.fileId === "number") {
+        return [{
+            type: "video",
+            fileId: node.fileId,
+            fileName: node.fileName || undefined
+        }]
+    }
+
     if (node?.type === "heading") {
-        const nestedImages = (node.children ?? []).flatMap(blocksFromLexicalNode)
+        const nestedMedia = (node.children ?? []).flatMap(blocksFromLexicalNode)
         const textChildren = inlineNodesFromLexicalChildren(node.children ?? [])
         const heading: DiaryRichTextBlock[] = textChildren.length > 0 ? [{
             type: "heading",
@@ -555,17 +842,17 @@ const blocksFromLexicalNode = (node: any): DiaryRichTextBlock[] => {
             children: textChildren
         }] : []
 
-        return [...heading, ...nestedImages]
+        return [...heading, ...nestedMedia]
     }
 
     if (node?.type === "paragraph") {
-        const nestedImages = (node.children ?? []).flatMap(blocksFromLexicalNode)
+        const nestedMedia = (node.children ?? []).flatMap(blocksFromLexicalNode)
         const paragraph: DiaryRichTextBlock = {
             type: "paragraph",
             children: inlineNodesFromLexicalChildren(node.children ?? [])
         }
 
-        return [paragraph, ...nestedImages]
+        return [paragraph, ...nestedMedia]
     }
 
     if (Array.isArray(node?.children)) {
@@ -607,7 +894,7 @@ const inlineNodesFromPlainText = (text: string): DiaryRichTextInlineNode[] => {
     })
 }
 
-const createDiaryDocumentFromPlainTextImagesAndAudio = (text: string, images: DiaryInlineImage[], audio: DiaryInlineAudio[] = []): DiaryRichTextDocument => ({
+const createDiaryDocumentFromPlainTextImagesAudioAndVideo = (text: string, images: DiaryInlineImage[], audio: DiaryInlineAudio[] = [], videos: DiaryInlineVideo[] = []): DiaryRichTextDocument => ({
     version: DIARY_RICH_TEXT_DOCUMENT_VERSION,
     content: [
         {
@@ -624,11 +911,16 @@ const createDiaryDocumentFromPlainTextImagesAndAudio = (text: string, images: Di
             durationMs: recording.durationMs,
             fileId: recording.fileId,
             fileName: recording.fileName
+        })),
+        ...videos.map(video => ({
+            type: "video" as const,
+            fileId: video.fileId,
+            fileName: video.fileName
         }))
     ]
 })
 
-const diaryDocumentFromBody = (body?: string | null, images: DiaryInlineImage[] = [], audio: DiaryInlineAudio[] = []): DiaryRichTextDocument => {
+const diaryDocumentFromBody = (body?: string | null, images: DiaryInlineImage[] = [], audio: DiaryInlineAudio[] = [], videos: DiaryInlineVideo[] = []): DiaryRichTextDocument => {
     const parsed = parseJsonObject(body)
 
     if (isDiaryRichTextDocumentValue(parsed)) {
@@ -639,15 +931,19 @@ const diaryDocumentFromBody = (body?: string | null, images: DiaryInlineImage[] 
         return diaryDocumentFromLexicalState(parsed)
     }
 
-    return createDiaryDocumentFromPlainTextImagesAndAudio(body ?? "", images, audio)
+    return createDiaryDocumentFromPlainTextImagesAudioAndVideo(body ?? "", images, audio, videos)
 }
 
 export const createDiaryBodyFromPlainTextAndImages = (text: string, images: DiaryInlineImage[]) => {
-    return JSON.stringify(createDiaryDocumentFromPlainTextImagesAndAudio(text, images))
+    return JSON.stringify(createDiaryDocumentFromPlainTextImagesAudioAndVideo(text, images))
 }
 
 export const createDiaryBodyFromPlainTextImagesAndAudio = (text: string, images: DiaryInlineImage[], audio: DiaryInlineAudio[]) => {
-    return JSON.stringify(createDiaryDocumentFromPlainTextImagesAndAudio(text, images, audio))
+    return JSON.stringify(createDiaryDocumentFromPlainTextImagesAudioAndVideo(text, images, audio))
+}
+
+export const createDiaryBodyFromPlainTextImagesAudioAndVideo = (text: string, images: DiaryInlineImage[], audio: DiaryInlineAudio[], videos: DiaryInlineVideo[]) => {
+    return JSON.stringify(createDiaryDocumentFromPlainTextImagesAudioAndVideo(text, images, audio, videos))
 }
 
 const createInitialEditorState = (value: string, images: DiaryInlineImage[]) => {
@@ -656,12 +952,15 @@ const createInitialEditorState = (value: string, images: DiaryInlineImage[]) => 
 
 function DiaryToolbarPlugin(props: {
     disabled?: boolean
+    onUploadStateChange: (uploadState: UploadState | null) => void
+    uploadState: UploadState | null
 }) {
     const [editor] = useLexicalComposerContext()
-    const [isUploading, setIsUploading] = useState(false)
     const [isBold, setIsBold] = useState(false)
     const [isItalic, setIsItalic] = useState(false)
-    const inputRef = useRef<HTMLInputElement | null>(null)
+    const imageInputRef = useRef<HTMLInputElement | null>(null)
+    const audioInputRef = useRef<HTMLInputElement | null>(null)
+    const videoInputRef = useRef<HTMLInputElement | null>(null)
 
     useEffect(() => {
         return editor.registerUpdateListener(({ editorState }) => {
@@ -708,47 +1007,41 @@ function DiaryToolbarPlugin(props: {
         })
     }
 
-    const uploadFiles = async (files: FileList | File[] | null) => {
-        const selectedFiles = Array.from(files ?? []).filter(isSupportedImageUploadFile)
+    const uploadFiles = async (files: FileList | File[] | null, preferredKind?: UploadMediaKind) => {
+        const selectedFiles = Array.from(files ?? []).filter(isSupportedMediaUploadFile)
 
         if (selectedFiles.length === 0) {
             return
         }
 
-        setIsUploading(true)
+        props.onUploadStateChange({
+            current: 1,
+            total: selectedFiles.length
+        })
 
         try {
-            for (const file of selectedFiles) {
-                const uploadFile = await resizeImageForUpload(file)
-                const formData = new FormData()
-                formData.append("file", uploadFile)
-
-                const response = await postFormData<UploadedFile>("/api/files", formData)
-
-                if (response.error) {
-                    throw new Error(response.error.message)
-                }
-
-                if (response.payload) {
-                    editor.update(() => {
-                        $insertNodes([
-                            $createDiaryImageNode({
-                                alt: response.payload?.fileName ?? file.name,
-                                fileId: response.payload.id,
-                                src: diaryFileImageUrl(response.payload.id)
-                            }),
-                            $createParagraphNode()
-                        ])
-                    })
-                }
+            for (const [index, file] of selectedFiles.entries()) {
+                props.onUploadStateChange({
+                    current: index + 1,
+                    total: selectedFiles.length
+                })
+                await uploadMediaFile(editor, file, preferredKind)
             }
         } finally {
-            setIsUploading(false)
-            if (inputRef.current) {
-                inputRef.current.value = ""
+            props.onUploadStateChange(null)
+            if (imageInputRef.current) {
+                imageInputRef.current.value = ""
+            }
+            if (audioInputRef.current) {
+                audioInputRef.current.value = ""
+            }
+            if (videoInputRef.current) {
+                videoInputRef.current.value = ""
             }
         }
     }
+
+    const isUploading = props.uploadState !== null
 
     return (
         <div className={styles.toolbar}>
@@ -793,29 +1086,61 @@ function DiaryToolbarPlugin(props: {
                 className={styles.toolbarButton}
                 disabled={props.disabled || isUploading}
                 type="button"
-                onClick={() => inputRef.current?.click()}>
+                onClick={() => imageInputRef.current?.click()}>
                 {isUploading ? "Adding..." : "Add picture"}
             </button>
+            <button
+                className={styles.toolbarButton}
+                disabled={props.disabled || isUploading}
+                type="button"
+                onClick={() => videoInputRef.current?.click()}>
+                {isUploading ? "Adding..." : "Add video"}
+            </button>
+            <button
+                className={styles.toolbarButton}
+                disabled={props.disabled || isUploading}
+                type="button"
+                onClick={() => audioInputRef.current?.click()}>
+                {isUploading ? "Adding..." : "Add audio"}
+            </button>
             <input
-                ref={inputRef}
+                ref={imageInputRef}
                 className={styles.hiddenFileInput}
                 type="file"
                 accept="image/*,.heic,.heif"
                 multiple
-                onChange={event => uploadFiles(event.target.files)}
+                onChange={event => uploadFiles(event.target.files, "image")}
+            />
+            <input
+                ref={videoInputRef}
+                className={styles.hiddenFileInput}
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                multiple
+                onChange={event => uploadFiles(event.target.files, "video")}
+            />
+            <input
+                ref={audioInputRef}
+                className={styles.hiddenFileInput}
+                type="file"
+                accept="audio/mp4,audio/ogg,audio/wav,audio/webm,video/webm,.m4a,.ogg,.wav,.webm"
+                multiple
+                onChange={event => uploadFiles(event.target.files, "audio")}
             />
         </div>
     )
 }
 
-function DiaryImageDropPlugin() {
+function DiaryMediaDropPlugin(props: {
+    onUploadStateChange: (uploadState: UploadState | null) => void
+    uploadState: UploadState | null
+}) {
     const [editor] = useLexicalComposerContext()
-    const [isDraggingImage, setIsDraggingImage] = useState(false)
-    const [isUploading, setIsUploading] = useState(false)
+    const [isDraggingMedia, setIsDraggingMedia] = useState(false)
     const dragDepth = useRef(0)
 
-    const imageFilesFromDataTransfer = (dataTransfer: DataTransfer) => {
-        return Array.from(dataTransfer.files).filter(isSupportedImageUploadFile)
+    const mediaFilesFromDataTransfer = (dataTransfer: DataTransfer) => {
+        return Array.from(dataTransfer.files).filter(isSupportedMediaUploadFile)
     }
 
     const hasFileDragItems = (dataTransfer: DataTransfer) => {
@@ -827,41 +1152,29 @@ function DiaryImageDropPlugin() {
             return
         }
 
-        setIsUploading(true)
+        props.onUploadStateChange({
+            current: 1,
+            total: files.length
+        })
 
         try {
-            for (const file of files) {
-                const uploadFile = await resizeImageForUpload(file)
-                const formData = new FormData()
-                formData.append("file", uploadFile)
-
-                const response = await postFormData<UploadedFile>("/api/files", formData)
-
-                if (response.error) {
-                    throw new Error(response.error.message)
-                }
-
-                if (response.payload) {
-                    editor.update(() => {
-                        $insertNodes([
-                            $createDiaryImageNode({
-                                alt: response.payload?.fileName ?? file.name,
-                                fileId: response.payload.id,
-                                src: diaryFileImageUrl(response.payload.id)
-                            }),
-                            $createParagraphNode()
-                        ])
-                    })
-                }
+            for (const [index, file] of files.entries()) {
+                props.onUploadStateChange({
+                    current: index + 1,
+                    total: files.length
+                })
+                await uploadMediaFile(editor, file)
             }
         } finally {
-            setIsUploading(false)
+            props.onUploadStateChange(null)
         }
     }
 
+    const isUploading = props.uploadState !== null
+
     return (
         <div
-            className={isDraggingImage ? `${styles.dropTarget} ${styles.dropTargetActive}` : styles.dropTarget}
+            className={isDraggingMedia ? `${styles.dropTarget} ${styles.dropTargetActive}` : styles.dropTarget}
             onDragEnter={event => {
                 if (!hasFileDragItems(event.dataTransfer)) {
                     return
@@ -869,7 +1182,7 @@ function DiaryImageDropPlugin() {
 
                 event.preventDefault()
                 dragDepth.current += 1
-                setIsDraggingImage(true)
+                setIsDraggingMedia(true)
             }}
             onDragOver={event => {
                 if (!hasFileDragItems(event.dataTransfer)) {
@@ -888,11 +1201,11 @@ function DiaryImageDropPlugin() {
                 dragDepth.current = Math.max(0, dragDepth.current - 1)
 
                 if (dragDepth.current === 0) {
-                    setIsDraggingImage(false)
+                    setIsDraggingMedia(false)
                 }
             }}
             onDrop={event => {
-                const files = imageFilesFromDataTransfer(event.dataTransfer)
+                const files = mediaFilesFromDataTransfer(event.dataTransfer)
 
                 if (files.length === 0) {
                     return
@@ -900,7 +1213,7 @@ function DiaryImageDropPlugin() {
 
                 event.preventDefault()
                 dragDepth.current = 0
-                setIsDraggingImage(false)
+                setIsDraggingMedia(false)
                 void uploadFiles(files)
             }}>
             <RichTextPlugin
@@ -908,10 +1221,10 @@ function DiaryImageDropPlugin() {
                 placeholder={<div className={styles.placeholder}>Write as much as you want...</div>}
                 ErrorBoundary={LexicalErrorBoundary}
             />
-            {(isDraggingImage || isUploading) && (
+            {(isDraggingMedia || isUploading) && (
                 <div className={styles.dropOverlay}>
-                    {isUploading ? "Adding pictures..." : "Drop pictures to add them"}
-                </div>
+					{isUploading ? "Adding media..." : "Drop pictures, audio, or videos to add them"}
+				</div>
             )}
         </div>
     )
@@ -922,11 +1235,12 @@ export function DiaryLexicalEditor(props: {
     onChange: (value: string) => void
     value: string
 }) {
+    const [uploadState, setUploadState] = useState<UploadState | null>(null)
     const initialConfig = {
         editable: true,
         editorState: createInitialEditorState(props.value, props.initialImages ?? []),
         namespace: "DiaryEditor",
-        nodes: [DiaryAudioNode, DiaryImageNode, HeadingNode],
+        nodes: [DiaryAudioNode, DiaryImageNode, DiaryVideoNode, HeadingNode],
         onError(error: Error) {
             throw error
         },
@@ -942,12 +1256,13 @@ export function DiaryLexicalEditor(props: {
     return (
         <LexicalComposer initialConfig={initialConfig}>
             <div className={styles.editorShell}>
-                <DiaryToolbarPlugin />
-                <DiaryImageDropPlugin />
+                <DiaryToolbarPlugin onUploadStateChange={setUploadState} uploadState={uploadState} />
+                <DiaryMediaDropPlugin onUploadStateChange={setUploadState} uploadState={uploadState} />
                 <HistoryPlugin />
                 <OnChangePlugin onChange={editorState => {
                     props.onChange(JSON.stringify(diaryDocumentFromLexicalState(editorState.toJSON())))
                 }} />
+                <UploadIndicator uploadState={uploadState} />
             </div>
         </LexicalComposer>
     )
@@ -965,6 +1280,12 @@ export const getDiaryBodyRecordingFileIds = (body: string) => {
         .map(block => block.fileId)))
 }
 
+export const getDiaryBodyVideoFileIds = (body: string) => {
+    return Array.from(new Set(diaryDocumentFromBody(body).content
+        .filter((block): block is Extract<DiaryRichTextBlock, { type: "video" }> => block.type === "video")
+        .map(block => block.fileId)))
+}
+
 export const hasDiaryBodyContent = (body?: string | null) => {
     if (!body) {
         return false
@@ -975,7 +1296,7 @@ export const hasDiaryBodyContent = (body?: string | null) => {
     }
 
     return diaryDocumentFromBody(body).content.some(block => {
-        if (block.type === "audio" || block.type === "image") {
+        if (block.type === "audio" || block.type === "image" || block.type === "video") {
             return true
         }
 
@@ -1031,6 +1352,29 @@ function ReadonlyDiaryAudio(props: {
                 {props.durationMs && <span>{formatAudioDuration(props.durationMs)}</span>}
             </div>
             <audio className={styles.audioPlayer} controls preload="metadata" src={diaryImageSource(diaryFileUrl(props.fileId))} />
+        </figure>
+    )
+}
+
+function ReadonlyDiaryVideo(props: {
+    fileId: number
+    fileName?: string
+    isCompact?: boolean
+}) {
+    if (props.isCompact) {
+        return (
+            <div className={styles.compactVideoBlock}>
+                <span>Video</span>
+            </div>
+        )
+    }
+
+    return (
+        <figure className={styles.readonlyVideoFrame}>
+            <div className={styles.videoMeta}>
+                <span>{props.fileName ?? "Diary video"}</span>
+            </div>
+            <video className={styles.videoPlayer} controls playsInline preload="metadata" src={diaryImageSource(diaryFileUrl(props.fileId))} />
         </figure>
     )
 }
@@ -1101,6 +1445,10 @@ const renderBlock = (block: DiaryRichTextBlock, key: string, options: {
 
     if (block.type === "audio") {
         return <ReadonlyDiaryAudio durationMs={block.durationMs} fileId={block.fileId} fileName={block.fileName} isCompact={options.isCompact} key={key} />
+    }
+
+    if (block.type === "video") {
+        return <ReadonlyDiaryVideo fileId={block.fileId} fileName={block.fileName} isCompact={options.isCompact} key={key} />
     }
 
     const children = block.children.map((child, index) => renderInlineNode(child, `${key}-${index}`))

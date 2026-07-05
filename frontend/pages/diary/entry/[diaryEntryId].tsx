@@ -4,7 +4,7 @@ import { getJson, putJson } from "../../../src/api-methods"
 import { useNavigate, useParams } from "react-router-dom"
 import { PageContainer } from "../../../src/components/page-container"
 import { createdAtFromDiaryDateInputValue, dateInputValueFromDiaryDate, isDiaryDateEditable } from "../../../src/components/diary/diary-entry-date"
-import { createDiaryBodyFromPlainTextAndImages, DiaryLexicalEditor, getDiaryBodyFileIds, getDiaryBodyRecordingFileIds, isStructuredDiaryBody } from "../../../src/components/diary/lexical-diary"
+import { createDiaryBodyFromPlainTextAndImages, DiaryLexicalEditor, getDiaryBodyFileIds, getDiaryBodyRecordingFileIds, getDiaryBodyVideoFileIds, isStructuredDiaryBody } from "../../../src/components/diary/lexical-diary"
 import styles from "../../../src/components/diary/diary.module.css"
 
 type DiaryEntryPicture = {
@@ -60,7 +60,7 @@ export default function DiaryEntryPage() {
         }
 
         const canEditDate = entry.canEditDate ?? isDiaryDateEditable(entry.createdAt)
-        const mask = ["title", "body", "label", "pictureFileIds", "recordingFileIds"]
+        const mask = ["title", "body", "label", "pictureFileIds", "recordingFileIds", "videoFileIds"]
         const updatedCreatedAt = createdAtFromDiaryDateInputValue(entryDate)
 
         if (canEditDate && entryDate !== originalEntryDate && updatedCreatedAt) {
@@ -77,6 +77,7 @@ export default function DiaryEntryPage() {
             label: entry.label || undefined,
             pictureFileIds: getDiaryBodyFileIds(entry.body ?? ""),
             recordingFileIds: getDiaryBodyRecordingFileIds(entry.body ?? ""),
+            videoFileIds: getDiaryBodyVideoFileIds(entry.body ?? ""),
             mask
         }).then(r => {
             if (r.error) {

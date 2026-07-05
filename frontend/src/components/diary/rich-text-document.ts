@@ -41,11 +41,18 @@ export type DiaryRichTextAudioBlock = {
     durationMs?: number
 }
 
+export type DiaryRichTextVideoBlock = {
+    type: "video"
+    fileId: number
+    fileName?: string
+}
+
 export type DiaryRichTextBlock =
     | DiaryRichTextParagraphBlock
     | DiaryRichTextHeadingBlock
     | DiaryRichTextImageBlock
     | DiaryRichTextAudioBlock
+    | DiaryRichTextVideoBlock
 
 export type DiaryRichTextDocument = {
     version: DiaryRichTextDocumentVersion

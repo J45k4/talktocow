@@ -29,6 +29,7 @@ import (
 
 const maxUploadedFileSize = 8 * 1024 * 1024
 const maxDiaryRecordingFileSize = 64 * 1024 * 1024
+const maxDiaryVideoFileSize = 128 * 1024 * 1024
 const imageVariantJPEGQuality = 86
 const imageVariantCacheVersion = "v2"
 
@@ -649,6 +650,10 @@ func detectedUploadedContentType(data []byte, fileHeader *multipart.FileHeader, 
 			return headerContentType
 		}
 
+		if contentTypeAllowed("video/webm", options) && !contentTypeAllowed("audio/webm", options) {
+			return "video/webm"
+		}
+
 		return "audio/webm"
 	}
 
@@ -660,7 +665,9 @@ func detectedUploadedContentType(data []byte, fileHeader *multipart.FileHeader, 
 		return "audio/wav"
 	}
 
-	if isMP4Data(data) && strings.HasPrefix(headerContentType, "audio/") {
+	if isMP4Data(data) && (strings.HasPrefix(headerContentType, "audio/") ||
+		headerContentType == "video/mp4" ||
+		headerContentType == "video/quicktime") {
 		return headerContentType
 	}
 
@@ -837,12 +844,13 @@ func DeleteFile(ctx *gin.Context) {
 
 	err = db.QueryRowContext(ctx.Request.Context(), `
 		select files.uploaded_by_user_id, files.content_hash,
-		       count(distinct diary_entry_pictures.id) + count(distinct diary_entry_recordings.id)
-		from files
-		left join diary_entry_pictures on diary_entry_pictures.file_id = files.id
-		left join diary_entry_recordings on diary_entry_recordings.file_id = files.id
-		where files.id = $1
-		group by files.id
+			       count(distinct diary_entry_pictures.id) + count(distinct diary_entry_recordings.id) + count(distinct diary_entry_videos.id)
+			from files
+			left join diary_entry_pictures on diary_entry_pictures.file_id = files.id
+			left join diary_entry_recordings on diary_entry_recordings.file_id = files.id
+			left join diary_entry_videos on diary_entry_videos.file_id = files.id
+			where files.id = $1
+			group by files.id
 	`, fileID).Scan(&uploadedByUserID, &contentHash, &diaryReferenceCount)
 
 	if err != nil {

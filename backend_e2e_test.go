@@ -14,6 +14,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -128,6 +129,32 @@ func TestBackendE2EAuthFilesAndDiary(t *testing.T) {
 	assertStatus(t, diary, http.StatusOK)
 	if id := jsonField(t, diary.Body.Bytes(), "id"); id == "" {
 		t.Fatalf("diary create response did not include id: %s", diary.Body.String())
+	}
+
+	videoFileID := h.uploadMP4VideoWithCookies(cookies)
+	videoDiary := h.jsonRequest("POST", "/api/diary/entry", map[string]any{
+		"title":        "E2E diary video",
+		"body":         "Uploaded video through backend e2e test",
+		"createdAt":    "2026-05-12T12:00:00Z",
+		"videoFileIds": []int{videoFileID},
+	}, cookies)
+	assertStatus(t, videoDiary, http.StatusOK)
+
+	videoEntryID, err := strconv.Atoi(jsonField(t, videoDiary.Body.Bytes(), "id"))
+	if err != nil || videoEntryID == 0 {
+		t.Fatalf("parse created video diary entry id: %v; body=%s", err, videoDiary.Body.String())
+	}
+
+	videoEntry := h.request("GET", fmt.Sprintf("/api/diary/entry/%d", videoEntryID), nil, nil, cookies...)
+	assertStatus(t, videoEntry, http.StatusOK)
+	if got := jsonField(t, videoEntry.Body.Bytes(), "videoCount"); got != "1" {
+		t.Fatalf("video diary videoCount = %q, want 1; body=%s", got, videoEntry.Body.String())
+	}
+
+	videoFile := h.request("GET", fmt.Sprintf("/api/files/%d", videoFileID), nil, nil, cookies...)
+	assertStatus(t, videoFile, http.StatusOK)
+	if contentType := videoFile.Header().Get("Content-Type"); contentType != "video/mp4" {
+		t.Fatalf("video content type = %q, want video/mp4", contentType)
 	}
 }
 
@@ -347,6 +374,45 @@ func (h *e2eHarness) uploadJPEGWithCookies(cookies []*http.Cookie) int {
 		h.t.Fatalf("parse uploaded file id: %v; body=%s", err, response.Body.String())
 	}
 	return fileID
+}
+
+func (h *e2eHarness) uploadMP4VideoWithCookies(cookies []*http.Cookie) int {
+	h.t.Helper()
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreatePart(textproto.MIMEHeader{
+		"Content-Disposition": []string{`form-data; name="video"; filename="diary-video.mp4"`},
+		"Content-Type":        []string{"video/mp4"},
+	})
+	if err != nil {
+		h.t.Fatalf("create multipart video: %v", err)
+	}
+	if _, err := part.Write(mp4VideoFixture()); err != nil {
+		h.t.Fatalf("write multipart video: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		h.t.Fatalf("close multipart writer: %v", err)
+	}
+
+	response := h.request("POST", "/api/diary/video", &body, map[string]string{
+		"Content-Type": writer.FormDataContentType(),
+	}, cookies...)
+	assertStatus(h.t, response, http.StatusOK)
+
+	fileID, err := strconv.Atoi(jsonField(h.t, response.Body.Bytes(), "id"))
+	if err != nil {
+		h.t.Fatalf("parse uploaded video id: %v; body=%s", err, response.Body.String())
+	}
+	return fileID
+}
+
+func mp4VideoFixture() []byte {
+	return []byte{
+		0x00, 0x00, 0x00, 0x18, 'f', 't', 'y', 'p',
+		'i', 's', 'o', 'm', 0x00, 0x00, 0x02, 0x00,
+		'i', 's', 'o', 'm', 'm', 'p', '4', '1',
+	}
 }
 
 func orientedJPEGFixture(t *testing.T) []byte {

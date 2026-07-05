@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { deleteJson, postJson } from "../../src/api-methods"
 import { PageContainer } from "../../src/components/page-container"
-import { createDiaryBodyFromPlainTextImagesAndAudio, DiaryInlineAudio, DiaryLexicalEditor, getDiaryBodyFileIds, getDiaryBodyRecordingFileIds } from "../../src/components/diary/lexical-diary"
+import { createDiaryBodyFromPlainTextImagesAndAudio, DiaryInlineAudio, DiaryLexicalEditor, getDiaryBodyFileIds, getDiaryBodyRecordingFileIds, getDiaryBodyVideoFileIds } from "../../src/components/diary/lexical-diary"
 import styles from "../../src/components/diary/diary.module.css"
 
 const todayAsDateInputValue = () => new Date().toISOString().slice(0, 10)
@@ -52,10 +52,12 @@ export default function NewDiaryEntryPage() {
 
         const pictureFileIds: number[] = []
         const recordingFileIds: number[] = []
+        const videoFileIds: number[] = []
 
         try {
             pictureFileIds.push(...getDiaryBodyFileIds(body))
             recordingFileIds.push(...getDiaryBodyRecordingFileIds(body))
+            videoFileIds.push(...getDiaryBodyVideoFileIds(body))
 
             const r = await postJson<any>("/api/diary/entry", {
                 title,
@@ -63,13 +65,15 @@ export default function NewDiaryEntryPage() {
                 label: label || undefined,
                 createdAt,
                 pictureFileIds,
-                recordingFileIds
+                recordingFileIds,
+                videoFileIds
             })
 
             if (r.error) {
                 await Promise.all([
                     ...pictureFileIds.map(fileId => deleteJson(`/api/files/${fileId}`)),
-                    ...recordingFileIds.map(fileId => deleteJson(`/api/files/${fileId}`))
+                    ...recordingFileIds.map(fileId => deleteJson(`/api/files/${fileId}`)),
+                    ...videoFileIds.map(fileId => deleteJson(`/api/files/${fileId}`))
                 ])
                 await cleanupDraftRecordings(recordingFileIds)
                 setSaveError(r.error.message)
@@ -83,7 +87,8 @@ export default function NewDiaryEntryPage() {
         } catch (error) {
             await Promise.all([
                 ...pictureFileIds.map(fileId => deleteJson(`/api/files/${fileId}`)),
-                ...recordingFileIds.map(fileId => deleteJson(`/api/files/${fileId}`))
+                ...recordingFileIds.map(fileId => deleteJson(`/api/files/${fileId}`)),
+                ...videoFileIds.map(fileId => deleteJson(`/api/files/${fileId}`))
             ])
             await cleanupDraftRecordings(recordingFileIds)
             setSaveError(error instanceof Error ? error.message : String(error))
