@@ -22,6 +22,7 @@ type DiaryEntry struct {
 	CanEditDate      bool    `json:"canEditDate"`
 	Label            *string `json:"label"`
 	PictureCount     int     `json:"pictureCount"`
+	RecordingCount   int     `json:"recordingCount"`
 }
 
 type DiaryEntryPicture struct {
@@ -34,22 +35,34 @@ type DiaryEntryPicture struct {
 	URL          string `json:"url"`
 }
 
+type DiaryEntryRecording struct {
+	ID           int    `json:"id"`
+	DiaryEntryID int    `json:"diaryEntryId"`
+	FileID       int    `json:"fileId"`
+	FileName     string `json:"fileName"`
+	ContentType  string `json:"contentType"`
+	CreatedAt    string `json:"createdAt"`
+	URL          string `json:"url"`
+}
+
 type CreateDiaryEntryRequest struct {
-	Title          string  `json:"title"`
-	Body           string  `json:"body"`
-	CreatedAt      string  `json:"createdAt"`
-	Label          *string `json:"label"`
-	PictureFileIDs []int   `json:"pictureFileIds"`
+	Title            string  `json:"title"`
+	Body             string  `json:"body"`
+	CreatedAt        string  `json:"createdAt"`
+	Label            *string `json:"label"`
+	PictureFileIDs   []int   `json:"pictureFileIds"`
+	RecordingFileIDs []int   `json:"recordingFileIds"`
 }
 
 type UpdateDiaryEntryRequest struct {
-	Title          string   `json:"title"`
-	Body           string   `json:"body"`
-	CreatedAt      string   `json:"createdAt"`
-	Offset         int      `json:"offset"`
-	Mask           []string `json:"mask"`
-	Label          *string  `json:"label"`
-	PictureFileIDs []int    `json:"pictureFileIds"`
+	Title            string   `json:"title"`
+	Body             string   `json:"body"`
+	CreatedAt        string   `json:"createdAt"`
+	Offset           int      `json:"offset"`
+	Mask             []string `json:"mask"`
+	Label            *string  `json:"label"`
+	PictureFileIDs   []int    `json:"pictureFileIds"`
+	RecordingFileIDs []int    `json:"recordingFileIds"`
 }
 
 type RenameDiaryLabelRequest struct {
@@ -122,6 +135,7 @@ func scanDiaryEntry(scanner interface {
 		&createdAt,
 		&label,
 		&entry.PictureCount,
+		&entry.RecordingCount,
 	)
 
 	if err != nil {
@@ -181,7 +195,7 @@ func CreateDiaryEntry(ctx *gin.Context) {
 	row := tx.QueryRowContext(ctx.Request.Context(), `
 		insert into diary_entries (title, body, who_posted_user_id, created_at, label)
 		values ($1, $2, $3, $4, $5)
-		returning id, title, body, who_posted_user_id, (select name from users where id = who_posted_user_id) as posted_by_user_name, created_at, label, 0 as picture_count
+		returning id, title, body, who_posted_user_id, (select name from users where id = who_posted_user_id) as posted_by_user_name, created_at, label, 0 as picture_count, 0 as recording_count
 	`, title, createRequest.Body, userSession.UserID, createdAt, createRequest.Label)
 
 	entry, err := scanDiaryEntry(row)
@@ -191,13 +205,20 @@ func CreateDiaryEntry(ctx *gin.Context) {
 		return
 	}
 
-	pictureCount, err := attachFilesToDiaryEntry(ctx, tx, entry.ID, createRequest.PictureFileIDs)
+	pictureCount, err := attachPictureFilesToDiaryEntry(ctx, tx, entry.ID, createRequest.PictureFileIDs)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry picture files"))
 		return
 	}
 
+	recordingCount, err := attachRecordingFilesToDiaryEntry(ctx, tx, entry.ID, createRequest.RecordingFileIDs)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry recording files"))
+		return
+	}
+
 	entry.PictureCount = pictureCount
+	entry.RecordingCount = recordingCount
 
 	if err := tx.Commit(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to create diary entry"))
@@ -218,10 +239,13 @@ func GetDiaryEntry(ctx *gin.Context) {
 	}
 
 	row := db.QueryRowContext(ctx.Request.Context(), `
-		select diary_entries.id, title, body, who_posted_user_id, users.name as posted_by_user_name, diary_entries.created_at, label, count(diary_entry_pictures.id) as picture_count
+		select diary_entries.id, title, body, who_posted_user_id, users.name as posted_by_user_name, diary_entries.created_at, label,
+		       count(distinct diary_entry_pictures.id) as picture_count,
+		       count(distinct diary_entry_recordings.id) as recording_count
 		from diary_entries
 		left join users on users.id = diary_entries.who_posted_user_id
 		left join diary_entry_pictures on diary_entry_pictures.diary_entry_id = diary_entries.id
+		left join diary_entry_recordings on diary_entry_recordings.diary_entry_id = diary_entries.id
 		where diary_entries.id = $1
 		group by diary_entries.id, users.name
 	`, entryId)
@@ -328,8 +352,20 @@ func UpdateDiaryEntry(ctx *gin.Context) {
 			return
 		}
 
-		if _, err := attachFilesToDiaryEntry(ctx, tx, entryId, updateDiaryEntryRequest.PictureFileIDs); err != nil {
+		if _, err := attachPictureFilesToDiaryEntry(ctx, tx, entryId, updateDiaryEntryRequest.PictureFileIDs); err != nil {
 			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry picture files"))
+			return
+		}
+	}
+
+	if DoesMaskHaveField(updateDiaryEntryRequest.Mask, "recordingFileIds") {
+		if _, err := tx.ExecContext(ctx.Request.Context(), "delete from diary_entry_recordings where diary_entry_id = $1", entryId); err != nil {
+			ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to update diary entry recordings"))
+			return
+		}
+
+		if _, err := attachRecordingFilesToDiaryEntry(ctx, tx, entryId, updateDiaryEntryRequest.RecordingFileIDs); err != nil {
+			ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "Invalid diary entry recording files"))
 			return
 		}
 	}
@@ -395,6 +431,11 @@ func DeleteDiaryEntry(ctx *gin.Context) {
 		from files
 		join diary_entry_pictures on diary_entry_pictures.file_id = files.id
 		where diary_entry_pictures.diary_entry_id = $1
+		union
+		select files.id, files.content_hash
+		from files
+		join diary_entry_recordings on diary_entry_recordings.file_id = files.id
+		where diary_entry_recordings.diary_entry_id = $1
 	`, entryId)
 
 	if err != nil {
@@ -425,6 +466,13 @@ func DeleteDiaryEntry(ctx *gin.Context) {
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to delete diary entry pictures"))
+		return
+	}
+
+	_, err = tx.ExecContext(ctx.Request.Context(), "delete from diary_entry_recordings where diary_entry_id = $1", entryId)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, CreateErrorResponse(InternalServerError, "Failed to delete diary entry recordings"))
 		return
 	}
 
@@ -482,7 +530,7 @@ func uniquePositiveInts(values []int) []int {
 	return result
 }
 
-func attachFilesToDiaryEntry(ctx *gin.Context, tx *sql.Tx, entryId int, fileIDs []int) (int, error) {
+func attachPictureFilesToDiaryEntry(ctx *gin.Context, tx *sql.Tx, entryId int, fileIDs []int) (int, error) {
 	userSession := GetUserSessionFromContext(ctx)
 	uniqueFileIDs := uniquePositiveInts(fileIDs)
 
@@ -516,9 +564,47 @@ func attachFilesToDiaryEntry(ctx *gin.Context, tx *sql.Tx, entryId int, fileIDs 
 	return len(uniqueFileIDs), nil
 }
 
+func attachRecordingFilesToDiaryEntry(ctx *gin.Context, tx *sql.Tx, entryId int, fileIDs []int) (int, error) {
+	userSession := GetUserSessionFromContext(ctx)
+	uniqueFileIDs := uniquePositiveInts(fileIDs)
+
+	for _, fileID := range uniqueFileIDs {
+		var exists bool
+		if err := tx.QueryRowContext(ctx.Request.Context(), `
+			select exists(
+				select 1
+				from files
+				where id = $1
+					and uploaded_by_user_id = $2
+					and (content_type like 'audio/%' or content_type = 'video/webm')
+			)
+		`, fileID, userSession.UserID).Scan(&exists); err != nil {
+			return 0, err
+		}
+
+		if !exists {
+			return 0, errors.New("file not found")
+		}
+
+		if _, err := tx.ExecContext(ctx.Request.Context(), `
+			insert into diary_entry_recordings (diary_entry_id, file_id)
+			values ($1, $2)
+			on conflict do nothing
+		`, entryId, fileID); err != nil {
+			return 0, err
+		}
+	}
+
+	return len(uniqueFileIDs), nil
+}
+
 func deleteFileRecordIfNoDiaryReferences(ctx *gin.Context, tx *sql.Tx, fileID int) error {
 	var referenceCount int
-	if err := tx.QueryRowContext(ctx.Request.Context(), "select count(*) from diary_entry_pictures where file_id = $1", fileID).Scan(&referenceCount); err != nil {
+	if err := tx.QueryRowContext(ctx.Request.Context(), `
+		select
+			(select count(*) from diary_entry_pictures where file_id = $1) +
+			(select count(*) from diary_entry_recordings where file_id = $1)
+	`, fileID).Scan(&referenceCount); err != nil {
 		return err
 	}
 
@@ -761,15 +847,42 @@ func DeleteDiaryEntryPicture(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
+func UploadDiaryRecording(ctx *gin.Context) {
+	db := GetDBFromContext(ctx)
+	userSession := GetUserSessionFromContext(ctx)
+
+	fileHeader, err := ctx.FormFile("recording")
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, CreateErrorResponse(InvalidInput, "No recording provided"))
+		return
+	}
+
+	storedFile, routeErr := storeUploadedFile(ctx.Request.Context(), db, userSession.UserID, fileHeader, storeUploadedFileOptions{
+		AllowedContentTypePrefixes: []string{"audio/"},
+		AllowedContentTypes:        []string{"video/webm"},
+		MaxFileSize:                maxDiaryRecordingFileSize,
+	})
+	if routeErr != nil {
+		ctx.JSON(routeErr.status, CreateErrorResponse(routeErr.code, routeErr.message))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, fileResponse(storedFile))
+}
+
 func GetDiaryEntries(ctx *gin.Context) {
 	db := GetDBFromContext(ctx)
 	offset, limit := GetOffsetAndLimit(ctx, 0, 30)
 
 	rows, err := db.QueryContext(ctx.Request.Context(), `
-		select diary_entries.id, title, body, who_posted_user_id, users.name as posted_by_user_name, diary_entries.created_at, label, count(diary_entry_pictures.id) as picture_count
+		select diary_entries.id, title, body, who_posted_user_id, users.name as posted_by_user_name, diary_entries.created_at, label,
+		       count(distinct diary_entry_pictures.id) as picture_count,
+		       count(distinct diary_entry_recordings.id) as recording_count
 		from diary_entries
 		left join users on users.id = diary_entries.who_posted_user_id
 		left join diary_entry_pictures on diary_entry_pictures.diary_entry_id = diary_entries.id
+		left join diary_entry_recordings on diary_entry_recordings.diary_entry_id = diary_entries.id
 		group by diary_entries.id, users.name
 		order by diary_entries.created_at desc
 		offset $1 limit $2

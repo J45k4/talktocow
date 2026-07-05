@@ -33,12 +33,12 @@ sudo journalctl -u talktocow-frontend -f
 
 ## nginx reverse proxy
 
-If Talktocow is served through nginx, raise nginx's default request body limit so browser image uploads can reach the backend. The app still enforces its own per-file upload limit.
+If Talktocow is served through nginx, raise nginx's default request body limit so browser image and recording uploads can reach the backend. The app still enforces its own per-file upload limits.
 
 Use `deploy/nginx-talktocow.conf` as a starting point, or add this inside the HTTPS `server` block:
 
 ```nginx
-client_max_body_size 16m;
+client_max_body_size 80m;
 ```
 
 Then validate and reload nginx:

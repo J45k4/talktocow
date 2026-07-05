@@ -24,7 +24,7 @@ import {
     Spread
 } from "lexical"
 import { postFormData } from "../../api-methods"
-import { DiaryImageSize, diaryFileImageUrl, diaryImageSource, diaryImageVariantUrl } from "./diary-image-source"
+import { DiaryImageSize, diaryFileImageUrl, diaryFileUrl, diaryImageSource, diaryImageVariantUrl } from "./diary-image-source"
 import {
     DIARY_RICH_TEXT_DOCUMENT_VERSION,
     DiaryRichTextBlock,
@@ -48,9 +48,22 @@ export type DiaryInlineImage = {
     url: string
 }
 
+export type DiaryInlineAudio = {
+    durationMs?: number
+    fileId: number
+    fileName: string
+}
+
 type SerializedDiaryImageNode = Spread<{
     alt: string
     fileId: number
+    src: string
+}, SerializedLexicalNode>
+
+type SerializedDiaryAudioNode = Spread<{
+    durationMs?: number
+    fileId: number
+    fileName: string
     src: string
 }, SerializedLexicalNode>
 
@@ -140,6 +153,116 @@ function $createDiaryImageNode(payload: {
     src: string
 }): DiaryImageNode {
     return $applyNodeReplacement(new DiaryImageNode(payload.fileId, payload.src, payload.alt))
+}
+
+export class DiaryAudioNode extends DecoratorNode<React.ReactNode> {
+    __durationMs?: number
+    __fileId: number
+    __fileName: string
+    __src: string
+
+    static getType(): string {
+        return "diary-audio"
+    }
+
+    static clone(node: DiaryAudioNode): DiaryAudioNode {
+        return new DiaryAudioNode(node.__fileId, node.__src, node.__fileName, node.__durationMs, node.__key)
+    }
+
+    static importJSON(serializedNode: SerializedDiaryAudioNode): DiaryAudioNode {
+        return $createDiaryAudioNode({
+            durationMs: serializedNode.durationMs,
+            fileId: serializedNode.fileId,
+            fileName: serializedNode.fileName,
+            src: serializedNode.src
+        })
+    }
+
+    constructor(fileId: number, src: string, fileName: string, durationMs?: number, key?: NodeKey) {
+        super(key)
+        this.__durationMs = durationMs
+        this.__fileId = fileId
+        this.__fileName = fileName
+        this.__src = src
+    }
+
+    exportJSON(): SerializedDiaryAudioNode {
+        return {
+            durationMs: this.__durationMs,
+            fileId: this.__fileId,
+            fileName: this.__fileName,
+            src: this.__src,
+            type: "diary-audio",
+            version: 1
+        }
+    }
+
+    createDOM(_config: EditorConfig): HTMLElement {
+        const element = document.createElement("figure")
+        element.className = styles.audioFrame
+        return element
+    }
+
+    updateDOM(): false {
+        return false
+    }
+
+    decorate(editor: LexicalEditor, _config: EditorConfig): React.ReactNode {
+        return <EditableDiaryAudio editor={editor} nodeKey={this.__key} fileName={this.__fileName} fileId={this.__fileId} durationMs={this.__durationMs} />
+    }
+}
+
+function formatAudioDuration(durationMs?: number) {
+    if (!durationMs || durationMs < 1000) {
+        return ""
+    }
+
+    const totalSeconds = Math.round(durationMs / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`
+}
+
+function EditableDiaryAudio(props: {
+    durationMs?: number
+    editor: LexicalEditor
+    fileId: number
+    fileName: string
+    nodeKey: NodeKey
+}) {
+    const removeAudio = () => {
+        props.editor.update(() => {
+            $getNodeByKey(props.nodeKey)?.remove()
+        })
+    }
+
+    return (
+        <div className={styles.editableAudioFrame}>
+            <div className={styles.audioMeta}>
+                <span>{props.fileName}</span>
+                {props.durationMs && <span>{formatAudioDuration(props.durationMs)}</span>}
+            </div>
+            <audio className={styles.audioPlayer} controls preload="metadata" src={diaryImageSource(diaryFileUrl(props.fileId))} />
+            <button
+                aria-label="Remove recording"
+                className={styles.removeAudioButton}
+                onClick={removeAudio}
+                title="Remove recording"
+                type="button">
+                ×
+            </button>
+        </div>
+    )
+}
+
+function $createDiaryAudioNode(payload: {
+    durationMs?: number
+    fileId: number
+    fileName: string
+    src: string
+}): DiaryAudioNode {
+    return $applyNodeReplacement(new DiaryAudioNode(payload.fileId, payload.src, payload.fileName, payload.durationMs))
 }
 
 const maxImageDimension = 1600
@@ -352,6 +475,17 @@ const lexicalStateFromDiaryDocument = (document: DiaryRichTextDocument) => {
             }
         }
 
+        if (block.type === "audio") {
+            return {
+                durationMs: block.durationMs,
+                fileId: block.fileId,
+                fileName: block.fileName ?? "Diary recording",
+                src: diaryFileUrl(block.fileId),
+                type: "diary-audio",
+                version: 1
+            }
+        }
+
         return createParagraphNode(inlineNodesToLexicalChildren(block.children))
     })
 
@@ -400,6 +534,15 @@ const blocksFromLexicalNode = (node: any): DiaryRichTextBlock[] => {
             type: "image",
             fileId: node.fileId,
             alt: node.alt || undefined
+        }]
+    }
+
+    if (node?.type === "diary-audio" && typeof node.fileId === "number") {
+        return [{
+            type: "audio",
+            fileId: node.fileId,
+            fileName: node.fileName || undefined,
+            durationMs: typeof node.durationMs === "number" ? node.durationMs : undefined
         }]
     }
 
@@ -464,7 +607,7 @@ const inlineNodesFromPlainText = (text: string): DiaryRichTextInlineNode[] => {
     })
 }
 
-const createDiaryDocumentFromPlainTextAndImages = (text: string, images: DiaryInlineImage[]): DiaryRichTextDocument => ({
+const createDiaryDocumentFromPlainTextImagesAndAudio = (text: string, images: DiaryInlineImage[], audio: DiaryInlineAudio[] = []): DiaryRichTextDocument => ({
     version: DIARY_RICH_TEXT_DOCUMENT_VERSION,
     content: [
         {
@@ -475,11 +618,17 @@ const createDiaryDocumentFromPlainTextAndImages = (text: string, images: DiaryIn
             type: "image" as const,
             fileId: image.fileId,
             alt: image.fileName
+        })),
+        ...audio.map(recording => ({
+            type: "audio" as const,
+            durationMs: recording.durationMs,
+            fileId: recording.fileId,
+            fileName: recording.fileName
         }))
     ]
 })
 
-const diaryDocumentFromBody = (body?: string | null, images: DiaryInlineImage[] = []): DiaryRichTextDocument => {
+const diaryDocumentFromBody = (body?: string | null, images: DiaryInlineImage[] = [], audio: DiaryInlineAudio[] = []): DiaryRichTextDocument => {
     const parsed = parseJsonObject(body)
 
     if (isDiaryRichTextDocumentValue(parsed)) {
@@ -490,11 +639,15 @@ const diaryDocumentFromBody = (body?: string | null, images: DiaryInlineImage[] 
         return diaryDocumentFromLexicalState(parsed)
     }
 
-    return createDiaryDocumentFromPlainTextAndImages(body ?? "", images)
+    return createDiaryDocumentFromPlainTextImagesAndAudio(body ?? "", images, audio)
 }
 
 export const createDiaryBodyFromPlainTextAndImages = (text: string, images: DiaryInlineImage[]) => {
-    return JSON.stringify(createDiaryDocumentFromPlainTextAndImages(text, images))
+    return JSON.stringify(createDiaryDocumentFromPlainTextImagesAndAudio(text, images))
+}
+
+export const createDiaryBodyFromPlainTextImagesAndAudio = (text: string, images: DiaryInlineImage[], audio: DiaryInlineAudio[]) => {
+    return JSON.stringify(createDiaryDocumentFromPlainTextImagesAndAudio(text, images, audio))
 }
 
 const createInitialEditorState = (value: string, images: DiaryInlineImage[]) => {
@@ -773,7 +926,7 @@ export function DiaryLexicalEditor(props: {
         editable: true,
         editorState: createInitialEditorState(props.value, props.initialImages ?? []),
         namespace: "DiaryEditor",
-        nodes: [DiaryImageNode, HeadingNode],
+        nodes: [DiaryAudioNode, DiaryImageNode, HeadingNode],
         onError(error: Error) {
             throw error
         },
@@ -806,6 +959,12 @@ export const getDiaryBodyFileIds = (body: string) => {
         .map(block => block.fileId)))
 }
 
+export const getDiaryBodyRecordingFileIds = (body: string) => {
+    return Array.from(new Set(diaryDocumentFromBody(body).content
+        .filter((block): block is Extract<DiaryRichTextBlock, { type: "audio" }> => block.type === "audio")
+        .map(block => block.fileId)))
+}
+
 export const hasDiaryBodyContent = (body?: string | null) => {
     if (!body) {
         return false
@@ -816,7 +975,7 @@ export const hasDiaryBodyContent = (body?: string | null) => {
     }
 
     return diaryDocumentFromBody(body).content.some(block => {
-        if (block.type === "image") {
+        if (block.type === "audio" || block.type === "image") {
             return true
         }
 
@@ -848,6 +1007,32 @@ const renderInlineNode = (node: DiaryRichTextInlineNode, key: string) => {
 
 const diaryEntryPictureImageUrl = (entryId: number, pictureId: number, size: DiaryImageSize) => {
     return diaryImageVariantUrl(`/api/diary/entry/${entryId}/picture/${pictureId}`, size)
+}
+
+function ReadonlyDiaryAudio(props: {
+    durationMs?: number
+    fileId: number
+    fileName?: string
+    isCompact?: boolean
+}) {
+    if (props.isCompact) {
+        return (
+            <div className={styles.compactAudioBlock}>
+                <span>Recording</span>
+                {props.durationMs && <span>{formatAudioDuration(props.durationMs)}</span>}
+            </div>
+        )
+    }
+
+    return (
+        <figure className={styles.readonlyAudioFrame}>
+            <div className={styles.audioMeta}>
+                <span>{props.fileName ?? "Diary recording"}</span>
+                {props.durationMs && <span>{formatAudioDuration(props.durationMs)}</span>}
+            </div>
+            <audio className={styles.audioPlayer} controls preload="metadata" src={diaryImageSource(diaryFileUrl(props.fileId))} />
+        </figure>
+    )
 }
 
 function ReadonlyDiaryImage(props: {
@@ -912,6 +1097,10 @@ const renderBlock = (block: DiaryRichTextBlock, key: string, options: {
                 ) : image}
             </figure>
         )
+    }
+
+    if (block.type === "audio") {
+        return <ReadonlyDiaryAudio durationMs={block.durationMs} fileId={block.fileId} fileName={block.fileName} isCompact={options.isCompact} key={key} />
     }
 
     const children = block.children.map((child, index) => renderInlineNode(child, `${key}-${index}`))

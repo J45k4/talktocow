@@ -42,6 +42,25 @@
     box-shadow: 0 8px 18px rgba(91, 43, 130, 0.22);
 }
 
+.recordEntryButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 999px;
+    background: #0f766e;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.2);
+}
+
+.recordEntryButton:hover {
+    background: #115e59;
+}
+
 .newEntryButton:hover {
     background: #4a226d;
 }
@@ -357,6 +376,42 @@
     opacity: 0.65;
 }
 
+.recordingModal {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: min(360px, 78vw);
+}
+
+.recordingTimer {
+    color: #202733;
+    font-size: 52px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+}
+
+.recordingStatus {
+    color: #4b5563;
+    font-size: 15px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.recordingActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.recordingActions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
 @media (max-width: 640px) {
     .entryPage {
         padding: 12px;
@@ -382,6 +437,10 @@
     }
 
     .draftActions {
+        flex-direction: column;
+    }
+
+    .recordingActions {
         flex-direction: column;
     }
 }

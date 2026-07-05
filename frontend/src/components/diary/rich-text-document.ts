@@ -34,10 +34,18 @@ export type DiaryRichTextImageBlock = {
     alt?: string
 }
 
+export type DiaryRichTextAudioBlock = {
+    type: "audio"
+    fileId: number
+    fileName?: string
+    durationMs?: number
+}
+
 export type DiaryRichTextBlock =
     | DiaryRichTextParagraphBlock
     | DiaryRichTextHeadingBlock
     | DiaryRichTextImageBlock
+    | DiaryRichTextAudioBlock
 
 export type DiaryRichTextDocument = {
     version: DiaryRichTextDocumentVersion

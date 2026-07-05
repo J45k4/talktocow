@@ -149,7 +149,9 @@
 }
 
 .imageFrame,
-.readonlyImageFrame {
+.readonlyImageFrame,
+.readonlyAudioFrame,
+.audioFrame {
     margin: 14px 0;
 }
 
@@ -180,6 +182,60 @@
 }
 
 .removeImageButton:hover {
+    background: rgba(146, 28, 28, 0.92);
+}
+
+.editableAudioFrame,
+.readonlyAudioFrame {
+    position: relative;
+    max-width: min(100%, 680px);
+    padding: 12px;
+    border: 1px solid #d8d2e2;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.editableAudioFrame {
+    display: inline-block;
+    width: min(100%, 680px);
+}
+
+.audioMeta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.audioPlayer {
+    display: block;
+    width: 100%;
+}
+
+.removeAudioButton {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(32, 39, 51, 0.82);
+    color: #fff;
+    cursor: pointer;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.removeAudioButton:hover {
     background: rgba(146, 28, 28, 0.92);
 }
 
@@ -280,4 +336,18 @@
     height: 56px;
     border-radius: 8px;
     object-fit: cover;
+}
+
+.compactAudioBlock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 6px 0 0;
+    padding: 5px 8px;
+    border: 1px solid #d8d2e2;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 800;
 }

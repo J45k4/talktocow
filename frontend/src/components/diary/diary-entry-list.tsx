@@ -22,7 +22,7 @@ export const DiaryEntryList = () => {
         ])
 
         const newEntries = entriesResponse.payload ?? []
-        const entriesWithContent = newEntries.filter(entry => hasDiaryBodyContent(entry.body) || (entry.pictureCount ?? 0) > 0)
+        const entriesWithContent = newEntries.filter(entry => hasDiaryBodyContent(entry.body) || (entry.pictureCount ?? 0) > 0 || (entry.recordingCount ?? 0) > 0)
 
         setEntries(entriesWithContent)
         setOffset(newEntries.length)
@@ -43,7 +43,7 @@ export const DiaryEntryList = () => {
 
                         getJson<any>("/api/diary/entries?offset=" + offset).then(r => {
                             const newEntries = r.payload ?? []
-                            const entriesWithContent = newEntries.filter(entry => hasDiaryBodyContent(entry.body) || (entry.pictureCount ?? 0) > 0)
+                            const entriesWithContent = newEntries.filter(entry => hasDiaryBodyContent(entry.body) || (entry.pictureCount ?? 0) > 0 || (entry.recordingCount ?? 0) > 0)
                             setEntries([...entries, ...entriesWithContent])
                             setOffset(offset + newEntries.length)
                         })

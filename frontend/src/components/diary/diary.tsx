@@ -2,6 +2,7 @@ import { FaPlus } from "react-icons/fa"
 import React from "react"
 import { useNavigate } from "react-router-dom"
 import { DiaryEntryList } from "./diary-entry-list"
+import { DiaryRecorder } from "./diary-recorder"
 import styles from "./diary.module.css"
 
 export const Diary = () => {
@@ -11,6 +12,7 @@ export const Diary = () => {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div className={styles.addButtonArea}>
+                    <DiaryRecorder />
                     <button className={styles.newEntryButton} onClick={() => {
                         navigate("/diary/new")
                     }}>

@@ -28,6 +28,7 @@ import (
 )
 
 const maxUploadedFileSize = 8 * 1024 * 1024
+const maxDiaryRecordingFileSize = 64 * 1024 * 1024
 const imageVariantJPEGQuality = 86
 const imageVariantCacheVersion = "v2"
 
@@ -65,6 +66,9 @@ type fileRouteError struct {
 
 type storeUploadedFileOptions struct {
 	AllowedContentTypePrefixes []string
+	AllowedContentTypes        []string
+	MaxFileSize                int64
+	TrustedHeaderPrefixes      []string
 }
 
 type uploadedFileData struct {
@@ -561,8 +565,13 @@ func getStoredFileByDiaryPictureID(ctx context.Context, db *sql.DB, pictureID in
 }
 
 func readUploadedFile(fileHeader *multipart.FileHeader, options storeUploadedFileOptions) (uploadedFileData, *fileRouteError) {
-	if fileHeader.Size > maxUploadedFileSize {
-		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "File must be 8 MB or smaller"}
+	maxFileSize := options.MaxFileSize
+	if maxFileSize <= 0 {
+		maxFileSize = maxUploadedFileSize
+	}
+
+	if fileHeader.Size > maxFileSize {
+		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: fileSizeLimitMessage(maxFileSize)}
 	}
 
 	file, err := fileHeader.Open()
@@ -571,16 +580,16 @@ func readUploadedFile(fileHeader *multipart.FileHeader, options storeUploadedFil
 	}
 	defer file.Close()
 
-	data, err := io.ReadAll(io.LimitReader(file, maxUploadedFileSize+1))
+	data, err := io.ReadAll(io.LimitReader(file, maxFileSize+1))
 	if err != nil {
 		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Could not read file"}
 	}
 
-	if len(data) > maxUploadedFileSize {
-		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "File must be 8 MB or smaller"}
+	if int64(len(data)) > maxFileSize {
+		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: fileSizeLimitMessage(maxFileSize)}
 	}
 
-	contentType := http.DetectContentType(data)
+	contentType := detectedUploadedContentType(data, fileHeader, options)
 	fileName := fileHeader.Filename
 
 	if isHEIFFileName(fileName) || isHEIFData(data) {
@@ -594,22 +603,100 @@ func readUploadedFile(fileHeader *multipart.FileHeader, options storeUploadedFil
 		fileName = convertedFileName
 	}
 
-	if len(options.AllowedContentTypePrefixes) > 0 {
-		allowed := false
-
-		for _, prefix := range options.AllowedContentTypePrefixes {
-			if strings.HasPrefix(contentType, prefix) {
-				allowed = true
-				break
-			}
-		}
-
-		if !allowed {
-			return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Unsupported file type"}
-		}
+	if !contentTypeAllowed(contentType, options) {
+		return uploadedFileData{}, &fileRouteError{status: http.StatusBadRequest, code: InvalidInput, message: "Unsupported file type"}
 	}
 
 	return uploadedFileData{ContentType: contentType, Data: data, FileName: fileName}, nil
+}
+
+func fileSizeLimitMessage(maxFileSize int64) string {
+	limitMB := maxFileSize / (1024 * 1024)
+	return "File must be " + strconv.FormatInt(limitMB, 10) + " MB or smaller"
+}
+
+func normalizedContentType(contentType string) string {
+	contentType = strings.ToLower(strings.TrimSpace(contentType))
+	if semicolonIndex := strings.Index(contentType, ";"); semicolonIndex >= 0 {
+		contentType = strings.TrimSpace(contentType[:semicolonIndex])
+	}
+
+	return contentType
+}
+
+func isWebMData(data []byte) bool {
+	return len(data) >= 4 && data[0] == 0x1a && data[1] == 0x45 && data[2] == 0xdf && data[3] == 0xa3
+}
+
+func isOggData(data []byte) bool {
+	return len(data) >= 4 && string(data[:4]) == "OggS"
+}
+
+func isWAVData(data []byte) bool {
+	return len(data) >= 12 && string(data[:4]) == "RIFF" && string(data[8:12]) == "WAVE"
+}
+
+func isMP4Data(data []byte) bool {
+	return len(data) >= 12 && string(data[4:8]) == "ftyp"
+}
+
+func detectedUploadedContentType(data []byte, fileHeader *multipart.FileHeader, options storeUploadedFileOptions) string {
+	detectedContentType := normalizedContentType(http.DetectContentType(data))
+	headerContentType := normalizedContentType(fileHeader.Header.Get("Content-Type"))
+
+	if isWebMData(data) {
+		if headerContentType == "audio/webm" || headerContentType == "video/webm" {
+			return headerContentType
+		}
+
+		return "audio/webm"
+	}
+
+	if isOggData(data) {
+		return "audio/ogg"
+	}
+
+	if isWAVData(data) {
+		return "audio/wav"
+	}
+
+	if isMP4Data(data) && strings.HasPrefix(headerContentType, "audio/") {
+		return headerContentType
+	}
+
+	if detectedContentType == "application/octet-stream" && contentTypeAllowedByPrefixes(headerContentType, options.TrustedHeaderPrefixes) {
+		return headerContentType
+	}
+
+	return detectedContentType
+}
+
+func contentTypeAllowedByPrefixes(contentType string, prefixes []string) bool {
+	if contentType == "" {
+		return false
+	}
+
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(contentType, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func contentTypeAllowed(contentType string, options storeUploadedFileOptions) bool {
+	if len(options.AllowedContentTypes) == 0 && len(options.AllowedContentTypePrefixes) == 0 {
+		return true
+	}
+
+	for _, allowedContentType := range options.AllowedContentTypes {
+		if contentType == allowedContentType {
+			return true
+		}
+	}
+
+	return contentTypeAllowedByPrefixes(contentType, options.AllowedContentTypePrefixes)
 }
 
 func storeUploadedFile(ctx context.Context, db *sql.DB, uploadedByUserID int32, fileHeader *multipart.FileHeader, options storeUploadedFileOptions) (StoredFile, *fileRouteError) {
@@ -749,9 +836,11 @@ func DeleteFile(ctx *gin.Context) {
 	var contentHash string
 
 	err = db.QueryRowContext(ctx.Request.Context(), `
-		select files.uploaded_by_user_id, files.content_hash, count(diary_entry_pictures.id)
+		select files.uploaded_by_user_id, files.content_hash,
+		       count(distinct diary_entry_pictures.id) + count(distinct diary_entry_recordings.id)
 		from files
 		left join diary_entry_pictures on diary_entry_pictures.file_id = files.id
+		left join diary_entry_recordings on diary_entry_recordings.file_id = files.id
 		where files.id = $1
 		group by files.id
 	`, fileID).Scan(&uploadedByUserID, &contentHash, &diaryReferenceCount)

@@ -62,7 +62,7 @@ it("falls back to attached diary picture route when a rich body image points at 
     )
 
     const image = await screen.findByAltText("IMG_4719.jpg") as HTMLImageElement
-    expect(image.getAttribute("src")).toBe("/api/files/999?size=medium")
+    expect(image.getAttribute("src")).toBe("http://localhost:12001/api/files/999?size=medium")
 
     await waitFor(() => {
         expect(screen.getByText("By teemu")).toBeTruthy()
@@ -71,6 +71,6 @@ it("falls back to attached diary picture route when a rich body image points at 
     fireEvent.error(image)
 
     await waitFor(() => {
-        expect(image.getAttribute("src")).toBe("/api/diary/entry/77/picture/29?size=medium")
+        expect(image.getAttribute("src")).toBe("http://localhost:12001/api/diary/entry/77/picture/29?size=medium")
     })
 })
